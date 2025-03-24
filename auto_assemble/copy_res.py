@@ -1,0 +1,728 @@
+import os
+import shutil
+import zipfile
+import patoolib
+import subprocess
+import logging
+import sys
+from datetime import datetime
+from typing import Optional, Tuple
+from .config import config
+from .parse_readme import parse_readme
+import xml.etree.ElementTree as ET
+import sys
+import shutil
+from xml.dom import minidom  # 用于格式化 XML
+import re
+
+
+def setup_logging():
+    """
+    配置日志系统
+    - 每次运行前清空日志文件
+    - 设置日志格式和输出
+    """
+    # 如果日志文件存在，则删除
+    if os.path.exists(config.LOG_FILE):
+        os.remove(config.LOG_FILE)
+
+    # 配置日志
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(config.LOG_FILE, encoding="utf-8"),
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+    logging.info("=" * 50)
+    logging.info("开始执行更新流程")
+    logging.info("=" * 50)
+
+
+def get_git_info(repo_path: str) -> Tuple[str, str, str]:
+    """
+    获取Git仓库信息
+    Args:
+        repo_path: Git仓库路径
+    Returns:
+        Tuple[str, str, str]: (最后提交时间, 最后提交人, 最后提交信息)
+    """
+    try:
+        # 获取最后一次提交信息
+        last_commit = subprocess.run(
+            [
+                "git",
+                "log",
+                "-1",
+                "--format=%cd,%an,%s",
+                "--date=format:%Y-%m-%d %H:%M:%S",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",  # 指定编码为utf-8
+            cwd=repo_path,
+        )
+        if last_commit.returncode == 0:
+            commit_date, author, message = last_commit.stdout.strip().split(",", 2)
+            return commit_date, author, message
+    except Exception as e:
+        logging.error(f"获取Git信息失败: {e}")
+    return "", "", ""
+
+
+def check_dependencies():
+    """
+    检查必要的依赖是否已安装
+    Raises:
+        ImportError: 当缺少必要的依赖时抛出
+    """
+    try:
+        import rarfile
+        import zipfile
+    except ImportError as e:
+        logging.error(f"缺少必要的依赖: {e}")
+        raise
+
+
+def check_paths():
+    """
+    检查必要的路径是否存在
+    Raises:
+        FileNotFoundError: 当必要的路径不存在时抛出
+    """
+    paths_to_check = {
+        "仓库路径": config.DISTRIBUTION_PATH,
+        "应用目录": config.APPS_DIRECTORY,
+        "Gradle文件": config.BUILD_GRADLE_PATH,
+    }
+
+    for name, path in paths_to_check.items():
+        if not os.path.exists(path):
+            error_msg = f"{name}不存在: {path}"
+            logging.error(error_msg)
+            raise FileNotFoundError(error_msg)
+
+
+def sync_repository(repo_path: str) -> bool:
+    """
+    同步Git仓库到最新状态
+    Args:
+        repo_path: Git仓库路径
+    Returns:
+        bool: 同步是否成功
+    """
+    try:
+        os.chdir(repo_path)
+
+        # 获取更新前的提交信息
+        before_date, before_author, before_message = get_git_info(repo_path)
+        if before_date:
+            logging.info(
+                f"当前版本 - 提交时间: {before_date}, 提交人: {before_author}, 提交信息: {before_message}"
+            )
+
+        # 检查远程是否有更新
+        fetch_result = subprocess.run(
+            ["git", "fetch"], capture_output=True, text=True, encoding="utf-8"
+        )
+        if fetch_result.returncode != 0:
+            logging.error(f"Git fetch失败: {fetch_result.stderr}")
+            return False
+
+        # 检查是否需要更新
+        status = subprocess.run(
+            ["git", "status", "-uno"], capture_output=True, text=True, encoding="utf-8"
+        )
+        if "Your branch is up to date" in status.stdout:
+            logging.info("本地代码已是最新版本，无需更新")
+            return True
+
+        # 执行更新
+        result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
+        if result.returncode == 0:
+            # 获取更新后的提交信息
+            after_date, after_author, after_message = get_git_info(repo_path)
+            if after_date:
+                logging.info(f"更新成功 - 新版本信息:")
+                logging.info(f"提交时间: {after_date}")
+                logging.info(f"提交人: {after_author}")
+                logging.info(f"提交信息: {after_message}")
+            return True
+        else:
+            logging.error(f"Git仓库同步失败: {result.stderr}")
+            return False
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Git命令执行失败: {e}")
+        return False
+    except Exception as e:
+        logging.error(f"同步仓库时发生错误: {e}")
+        return False
+
+
+def find_latest_directory(base_path: str) -> str:
+    """
+    查找最新的目录（基于时间戳命名）
+    Args:
+        base_path: 基础路径
+    Returns:
+        最新目录的完整路径
+    Raises:
+        ValueError: 当没有找到符合条件的目录时抛出
+    """
+    try:
+        directories = [
+            d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))
+        ]
+        if not directories:
+            raise ValueError(f"在 {base_path} 中没有找到目录")
+
+        latest_dir = max(directories, key=lambda d: datetime.strptime(d, "%Y%m%d%H%M"))
+        latest_path = os.path.join(base_path, latest_dir)
+        logging.info(f"找到最新目录: {latest_path}")
+        return latest_path
+    except ValueError as e:
+        logging.error(f"查找最新目录失败: {e}")
+        raise
+
+
+def find_compressed_file(directory: str) -> Optional[str]:
+    """
+    在指定目录中查找压缩文件（.zip或.rar）
+    Args:
+        directory: 要搜索的目录
+    Returns:
+        压缩文件的完整路径，如果未找到则返回None
+    """
+    try:
+        for file in os.listdir(directory):
+            if file.endswith((".zip", ".rar")):
+                file_path = os.path.join(directory, file)
+                logging.info(f"找到压缩文件: {file_path}")
+                return file_path
+        logging.warning(f"在 {directory} 中未找到压缩文件")
+        return None
+    except Exception as e:
+        logging.error(f"查找压缩文件时发生错误: {e}")
+        return None
+
+
+def clear_directory(directory: str) -> bool:
+    """
+    清空指定目录中的所有文件和子目录
+    Args:
+        directory: 要清空的目录
+    Returns:
+        bool: 清空是否成功
+    """
+    try:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        logging.info(f"成功清空目录: {directory}")
+        return True
+    except Exception as e:
+        logging.error(f"清空目录时发生错误: {e}")
+        return False
+
+
+def extract_compressed_file(compressed_file: str, extract_to: str) -> bool:
+    """
+    解压文件到指定目录
+    Args:
+        compressed_file: 压缩文件路径
+        extract_to: 解压目标目录
+    Returns:
+        bool: 解压是否成功
+    """
+    try:
+        patoolib.extract_archive(compressed_file, outdir=extract_to)
+        logging.info(f"成功解压文件到: {extract_to}")
+        return True
+    except Exception as e:
+        logging.error(f"解压文件时发生错误: {e}")
+        return False
+
+
+def update_build_gradle(
+    build_gradle_path: str,
+    new_req_date: str,
+    version_info: dict,
+) -> bool:
+    """
+    更新build.gradle文件中的reqDate变量和版本信息，
+    如果version_info中包含hbx_version，则更新hbx_version，
+    如果version_info中包含version_name，则更新versionName，
+    如果version_info中包含version_code，则更新versionCode，
+    如果version_info中包含uniapp_id，则更新uniapp_id，
+    如果version_info中包含uniapp_key，则更新uniapp_key，
+    如果version_info中包含third_party_config，则更新third_party_config。
+
+    Args:
+        build_gradle_path: build.gradle文件路径
+        new_req_date: 新的reqDate值
+        version_info: 包含版本信息的字典，可能包含以下键：
+            - version_name: 新的versionName值
+            - version_code: 新的versionCode值
+            - uniapp_id: 新的uniapp_id值
+            - uniapp_key: 新的uniapp_key值
+            - hbx_version: 新的hbx_version值
+            - third_party_config: 新的third_party_config值
+    Returns:
+        bool: 更新是否成功
+    """
+    try:
+        # 从字典中读取版本信息
+        hbx_version = version_info.get("hbx_version", "")
+        version_name = version_info.get("version_name", "")
+        version_code = version_info.get("version_code", "")
+        uniapp_id = version_info.get("uniapp_id", "")
+        uniapp_key = version_info.get("uniapp_key", "")
+        third_party_config = version_info.get("third_party_config", {})
+
+        # 如果设置了hbx_version，需要修改version.toml文件中的hbx_version
+        if hbx_version:
+            # 读取version.toml文件
+            with open(config.VERSIONS_TOML_PATH, "r", encoding="utf-8") as file:
+                lines = file.readlines()
+            # 查找并替换uniSdkVersion
+            for line in lines:
+                if line.strip().startswith("uniSdkVersion = "):
+                    line = f'uniSdkVersion =  "{hbx_version}"\n'
+                    logging.info(f"更新version.toml文件中的uniSdkVersion为: {hbx_version}")
+                    with open(config.VERSIONS_TOML_PATH, "w", encoding="utf-8") as file:
+                        file.write(line)
+
+        # 打开build.gradle文件，根据解析到的版本信息，更新build.gradle文件中的reqDate变量和版本信息
+        with open(build_gradle_path, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        # 查找并记录旧的reqDate值
+        old_req_date = None
+        for line in lines:
+            if line.strip().startswith("def reqDate ="):
+                quote_char = '"' if '"' in line else "'"
+                old_req_date = line[line.index(quote_char) + 1 : line.rindex(quote_char)]
+                logging.info(f"当前reqDate值: {old_req_date}")
+                break
+
+        with open(build_gradle_path, "w", encoding="utf-8") as file:
+            for line in lines:
+                if line.strip().startswith("def reqDate ="):
+                    # 保持原有缩进，只替换引号内的内容
+                    indent = line[: line.index("def")]
+                    quote_char = '"' if '"' in line else "'"
+                    before_value = line[: line.index(quote_char) + 1]
+                    after_value = line[line.rindex(quote_char) :]
+                    file.write(f"{before_value}{new_req_date}{after_value}")
+                elif version_name and line.strip().startswith("versionName"):
+                    # 解析到了versionName，更新 versionName
+                    indent = line[: line.index("versionName")]
+                    quote_char = '"' if '"' in line else "'"
+                    before_value = line[: line.index(quote_char) + 1]
+                    after_value = line[line.rindex(quote_char) :]
+                    file.write(f"{indent}versionName {quote_char}{version_name}{quote_char}\n")
+                elif version_code and line.strip().startswith("versionCode"):
+                    # 解析到了versionCode，更新 versionCode
+                    indent = line[: line.index("versionCode")]
+                    file.write(f"{indent}versionCode {version_code}\n")
+                elif uniapp_id and line.strip().startswith('"DCLOUD_APPID"'):
+                    # 解析到了uniapp_id，修改 manifestPlaceholders 中 DCLOUD_APPID 的值
+                    indent = line[: line.index('"DCLOUD_APPID"')]
+                    file.write(f'{indent}"DCLOUD_APPID"          : "{uniapp_id}",\n')
+                elif uniapp_key and line.strip().startswith('"DCLOUD_APPKEY"'):
+                    # 解析到了uniapp_key，修改 manifestPlaceholders 中 DCLOUD_APPKEY 的值
+                    indent = line[: line.index('"DCLOUD_APPKEY"')]
+                    file.write(f'{indent}"DCLOUD_APPKEY"         : "{uniapp_key}",\n')
+                elif (
+                    third_party_config
+                    and third_party_config.get("wechat")
+                    and third_party_config["wechat"].get("appid")
+                    and line.strip().startswith('"WX_APPID"')
+                ):
+                    # 解析到了wechat的appid，修改 manifestPlaceholders 中 WECHAT_APPID 的值
+                    indent = line[: line.index('"WX_APPID"')]
+                    file.write(
+                        f'{indent}"WX_APPID"              : "{third_party_config["wechat"]["appid"]}",\n'
+                    )
+                elif (
+                    third_party_config
+                    and third_party_config.get("wechat")
+                    and third_party_config["wechat"].get("secret")
+                    and line.strip().startswith('"WX_APPSECRET"')
+                ):
+                    # 解析到了wechat的secret，修改 manifestPlaceholders 中 WX_APPSECRET 的值
+                    indent = line[: line.index('"WX_APPSECRET"')]
+                    file.write(
+                        f'{indent}"WX_SECRET"             : "{third_party_config["wechat"]["secret"]}",\n'
+                    )
+                elif (
+                    third_party_config
+                    and third_party_config.get("amap")
+                    and third_party_config["amap"].get("appkey")
+                    and line.strip().startswith('"AMAP_APIKEY"')
+                ):
+                    # 解析到了amap的appkey，修改 manifestPlaceholders 中 AMAP_APIKEY 的值
+                    indent = line[: line.index('"AMAP_APIKEY"')]
+                    file.write(
+                        f'{indent}"AMAP_APIKEY"           : "{third_party_config["amap"]["appkey"]}",\n'
+                    )
+                elif (
+                    third_party_config
+                    and third_party_config.get("baidu")
+                    and third_party_config["baidu"].get("appkey")
+                    and line.strip().startswith('"BAIDU_MAP_APIKEY"')
+                ):
+                    # 解析到了baidu的appkey，修改 manifestPlaceholders 中 BAIDU_MAP_APIKEY 的值
+                    indent = line[: line.index('"BAIDU_MAP_APIKEY"')]
+                    file.write(
+                        f'{indent}"BAIDU_MAP_APIKEY"       : "{third_party_config["baidu"]["appkey"]}",\n'
+                    )
+                else:
+                    file.write(line)
+
+        logging.info(f"成功更新build.gradle文件，reqDate从 {old_req_date} 更新为 {new_req_date}")
+        if hbx_version:
+            logging.info(f"更新 hbx_version 为: {hbx_version}")
+        if version_name:
+            logging.info(f"更新 versionName 为: {version_name}")
+        if version_code:
+            logging.info(f"更新 versionCode 为: {version_code}")
+        if uniapp_id:
+            logging.info(f"更新 uniapp_id 为: {uniapp_id}")
+        if uniapp_key:
+            logging.info(f"更新 uniapp_key 为: {uniapp_key}")
+        if third_party_config:
+            logging.info(f"更新 third_party_config 为: {third_party_config}")
+        return True
+    except Exception as e:
+        logging.error(f"更新build.gradle文件时发生错误: {e}")
+        return False
+
+
+def update_control_file(control_file_path: str, uniapp_id: str) -> bool:
+    """
+    更新 control 文件中的 uniapp_id，
+    匹配 <app appid="..."> 并修改 appid 的值。
+
+    :param control_file_path: control 文件的路径
+    :param uniapp_id: 要替换的新的 appid
+    :return: 更新成功返回 True，失败返回 False
+    """
+    try:
+        with open(control_file_path, "r", encoding="utf-8") as file:
+            content = file.read()
+
+        # 正则匹配 <app appid="..."> 并替换 appid
+        new_content, count = re.subn(r'(<app\s+appid=")[^"]+(")', rf"\1{uniapp_id}\2", content)
+
+        # 如果没有匹配到内容，返回 False
+        if count == 0:
+            print("未找到匹配的 <app appid>，可能文件格式不正确")
+            return False
+
+        # 写回文件
+        with open(control_file_path, "w", encoding="utf-8") as file:
+            file.write(new_content)
+        logging.info(f"成功更新 control 文件，替换 appid 为: {uniapp_id}")
+        return True
+    except Exception as e:
+        print(f"更新 control 文件失败: {e}")
+        return False
+
+
+def prettify_xml(elem):
+    """格式化 XML 并去除多余空行"""
+    rough_string = ET.tostring(elem, encoding="utf-8")
+    reparsed = minidom.parseString(rough_string)
+    # 过滤掉多余的空行
+    return "\n".join(
+        [line for line in reparsed.toprettyxml(indent="  ").splitlines() if line.strip()]
+    )
+
+
+def update_android_manifest(android_manifest_path: str, permissions: dict) -> bool:
+    """
+    更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）
+
+    Args:
+        android_manifest_path: AndroidManifest.xml 文件的路径
+        permissions: 包含 "permissions" 和 "features" 的字典
+
+    Returns:
+        bool: 更新成功返回 True，失败返回 False
+    """
+    # 备份原始文件
+    backup_path = os.path.join(os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml")
+    # 暂时不备份，因为git本身会追踪文件的修改
+    # shutil.copy(android_manifest_path, backup_path)
+
+    try:
+        # 定义 namespace
+        ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+        ET.register_namespace("tools", "http://schemas.android.com/tools")
+        ET.register_namespace("app", "http://schemas.android.com/apk/res-auto")
+
+        # 解析 XML
+        parser = ET.XMLParser(target=ET.TreeBuilder())
+        tree = ET.parse(android_manifest_path, parser)
+        root = tree.getroot()
+
+        # **移除所有 <uses-permission> 和 <uses-feature> 元素**
+        for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
+            root.remove(element)
+        logging.info(f"移除所有 <uses-permission> 和 <uses-feature> 元素")
+
+        # **找到正确的插入位置**
+        insert_index = 0  # 默认插入到 <manifest> 开头
+        for idx, child in enumerate(root):
+            if child.tag == "uses-sdk":  # 在 <uses-sdk> 之后插入
+                insert_index = idx + 1
+                break
+            elif child.tag == "application":  # 在 <application> 之前插入
+                insert_index = idx
+                break
+
+        # **按顺序插入新的权限**
+        elements_to_insert = list(permissions["permissions"].values()) + list(
+            permissions["features"].values()
+        )
+        for element in reversed(elements_to_insert):  # 反向插入，确保顺序正确
+            element.tail = "\n"  # 添加换行
+            root.insert(insert_index, element)
+
+        logging.info(f"添加新的 <uses-permission> 和 <uses-feature> 元素")
+
+        # **使用 minidom 重新格式化 XML**
+        formatted_xml = prettify_xml(root)
+        with open(android_manifest_path, "w", encoding="utf-8") as f:
+            f.write(formatted_xml)
+
+        logging.info(f"写回文件")
+        return True
+
+    except Exception as e:
+        logging.error(f"更新 AndroidManifest.xml 文件时发生错误: {e}")
+        return False
+
+
+def check_compressed_file_content(compressed_file: str) -> bool:
+    """
+    检查压缩文件中的目录结构是否符合要求
+    Args:
+        compressed_file: 压缩文件路径
+    Returns:
+        bool: 是否符合要求
+    """
+    try:
+        logging.info(f"开始检查压缩文件内容: {compressed_file}")
+        # 创建临时目录用于检查压缩文件内容
+        temp_dir = os.path.join(os.path.dirname(compressed_file), "temp_check")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+        logging.info(f"创建临时目录: {temp_dir}")
+
+        # 解压文件到临时目录
+        logging.info("开始解压文件到临时目录")
+        patoolib.extract_archive(compressed_file, outdir=temp_dir)
+
+        # 检查目录结构
+        contents = os.listdir(temp_dir)
+        logging.info(f"压缩文件内容: {contents}")
+        if len(contents) != 1:
+            logging.error(f"压缩文件中包含多个目录或文件: {contents}")
+            return False
+        # 检查目录名称是否与UNI_APP_ID一致
+        if contents[0] != config.UNI_APP_ID:
+            logging.error(
+                f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
+            )
+            return False
+
+        logging.info("压缩文件内容检查通过")
+        # 清理临时目录
+        shutil.rmtree(temp_dir)
+        logging.info("清理临时目录完成")
+        return True
+    except Exception as e:
+        logging.error(f"检查压缩文件内容时发生错误: {e}")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        return False
+    finally:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+
+
+def check_git_branch(project_path: str) -> bool:
+    """
+    检查Git项目是否在指定分支
+    Args:
+        project_path: Git项目路径
+    Returns:
+        bool: 是否在指定分支
+    """
+    try:
+        logging.info(f"开始检查Git分支: {project_path}")
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=project_path,
+        )
+        if result.returncode == 0:
+            current_branch = result.stdout.strip()
+            logging.info(f"当前分支: {current_branch}")
+            if current_branch != config.PROD_BRANCH:
+                logging.error(f"当前不在指定分支: {current_branch} != {config.PROD_BRANCH}")
+                return False
+            logging.info("Git分支检查通过")
+            return True
+        logging.error(f"获取Git分支失败: {result.stderr}")
+        return False
+    except Exception as e:
+        logging.error(f"检查Git分支时发生错误: {e}")
+        return False
+
+
+def check_apps_directory() -> bool:
+    """
+    检查APPS_DIRECTORY目录下的目录结构是否符合要求
+    Returns:
+        bool: 是否符合要求
+    """
+    try:
+        logging.info("1111")
+        logging.info(f"开始检查APPS_DIRECTORY目录结构: {config.APPS_DIRECTORY}")
+        contents = os.listdir(config.APPS_DIRECTORY)
+        logging.info(f"目录内容: {contents}")
+        # 检查目录数量是否为1，不为1则警告
+        if len(contents) != 1:
+            logging.warning(f"APPS_DIRECTORY中包含多个目录或文件: {contents}")
+
+        # 检查目录名称是否与UNI_APP_ID一致,不一致则警告
+        if contents[0] != config.UNI_APP_ID:
+            logging.warning(
+                f"APPS_DIRECTORY中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
+            )
+
+        logging.info("APPS_DIRECTORY目录结构检查通过")
+        return True
+    except Exception as e:
+        logging.error(f"检查APPS_DIRECTORY时发生错误: {e}")
+        return False
+
+
+def main():
+    """
+    主函数：执行整个更新流程
+    1. 配置日志系统
+    2. 检查依赖和路径
+    3. 同步Git仓库
+    4. 查找最新目录
+    5. 检查是否已存在对应的APK文件，如果不存在则读取README.md获取版本信息
+    6. 查找压缩文件
+    7. 检查压缩文件内容（确保只有一个目录且目录名与UNI_APP_ID一致）
+    8. 检查Git分支（确保在PROJECT_BRANCH分支）
+    9. 检查APPS_DIRECTORY目录结构（确保只有一个目录且目录名与UNI_APP_ID一致）
+    10. 清空目标目录
+    11. 解压文件
+    12. 更新build.gradle
+    13. 更新control文件
+    14. 更新 AndroidManifest.xml 文件，更新权限
+    """
+    try:
+        # 配置日志
+        setup_logging()
+
+        # 检查依赖和路径
+        check_dependencies()
+        check_paths()
+
+        # 同步仓库
+        if not sync_repository(config.DISTRIBUTION_PATH):
+            logging.error("Git仓库同步失败，终止执行")
+            return
+
+        # 查找最新目录
+        identify_field_path = os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR)
+        latest_dir = find_latest_directory(identify_field_path)
+
+        # 查找是否已存在对应的APK文件
+        latest_dir_name = os.path.basename(latest_dir)
+        apk_file = os.path.join(latest_dir, f"{latest_dir_name}.apk")
+
+        if not os.path.exists(apk_file):
+            logging.info(f"已经存在产物 {apk_file} 无需执行打包")
+            return
+        else:
+            logging.info(f"不存在产物 {apk_file} 需要执行打包")
+            readme_path = os.path.join(latest_dir, "README.md")
+            readme_info = parse_readme(readme_path)
+
+        # 更新UNI_APP_ID
+        config.UNI_APP_ID = readme_info["uniapp_id"]
+        # 查找压缩文件
+        compressed_file = find_compressed_file(latest_dir)
+        if not compressed_file:
+            logging.error("未找到压缩文件，终止执行")
+            return
+
+        # 检查压缩文件内容
+        if not check_compressed_file_content(compressed_file):
+            logging.error("压缩文件内容检查失败，终止执行")
+            return
+
+        # 检查Git分支
+        if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
+            logging.error("Git分支检查失败，终止执行")
+            return
+
+        # 检查APPS_DIRECTORY目录结构
+        if not check_apps_directory():
+            logging.error("APPS_DIRECTORY目录结构检查失败，终止执行")
+            return
+
+        # 清空目标目录
+        if not clear_directory(config.APPS_DIRECTORY):
+            logging.error("清空目标目录失败，终止执行")
+            return
+
+        # 解压文件
+        if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY):
+            logging.error("解压文件失败，终止执行")
+            return
+
+        # 更新build.gradle
+        if not update_build_gradle(
+            config.BUILD_GRADLE_PATH,
+            os.path.basename(latest_dir),
+            readme_info,
+        ):
+            logging.error("更新build.gradle失败，终止执行")
+            return
+
+        # 更新control文件
+        if not update_control_file(config.CONTROL_FILE_PATH, readme_info["uniapp_id"]):
+            logging.error("更新control文件失败，终止执行")
+            return
+
+        # 跟新 AndroidManifest.xml 文件，更新权限
+        if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info["permissions"]):
+            logging.error("更新 AndroidManifest.xml 文件失败，终止执行")
+            return
+
+        logging.info("所有操作执行成功")
+        return 0
+    except Exception as e:
+        logging.error(f"执行过程中发生错误: {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    main()
