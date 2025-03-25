@@ -40,14 +40,14 @@ def validate_timestamp_format(timestamp):
         return False
 
 
-def get_untracked_files():
+def get_untracked_files(cwd = config.DISTRIBUTION_PATH):
     """获取未跟踪的文件列表"""
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
-            cwd=config.DISTRIBUTION_PATH,
+            cwd=cwd,
         )
         if result.returncode != 0:
             logging.error("获取git状态失败")
@@ -63,14 +63,14 @@ def get_untracked_files():
         return []
 
 
-def has_changes():
+def has_changes(cwd = config.DISTRIBUTION_PATH):
     """检查是否有任何修改（包括未跟踪和已修改的文件）"""
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
-            cwd=config.DISTRIBUTION_PATH,
+            cwd=cwd,
         )
         if result.returncode != 0:
             logging.error("获取git状态失败")
@@ -121,14 +121,14 @@ def validate_files(files):
     return True, timestamp
 
 
-def get_staged_files():
+def get_staged_files(cwd = config.DISTRIBUTION_PATH):
     """获取已暂存的文件列表"""
     try:
         result = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
             capture_output=True,
             text=True,
-            cwd=config.DISTRIBUTION_PATH,
+            cwd=cwd,
         )
         if result.returncode != 0:
             logging.error("获取暂存文件列表失败")
@@ -140,11 +140,11 @@ def get_staged_files():
         return []
 
 
-def git_add():
+def git_add(cwd = config.DISTRIBUTION_PATH):
     """执行git add操作"""
     try:
         result = subprocess.run(
-            ["git", "add", "."], capture_output=True, text=True, cwd=config.DISTRIBUTION_PATH
+            ["git", "add", "."], capture_output=True, text=True, cwd=cwd
         )
         if result.returncode != 0:
             logging.error("git add 执行失败")
@@ -156,15 +156,23 @@ def git_add():
         return False
 
 
-def git_commit(timestamp):
-    """执行git commit操作"""
+def git_commit(commit_message,cwd = config.DISTRIBUTION_PATH):
+    """
+    执行git commit操作，默认工作目录为config.DISTRIBUTION_PATH
+    
+    parameters:
+    - commit_message: 提交信息
+    - cwd: 当前工作目录
+    return:
+    - True: 执行成功
+    - False: 执行失败
+    """
     try:
-        commit_message = f"#{timestamp} 打包"
         result = subprocess.run(
             ["git", "commit", "-m", commit_message],
             capture_output=True,
             text=True,
-            cwd=config.DISTRIBUTION_PATH,
+            cwd=cwd,
         )
         if result.returncode != 0:
             logging.error("git commit 执行失败")
@@ -206,14 +214,14 @@ def get_modified_apk():
         return None
 
 
-def git_push():
+def git_push(cwd = config.DISTRIBUTION_PATH):
     """执行git push操作"""
     try:
         result = subprocess.run(
             ["git", "push"],
             capture_output=True,
             text=True,
-            cwd=config.DISTRIBUTION_PATH,
+            cwd=cwd,
         )
         if result.returncode != 0:
             logging.error("git push 执行失败")
@@ -294,7 +302,7 @@ def main():
 
         # 执行git commit
         commit_message = f"#{timestamp} 打包"
-        if not git_commit(timestamp):
+        if not git_commit(commit_message):
             return 1
 
         # 确认是否推送
