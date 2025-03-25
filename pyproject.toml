@@ -20,7 +20,7 @@ readme = "README.md"
 license = { text = "MIT" }
 
 [project.scripts]
-auto-assemble = "auto_assemble.auto_flow:main"
+auto-assemble = "auto_assemble.__main__:main"
 
 [tool.setuptools]
 packages = ["auto_assemble"]

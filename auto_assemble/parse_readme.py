@@ -110,6 +110,8 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
         # 解析权限
         permissions = parse_and_merge_permissions(content)
 
+        # todo: 解析模块使用，未来自动根据使用的模块配置依赖
+
         result = {
             "hbx_version": hbx_version_match.group(1) if hbx_version_match else "",
             "version_name": version_name_match.group(1) if version_name_match else "",

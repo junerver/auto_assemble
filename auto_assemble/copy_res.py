@@ -285,16 +285,18 @@ def update_build_gradle(
 
         # 如果设置了hbx_version，需要修改version.toml文件中的hbx_version
         if hbx_version:
-            # 读取version.toml文件
             with open(config.VERSIONS_TOML_PATH, "r", encoding="utf-8") as file:
                 lines = file.readlines()
+
             # 查找并替换uniSdkVersion
-            for line in lines:
+            for i, line in enumerate(lines):
                 if line.strip().startswith("uniSdkVersion = "):
-                    line = f'uniSdkVersion =  "{hbx_version}"\n'
-                    logging.info(f"更新version.toml文件中的uniSdkVersion为: {hbx_version}")
-                    with open(config.VERSIONS_TOML_PATH, "w", encoding="utf-8") as file:
-                        file.write(line)
+                    lines[i] = f'uniSdkVersion =  "{hbx_version}"\n'  # 修改对应行
+
+            # 将修改后的内容重新写回文件
+            with open(config.VERSIONS_TOML_PATH, "w", encoding="utf-8") as file:
+                file.writelines(lines)  # 写入所有行
+            logging.info(f"更新version.toml文件中的uniSdkVersion为: {hbx_version}")
 
         # 打开build.gradle文件，根据解析到的版本信息，更新build.gradle文件中的reqDate变量和版本信息
         with open(build_gradle_path, "r", encoding="utf-8") as file:
@@ -352,10 +354,10 @@ def update_build_gradle(
                     third_party_config
                     and third_party_config.get("wechat")
                     and third_party_config["wechat"].get("secret")
-                    and line.strip().startswith('"WX_APPSECRET"')
+                    and line.strip().startswith('"WX_SECRET"')
                 ):
-                    # 解析到了wechat的secret，修改 manifestPlaceholders 中 WX_APPSECRET 的值
-                    indent = line[: line.index('"WX_APPSECRET"')]
+                    # 解析到了wechat的secret，修改 manifestPlaceholders 中 WX_SECRET 的值
+                    indent = line[: line.index('"WX_SECRET"')]
                     file.write(
                         f'{indent}"WX_SECRET"             : "{third_party_config["wechat"]["secret"]}",\n'
                     )
@@ -405,10 +407,10 @@ def update_build_gradle(
 
 def update_control_file(control_file_path: str, uniapp_id: str) -> bool:
     """
-    更新 control 文件中的 uniapp_id，
+    更新 dcloud_control.xml 文件中的 uniapp_id，
     匹配 <app appid="..."> 并修改 appid 的值。
 
-    :param control_file_path: control 文件的路径
+    :param control_file_path: dcloud_control.xml 文件的路径
     :param uniapp_id: 要替换的新的 appid
     :return: 更新成功返回 True，失败返回 False
     """
@@ -427,10 +429,10 @@ def update_control_file(control_file_path: str, uniapp_id: str) -> bool:
         # 写回文件
         with open(control_file_path, "w", encoding="utf-8") as file:
             file.write(new_content)
-        logging.info(f"成功更新 control 文件，替换 appid 为: {uniapp_id}")
+        logging.info(f"成功更新 dcloud_control.xml 文件，替换 appid 为: {uniapp_id}")
         return True
     except Exception as e:
-        print(f"更新 control 文件失败: {e}")
+        print(f"更新 dcloud_control.xml 文件失败: {e}")
         return False
 
 
@@ -561,6 +563,7 @@ def check_compressed_file_content(compressed_file: str) -> bool:
 def check_git_branch(project_path: str) -> bool:
     """
     检查Git项目是否在指定分支
+    todo: 需要优化，当前只检查了当前分支，没有检查所有分支, 需要检查所有分支,如果当前分支不是指定分支，则需要切换到指定分支
     Args:
         project_path: Git项目路径
     Returns:
@@ -657,10 +660,12 @@ def main():
         latest_dir_name = os.path.basename(latest_dir)
         apk_file = os.path.join(latest_dir, f"{latest_dir_name}.apk")
 
-        if not os.path.exists(apk_file):
+        # 如果存在产物，则无需执行打包
+        if os.path.exists(apk_file):
             logging.info(f"已经存在产物 {apk_file} 无需执行打包")
-            return
+            return 1
         else:
+            # 不存在产物，则需要执行打包，读取README.md获取版本信息
             logging.info(f"不存在产物 {apk_file} 需要执行打包")
             readme_path = os.path.join(latest_dir, "README.md")
             readme_info = parse_readme(readme_path)
@@ -671,32 +676,32 @@ def main():
         compressed_file = find_compressed_file(latest_dir)
         if not compressed_file:
             logging.error("未找到压缩文件，终止执行")
-            return
+            return 1
 
         # 检查压缩文件内容
         if not check_compressed_file_content(compressed_file):
             logging.error("压缩文件内容检查失败，终止执行")
-            return
+            return 1
 
         # 检查Git分支
         if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
             logging.error("Git分支检查失败，终止执行")
-            return
+            return 1
 
         # 检查APPS_DIRECTORY目录结构
         if not check_apps_directory():
             logging.error("APPS_DIRECTORY目录结构检查失败，终止执行")
-            return
+            return 1
 
         # 清空目标目录
         if not clear_directory(config.APPS_DIRECTORY):
             logging.error("清空目标目录失败，终止执行")
-            return
+            return 1
 
         # 解压文件
         if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY):
             logging.error("解压文件失败，终止执行")
-            return
+            return 1
 
         # 更新build.gradle
         if not update_build_gradle(
@@ -705,17 +710,17 @@ def main():
             readme_info,
         ):
             logging.error("更新build.gradle失败，终止执行")
-            return
+            return 1
 
-        # 更新control文件
+        # 更新 dcloud_control.xml 文件
         if not update_control_file(config.CONTROL_FILE_PATH, readme_info["uniapp_id"]):
-            logging.error("更新control文件失败，终止执行")
-            return
+            logging.error("更新 dcloud_control.xml 文件失败，终止执行")
+            return 1
 
         # 跟新 AndroidManifest.xml 文件，更新权限
         if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info["permissions"]):
             logging.error("更新 AndroidManifest.xml 文件失败，终止执行")
-            return
+            return 1
 
         logging.info("所有操作执行成功")
         return 0

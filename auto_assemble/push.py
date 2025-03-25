@@ -250,12 +250,12 @@ def main():
         # 检查目录是否存在
         if not os.path.exists(config.DISTRIBUTION_PATH):
             logging.error(f"目录不存在: {config.DISTRIBUTION_PATH}")
-            return
+            return 1
 
         # 检查是否有任何修改
         if not has_changes():
             logging.info("没有需要提交的修改")
-            return
+            return 1
 
         # 获取未跟踪的文件
         untracked_files = get_untracked_files()
@@ -264,24 +264,24 @@ def main():
             # 验证文件
             is_valid, timestamp = validate_files(untracked_files)
             if not is_valid:
-                return
+                return 1
         else:
             logging.info("没有未跟踪的文件，继续检查已修改的文件")
             # 获取已修改的apk文件
             timestamp = get_modified_apk()
             if not timestamp:
                 logging.error("未找到符合格式的已修改apk文件")
-                return
+                return 1
 
         # 执行git add
         if not git_add():
-            return
+            return 1
 
         # 获取已暂存的文件并验证
         staged_files = get_staged_files()
         if not staged_files:
             logging.error("没有待提交的文件")
-            return
+            return 1
 
         logging.info("待提交的文件列表:")
         for file in staged_files:
@@ -290,26 +290,27 @@ def main():
         is_valid, _ = validate_files(staged_files)
         if not is_valid:
             logging.error("待提交的文件不符合要求")
-            return
+            return 1
 
         # 执行git commit
         commit_message = f"#{timestamp} 打包"
         if not git_commit(timestamp):
-            return
+            return 1
 
         # 确认是否推送
         if not confirm_push(staged_files, commit_message):
             logging.info("用户取消推送")
-            return
+            return 1
 
         # 执行git push
         if not git_push():
-            return
+            return 1
 
         logging.info("所有操作执行成功")
+        return 0
     except Exception as e:
         logging.error(f"执行过程中发生错误: {e}")
-        sys.exit(1)
+        return 1
 
 
 if __name__ == "__main__":

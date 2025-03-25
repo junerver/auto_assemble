@@ -201,16 +201,17 @@ def main():
         # 执行gradle构建
         if not execute_gradle_build():
             logging.error("Gradle构建失败，终止执行")
-            return
+            return 1
 
         # 复制构建产物，返回是否成功和apk文件名
         success, apk_name = copy_build_outputs()
         if not success:
             logging.error("复制构建产物失败，终止执行")
-            return
+            return 1
 
         # 更新git信息，执行git add和git commit，commit message为"release_req: ${apk_name}"
         update_git_info(apk_name)
+        logging.info(f"更新git信息成功，commit message为: <release_req: {apk_name}>")
 
         logging.info("所有操作执行成功")
         return 0

@@ -17,7 +17,7 @@ class Config:
         self.ANDROID_MANIFEST_PATH = (
             rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\AndroidManifest.xml"
         )
-        # UniApp的control文件位置
+        # UniApp的 dcloud_control.xml 文件位置
         self.CONTROL_FILE_PATH = (
             rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\data\dcloud_control.xml"
         )
