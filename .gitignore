@@ -52,4 +52,5 @@ htmlcov/
 .cache
 coverage.xml
 *.cover 
-/auto-assemble.spec
+*.spec
+/version.txt
