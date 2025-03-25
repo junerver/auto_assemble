@@ -23,18 +23,20 @@
    ```bash
    python -m venv venv
    ```
-   
+
 3. 激活虚拟环境：
    ```bash
    .\venv\Scripts\activate
    ```
-   
+
 4. 安装依赖：
    ```bash
    pip install -e .
    ```
 
-参考 `.env.template` 文件，创建 `.env` 环境变量文件，填写分发工程、基座工程的目录地址、需要指向的项目
+5. 配置 `.env`：
+
+   参考 `.env.template` 文件，创建 `.env` 环境变量文件，填写分发工程、基座工程的目录地址和需要打包的项目
 
 ### 分步执行
 
@@ -46,7 +48,21 @@
 
 在项目目录下直接执行：`auto-assemble`，改指令会依次执行上述分步流程，建议在基座配置基本稳定后使用，前期迭代时最好分步执行，确认修改内容是否正确。
 
+### 通过bat执行
 
+项目根目录下提供了四个 bat 批处理脚本，只需要双击即可执行相应指令：
+
+- `run.bat` 执行 `auto-assemble`
+- `run_copy_res.bat` 执行 `python -m auto_assemble.copy_res`
+- `run_build.bat` 执行 `python -m auto_assemble.build` 
+- `run_push.bat` 执行 `python -m auto_assemble.push`
+
+**注意**：使用前需要先在 `config.bat` 脚本中配置 auto_assemble 项目所在目录地址：
+
+```bash
+@echo off
+set MODULE_DIR=E:\dev\auto_assemble
+```
 
 ## 脚本说明
 
