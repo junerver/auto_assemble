@@ -1,10 +1,11 @@
+import logging
 import os
 import re
 import subprocess
 from datetime import datetime
-import logging
+
 from .config import config
-import sys
+from .git import get_untracked_files, get_staged_files, git_commit, git_add, git_push
 from .log import setup_logging
 
 
@@ -19,28 +20,6 @@ def validate_timestamp_format(timestamp):
     except ValueError:
         return False
 
-
-def get_untracked_files(cwd=config.DISTRIBUTION_PATH):
-    """获取未跟踪的文件列表"""
-    try:
-        result = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
-        if result.returncode != 0:
-            logging.error("获取git状态失败")
-            return []
-
-        files = []
-        for line in result.stdout.splitlines():
-            if line.startswith("??"):  # 未跟踪的文件
-                files.append(line[3:])
-        return files
-    except Exception as e:
-        logging.error(f"获取未跟踪文件时发生错误: {str(e)}")
-        return []
 
 
 def has_changes(cwd=config.DISTRIBUTION_PATH):
@@ -101,65 +80,6 @@ def validate_files(files):
     return True, timestamp
 
 
-def get_staged_files(cwd=config.DISTRIBUTION_PATH):
-    """获取已暂存的文件列表"""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
-        if result.returncode != 0:
-            logging.error("获取暂存文件列表失败")
-            return []
-
-        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    except Exception as e:
-        logging.error(f"获取暂存文件列表时发生错误: {str(e)}")
-        return []
-
-
-def git_add(cwd=config.DISTRIBUTION_PATH):
-    """执行git add操作"""
-    try:
-        result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=cwd)
-        if result.returncode != 0:
-            logging.error("git add 执行失败")
-            return False
-        logging.info("git add 执行成功")
-        return True
-    except Exception as e:
-        logging.error(f"git add 执行时发生错误: {str(e)}")
-        return False
-
-
-def git_commit(commit_message, cwd=config.DISTRIBUTION_PATH):
-    """
-    执行git commit操作，默认工作目录为config.DISTRIBUTION_PATH
-
-    parameters:
-    - commit_message: 提交信息
-    - cwd: 当前工作目录
-    return:
-    - True: 执行成功
-    - False: 执行失败
-    """
-    try:
-        result = subprocess.run(
-            ["git", "commit", "-m", commit_message],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
-        if result.returncode != 0:
-            logging.error("git commit 执行失败")
-            return False
-        logging.info(f"git commit 执行成功，提交信息: {commit_message}")
-        return True
-    except Exception as e:
-        logging.error(f"git commit 执行时发生错误: {str(e)}")
-        return False
 
 
 def get_modified_apk():
@@ -191,24 +111,6 @@ def get_modified_apk():
         logging.error(f"获取已修改的apk文件时发生错误: {str(e)}")
         return None
 
-
-def git_push(cwd=config.DISTRIBUTION_PATH):
-    """执行git push操作"""
-    try:
-        result = subprocess.run(
-            ["git", "push"],
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-        )
-        if result.returncode != 0:
-            logging.error("git push 执行失败")
-            return False
-        logging.info("git push 执行成功")
-        return True
-    except Exception as e:
-        logging.error(f"git push 执行时发生错误: {str(e)}")
-        return False
 
 
 def confirm_push(staged_files, commit_message):
@@ -244,7 +146,7 @@ def main():
             return 1
 
         # 获取未跟踪的文件
-        untracked_files = get_untracked_files()
+        untracked_files = get_untracked_files(config.DISTRIBUTION_PATH)
         if untracked_files:
             logging.info(f"发现{len(untracked_files)}个未跟踪的文件")
             # 验证文件
@@ -260,11 +162,11 @@ def main():
                 return 1
 
         # 执行git add
-        if not git_add():
+        if not git_add(repo_path=config.DISTRIBUTION_PATH):
             return 1
 
         # 获取已暂存的文件并验证
-        staged_files = get_staged_files()
+        staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
         if not staged_files:
             logging.error("没有待提交的文件")
             return 1
@@ -280,7 +182,7 @@ def main():
 
         # 执行git commit
         commit_message = f"#{timestamp} 打包"
-        if not git_commit(commit_message):
+        if not git_commit(commit_message, config.DISTRIBUTION_PATH):
             return 1
 
         # 确认是否推送
@@ -289,7 +191,7 @@ def main():
             return 1
 
         # 执行git push
-        if not git_push():
+        if not git_push(repo_path=config.DISTRIBUTION_PATH):
             return 1
 
         logging.info("所有操作执行成功")

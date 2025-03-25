@@ -69,11 +69,12 @@ set MODULE_DIR=E:\dev\auto_assemble
 `config.py` 中保存全局的常量配置
 
 `copy_res.py` 用于从**分发仓库**拉取最新资源，解压、拷贝 UniApp 资源包到**基座工程**中，同时解析 `README.md` 文件，读取需要修改的内容。
-    - 读取 uniapp id 与 uniapp key，并更新 `build.gradle` 文件
-        - 读取 versionName、versionCode，并更新 `build.gradle` 文件
-        - 读取 hbx_version ，更新 `lib.version.toml` 文件
-        - 读取第三方sdk配置（yml代码块），并更新 `build.gradle` 文件
-        - 读取权限列表，更新应用权限清单 `AndroidManifest.xml` 文件
+
+- 读取 uniapp id 与 uniapp key，并更新 `build.gradle` 文件
+- 读取 versionName、versionCode，并更新 `build.gradle` 文件
+- 读取 hbx_version ，更新 `lib.version.toml` 文件
+- 第三方sdk配置（yml代码块），并更新 `build.gradle` 文件
+- 读取权限列表，更新应用权限清单 `AndroidManifest.xml` 文件
 
 `build.py` 用于执行构建任务，并将最后的构建产物、产物元数据拷贝到**分发仓库**目录下
 
@@ -88,3 +89,8 @@ set MODULE_DIR=E:\dev\auto_assemble
 
 - 修改 nodejs 脚本
 - 增加对第三方模块的自动检查识别
+
+## Changelog
+
+- `v0.1.1` 增加资源更新是否有效，增加基座工程远端分支拉取、无分支时创建
+- `v0.1.0` 工程化，完成基础的打包需求

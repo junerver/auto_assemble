@@ -1,9 +1,9 @@
+import logging
 import os
 import shutil
 import subprocess
-import logging
-import sys
 from datetime import datetime
+
 from .config import config
 from .log import setup_logging
 
@@ -157,12 +157,12 @@ def update_git_info(apk_name: str):
         logging.info(f"已切换到项目目录: {os.getcwd()}")
 
         # 使用push.py中的git_add函数
-        if not git_add(cwd=config.ANDROID_UNI_BASE_PATH):
+        if not git_add(repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git add 执行失败")
             return False
 
         # 获取已暂存的文件
-        staged_files = get_staged_files(cwd=config.ANDROID_UNI_BASE_PATH)
+        staged_files = get_staged_files(repo_path=config.ANDROID_UNI_BASE_PATH)
         if not staged_files:
             logging.error("没有待提交的文件，资源文件未更新，终止执行")
             return False
@@ -172,7 +172,7 @@ def update_git_info(apk_name: str):
 
         # 执行git commit
         commit_message = f"release_req: {apk_name}"
-        if not git_commit(commit_message, cwd=config.ANDROID_UNI_BASE_PATH):
+        if not git_commit(commit_message, repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git commit 执行失败")
             return False
         logging.info(f"git commit 执行成功，提交信息: {commit_message}")
