@@ -14,30 +14,7 @@ import sys
 import shutil
 from xml.dom import minidom  # 用于格式化 XML
 import re
-
-
-def setup_logging():
-    """
-    配置日志系统
-    - 每次运行前清空日志文件
-    - 设置日志格式和输出
-    """
-    # 如果日志文件存在，则删除
-    if os.path.exists(config.LOG_FILE):
-        os.remove(config.LOG_FILE)
-
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(config.LOG_FILE, encoding="utf-8"),
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
-    logging.info("=" * 50)
-    logging.info("开始执行更新流程")
-    logging.info("=" * 50)
+from .log import setup_logging
 
 
 def get_git_info(repo_path: str) -> Tuple[str, str, str]:
@@ -590,32 +567,102 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
 
 def check_git_branch(project_path: str) -> bool:
     """
-    检查Git项目是否在指定分支
-    todo: 需要优化，当前只检查了当前分支，没有检查所有分支, 需要检查所有分支,如果当前分支不是指定分支，则需要切换到指定分支
+    检查Git项目分支状态并尝试切换到目标分支
+
+    返回True的条件：
+    1. 当前已在目标分支
+    2. 可以安全切换到目标分支且切换成功
+
+    返回False的条件：
+    1. 目标分支不存在
+    2. 有未提交的更改
+    3. Git命令执行失败
+    4. 其他异常情况
+
     Args:
         project_path: Git项目路径
     Returns:
-        bool: 是否在指定分支
+        bool: 是否在目标分支或可以安全切换到目标分支
     """
     try:
         logging.info(f"开始检查Git分支: {project_path}")
-        result = subprocess.run(
+
+        # 1. 获取当前分支
+        current_branch = subprocess.run(
             ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             cwd=project_path,
         )
-        if result.returncode == 0:
-            current_branch = result.stdout.strip()
-            logging.info(f"当前分支: {current_branch}")
-            if current_branch != config.PROD_BRANCH:
-                logging.error(f"当前不在指定分支: {current_branch} != {config.PROD_BRANCH}")
-                return False
-            logging.info("Git分支检查通过")
+
+        if current_branch.returncode != 0:
+            logging.error(f"获取当前分支失败: {current_branch.stderr}")
+            return False
+
+        current_branch = current_branch.stdout.strip()
+        logging.info(f"当前分支: {current_branch}")
+
+        # 2. 如果已经在目标分支，直接返回True
+        if current_branch == config.PROD_BRANCH:
+            logging.info("已在目标分支上")
             return True
-        logging.error(f"获取Git分支失败: {result.stderr}")
-        return False
+
+        # 3. 检查目标分支是否存在
+        all_branches = subprocess.run(
+            ["git", "branch", "-a"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=project_path,
+        )
+
+        if all_branches.returncode != 0:
+            logging.error(f"获取分支列表失败: {all_branches.stderr}")
+            return False
+
+        branch_exists = any(
+            branch.strip().endswith(config.PROD_BRANCH)
+            for branch in all_branches.stdout.split("\n")
+        )
+
+        if not branch_exists:
+            logging.error(f"目标分支 {config.PROD_BRANCH} 不存在")
+            return False
+
+        # 4. 检查是否有未提交的更改
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=project_path,
+        )
+
+        if status.returncode != 0:
+            logging.error(f"检查工作区状态失败: {status.stderr}")
+            return False
+
+        if status.stdout.strip():
+            logging.error(f"存在未提交的更改，无法安全切换分支")
+            return False
+
+        # 5. 尝试切换到目标分支
+        switch_result = subprocess.run(
+            ["git", "checkout", config.PROD_BRANCH],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=project_path,
+        )
+
+        if switch_result.returncode != 0:
+            logging.error(f"切换到目标分支失败: {switch_result.stderr}")
+            return False
+
+        logging.info(f"成功切换到目标分支: {config.PROD_BRANCH}")
+        return True
+
     except Exception as e:
         logging.error(f"检查Git分支时发生错误: {e}")
         return False
@@ -668,7 +715,7 @@ def main():
     """
     try:
         # 配置日志
-        setup_logging()
+        setup_logging(clear_log_file=True, task_name="开始执行更新流程")
 
         # 检查依赖和路径
         check_dependencies()
@@ -688,7 +735,7 @@ def main():
         apk_file = os.path.join(latest_dir, f"{latest_dir_name}.apk")
 
         # 如果存在产物，则无需执行打包
-        if os.path.exists(apk_file):
+        if not os.path.exists(apk_file):
             logging.info(f"已经存在产物 {apk_file} 无需执行打包")
             return 1
         else:

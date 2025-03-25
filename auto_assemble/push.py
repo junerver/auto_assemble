@@ -5,27 +5,7 @@ from datetime import datetime
 import logging
 from .config import config
 import sys
-
-
-def setup_logging():
-    """
-    配置日志系统
-    - 使用追加模式记录日志
-    - 设置日志格式和输出
-    """
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(config.LOG_FILE, encoding="utf-8", mode="a"),  # 使用追加模式
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
-    # 添加分隔线，区分不同次构建的日志
-    logging.info("=" * 50)
-    logging.info(f"开始检验提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info("=" * 50)
+from .log import setup_logging
 
 
 def validate_timestamp_format(timestamp):
@@ -40,7 +20,7 @@ def validate_timestamp_format(timestamp):
         return False
 
 
-def get_untracked_files(cwd = config.DISTRIBUTION_PATH):
+def get_untracked_files(cwd=config.DISTRIBUTION_PATH):
     """获取未跟踪的文件列表"""
     try:
         result = subprocess.run(
@@ -63,7 +43,7 @@ def get_untracked_files(cwd = config.DISTRIBUTION_PATH):
         return []
 
 
-def has_changes(cwd = config.DISTRIBUTION_PATH):
+def has_changes(cwd=config.DISTRIBUTION_PATH):
     """检查是否有任何修改（包括未跟踪和已修改的文件）"""
     try:
         result = subprocess.run(
@@ -121,7 +101,7 @@ def validate_files(files):
     return True, timestamp
 
 
-def get_staged_files(cwd = config.DISTRIBUTION_PATH):
+def get_staged_files(cwd=config.DISTRIBUTION_PATH):
     """获取已暂存的文件列表"""
     try:
         result = subprocess.run(
@@ -140,12 +120,10 @@ def get_staged_files(cwd = config.DISTRIBUTION_PATH):
         return []
 
 
-def git_add(cwd = config.DISTRIBUTION_PATH):
+def git_add(cwd=config.DISTRIBUTION_PATH):
     """执行git add操作"""
     try:
-        result = subprocess.run(
-            ["git", "add", "."], capture_output=True, text=True, cwd=cwd
-        )
+        result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=cwd)
         if result.returncode != 0:
             logging.error("git add 执行失败")
             return False
@@ -156,10 +134,10 @@ def git_add(cwd = config.DISTRIBUTION_PATH):
         return False
 
 
-def git_commit(commit_message,cwd = config.DISTRIBUTION_PATH):
+def git_commit(commit_message, cwd=config.DISTRIBUTION_PATH):
     """
     执行git commit操作，默认工作目录为config.DISTRIBUTION_PATH
-    
+
     parameters:
     - commit_message: 提交信息
     - cwd: 当前工作目录
@@ -214,7 +192,7 @@ def get_modified_apk():
         return None
 
 
-def git_push(cwd = config.DISTRIBUTION_PATH):
+def git_push(cwd=config.DISTRIBUTION_PATH):
     """执行git push操作"""
     try:
         result = subprocess.run(
@@ -252,7 +230,7 @@ def main():
     """主函数"""
     try:
         # 配置日志
-        setup_logging()
+        setup_logging(task_name=f"开始检验提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行git推送流程")
 
         # 检查目录是否存在

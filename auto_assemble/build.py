@@ -5,6 +5,7 @@ import logging
 import sys
 from datetime import datetime
 from .config import config
+from .log import setup_logging
 
 
 def get_build_output_name():
@@ -34,27 +35,6 @@ def get_build_target_dir(apk_name):
         str: 目标目录路径
     """
     return os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR, apk_name.replace(".apk", ""))
-
-
-def setup_logging():
-    """
-    配置日志系统
-    - 使用追加模式记录日志
-    - 设置日志格式和输出
-    """
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.FileHandler(config.LOG_FILE, encoding="utf-8", mode="a"),  # 使用追加模式
-            logging.StreamHandler(sys.stdout),
-        ],
-    )
-    # 添加分隔线，区分不同次构建的日志
-    logging.info("=" * 50)
-    logging.info(f"开始新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logging.info("=" * 50)
 
 
 def check_paths():
@@ -171,7 +151,7 @@ def update_git_info(apk_name: str):
     try:
         # 导入push模块中的git操作函数
         from .push import git_add, git_commit, get_staged_files
-        
+
         # 切换到项目目录
         os.chdir(config.ANDROID_UNI_BASE_PATH)
         logging.info(f"已切换到项目目录: {os.getcwd()}")
@@ -180,7 +160,7 @@ def update_git_info(apk_name: str):
         if not git_add(cwd=config.ANDROID_UNI_BASE_PATH):
             logging.error("git add 执行失败")
             return False
-        
+
         # 获取已暂存的文件
         staged_files = get_staged_files(cwd=config.ANDROID_UNI_BASE_PATH)
         if not staged_files:
@@ -189,7 +169,7 @@ def update_git_info(apk_name: str):
         logging.info("待提交的文件列表:")
         for file in staged_files:
             logging.info(f"  - {file}")
-            
+
         # 执行git commit
         commit_message = f"release_req: {apk_name}"
         if not git_commit(commit_message, cwd=config.ANDROID_UNI_BASE_PATH):
@@ -212,7 +192,7 @@ def main():
     """
     try:
         # 配置日志
-        setup_logging()
+        setup_logging(task_name=f"开始新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行构建流程")
 
         # 检查路径
@@ -233,7 +213,7 @@ def main():
         if not update_git_info(apk_name):
             logging.error("更新git信息失败，终止执行")
             return 1
-        
+
         logging.info("所有操作执行成功")
         return 0
     except Exception as e:
