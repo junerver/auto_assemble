@@ -229,9 +229,57 @@ def clear_directory(directory: str) -> bool:
         return False
 
 
+def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
+    """
+    检查压缩文件中的目录结构是否符合要求
+    Args:
+        compressed_file: 压缩文件路径
+    Returns:
+        Tuple[bool, str]: (是否符合要求, 临时目录路径)
+    """
+    # 创建临时目录用于检查压缩文件内容
+    temp_dir = os.path.join(os.path.dirname(compressed_file), "temp_check")
+    try:
+        logging.info(f"开始检查压缩文件内容: {compressed_file}")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+        logging.info(f"创建临时目录: {temp_dir}")
+
+        # 解压文件到临时目录
+        logging.info("开始解压文件到临时目录")
+        patoolib.extract_archive(compressed_file, outdir=temp_dir)
+
+        # 检查目录结构
+        contents = os.listdir(temp_dir)
+        logging.info(f"压缩文件内容: {contents}")
+        if len(contents) != 1:
+            logging.error(f"压缩文件中包含多个目录或文件: {contents}")
+            # 检查失败，清理临时目录
+            shutil.rmtree(temp_dir)
+            return False, ""
+        # 检查目录名称是否与UNI_APP_ID一致
+        if contents[0] != config.UNI_APP_ID:
+            logging.error(
+                f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
+            )
+            # 检查失败，清理临时目录
+            shutil.rmtree(temp_dir)
+            return False, ""
+
+        logging.info("压缩文件内容检查通过")
+        # 检查通过，保留临时目录
+        return True, temp_dir
+    except Exception as e:
+        logging.error(f"检查压缩文件内容时发生错误: {e}")
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        return False, ""
+
+
 def extract_compressed_file(compressed_file: str, extract_to: str) -> bool:
     """
-    解压文件到指定目录
+    解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
     Args:
         compressed_file: 压缩文件路径
         extract_to: 解压目标目录
@@ -239,9 +287,38 @@ def extract_compressed_file(compressed_file: str, extract_to: str) -> bool:
         bool: 解压是否成功
     """
     try:
-        patoolib.extract_archive(compressed_file, outdir=extract_to)
-        logging.info(f"成功解压文件到: {extract_to}")
-        return True
+        # 检查临时解压目录是否存在
+        temp_dir = os.path.join(os.path.dirname(compressed_file), "temp_check")
+        if os.path.exists(temp_dir) and os.listdir(temp_dir):
+            logging.info(f"发现临时解压目录，直接复制文件: {temp_dir} -> {extract_to}")
+            # 获取临时目录中的应用目录
+            app_dir = os.path.join(temp_dir, config.UNI_APP_ID)
+            if os.path.exists(app_dir):
+                # 复制应用目录到目标目录
+                target_dir = os.path.join(extract_to, config.UNI_APP_ID)
+                if not os.path.exists(target_dir):
+                    os.makedirs(target_dir)
+                # 复制文件
+                for item in os.listdir(app_dir):
+                    s = os.path.join(app_dir, item)
+                    d = os.path.join(target_dir, item)
+                    if os.path.isdir(s):
+                        shutil.copytree(s, d, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(s, d)
+                logging.info(f"成功从临时目录复制文件到: {extract_to}")
+                # 清理临时目录
+                shutil.rmtree(temp_dir)
+                return True
+            else:
+                logging.error(f"临时目录中未找到应用目录: {app_dir}")
+                return False
+        else:
+            # 临时目录不存在，执行正常解压
+            logging.info(f"临时解压目录不存在，执行正常解压: {compressed_file} -> {extract_to}")
+            patoolib.extract_archive(compressed_file, outdir=extract_to)
+            logging.info(f"成功解压文件到: {extract_to}")
+            return True
     except Exception as e:
         logging.error(f"解压文件时发生错误: {e}")
         return False
@@ -511,55 +588,6 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
         return False
 
 
-def check_compressed_file_content(compressed_file: str) -> bool:
-    """
-    检查压缩文件中的目录结构是否符合要求
-    Args:
-        compressed_file: 压缩文件路径
-    Returns:
-        bool: 是否符合要求
-    """
-    try:
-        logging.info(f"开始检查压缩文件内容: {compressed_file}")
-        # 创建临时目录用于检查压缩文件内容
-        temp_dir = os.path.join(os.path.dirname(compressed_file), "temp_check")
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        os.makedirs(temp_dir)
-        logging.info(f"创建临时目录: {temp_dir}")
-
-        # 解压文件到临时目录
-        logging.info("开始解压文件到临时目录")
-        patoolib.extract_archive(compressed_file, outdir=temp_dir)
-
-        # 检查目录结构
-        contents = os.listdir(temp_dir)
-        logging.info(f"压缩文件内容: {contents}")
-        if len(contents) != 1:
-            logging.error(f"压缩文件中包含多个目录或文件: {contents}")
-            return False
-        # 检查目录名称是否与UNI_APP_ID一致
-        if contents[0] != config.UNI_APP_ID:
-            logging.error(
-                f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
-            )
-            return False
-
-        logging.info("压缩文件内容检查通过")
-        # 清理临时目录
-        shutil.rmtree(temp_dir)
-        logging.info("清理临时目录完成")
-        return True
-    except Exception as e:
-        logging.error(f"检查压缩文件内容时发生错误: {e}")
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        return False
-    finally:
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-
-
 def check_git_branch(project_path: str) -> bool:
     """
     检查Git项目是否在指定分支
@@ -600,7 +628,6 @@ def check_apps_directory() -> bool:
         bool: 是否符合要求
     """
     try:
-        logging.info("1111")
         logging.info(f"开始检查APPS_DIRECTORY目录结构: {config.APPS_DIRECTORY}")
         contents = os.listdir(config.APPS_DIRECTORY)
         logging.info(f"目录内容: {contents}")
@@ -679,7 +706,8 @@ def main():
             return 1
 
         # 检查压缩文件内容
-        if not check_compressed_file_content(compressed_file):
+        check_result, temp_dir = check_compressed_file_content(compressed_file)
+        if not check_result:
             logging.error("压缩文件内容检查失败，终止执行")
             return 1
 
