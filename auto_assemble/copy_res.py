@@ -572,12 +572,13 @@ def check_git_branch(project_path: str) -> bool:
     返回True的条件：
     1. 当前已在目标分支
     2. 可以安全切换到目标分支且切换成功
+    3. 目标分支不存在但在无未提交更改的情况下，
+       切换到master分支后创建新分支 config.PROD_BRANCH 成功
 
     返回False的条件：
-    1. 目标分支不存在
-    2. 有未提交的更改
-    3. Git命令执行失败
-    4. 其他异常情况
+    1. 有未提交的更改
+    2. Git命令执行失败
+    3. 其他异常情况
 
     Args:
         project_path: Git项目路径
@@ -588,19 +589,18 @@ def check_git_branch(project_path: str) -> bool:
         logging.info(f"开始检查Git分支: {project_path}")
 
         # 1. 获取当前分支
-        current_branch = subprocess.run(
+        current_branch_proc = subprocess.run(
             ["git", "branch", "--show-current"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             cwd=project_path,
         )
-
-        if current_branch.returncode != 0:
-            logging.error(f"获取当前分支失败: {current_branch.stderr}")
+        if current_branch_proc.returncode != 0:
+            logging.error(f"获取当前分支失败: {current_branch_proc.stderr}")
             return False
 
-        current_branch = current_branch.stdout.strip()
+        current_branch = current_branch_proc.stdout.strip()
         logging.info(f"当前分支: {current_branch}")
 
         # 2. 如果已经在目标分支，直接返回True
@@ -608,60 +608,82 @@ def check_git_branch(project_path: str) -> bool:
             logging.info("已在目标分支上")
             return True
 
-        # 3. 检查目标分支是否存在
-        all_branches = subprocess.run(
-            ["git", "branch", "-a"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=project_path,
-        )
-
-        if all_branches.returncode != 0:
-            logging.error(f"获取分支列表失败: {all_branches.stderr}")
-            return False
-
-        branch_exists = any(
-            branch.strip().endswith(config.PROD_BRANCH)
-            for branch in all_branches.stdout.split("\n")
-        )
-
-        if not branch_exists:
-            logging.error(f"目标分支 {config.PROD_BRANCH} 不存在")
-            return False
-
-        # 4. 检查是否有未提交的更改
-        status = subprocess.run(
+        # 3. 检查是否有未提交的更改（安全切换必须确保工作区干净）
+        status_proc = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             cwd=project_path,
         )
-
-        if status.returncode != 0:
-            logging.error(f"检查工作区状态失败: {status.stderr}")
+        if status_proc.returncode != 0:
+            logging.error(f"检查工作区状态失败: {status_proc.stderr}")
             return False
 
-        if status.stdout.strip():
-            logging.error(f"存在未提交的更改，无法安全切换分支")
+        if status_proc.stdout.strip():
+            logging.error("存在未提交的更改，无法安全切换分支")
             return False
 
-        # 5. 尝试切换到目标分支
-        switch_result = subprocess.run(
-            ["git", "checkout", config.PROD_BRANCH],
+        # 4. 检查目标分支是否存在
+        branches_proc = subprocess.run(
+            ["git", "branch", "-a"],
             capture_output=True,
             text=True,
             encoding="utf-8",
             cwd=project_path,
         )
-
-        if switch_result.returncode != 0:
-            logging.error(f"切换到目标分支失败: {switch_result.stderr}")
+        if branches_proc.returncode != 0:
+            logging.error(f"获取分支列表失败: {branches_proc.stderr}")
             return False
 
-        logging.info(f"成功切换到目标分支: {config.PROD_BRANCH}")
-        return True
+        branch_exists = any(
+            branch.strip().endswith(config.PROD_BRANCH)
+            for branch in branches_proc.stdout.split("\n")
+        )
+
+        if branch_exists:
+            # 5. 如果目标分支存在，尝试直接切换到目标分支
+            switch_proc = subprocess.run(
+                ["git", "checkout", config.PROD_BRANCH],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=project_path,
+            )
+            if switch_proc.returncode != 0:
+                logging.error(f"切换到目标分支失败: {switch_proc.stderr}")
+                return False
+
+            logging.info(f"成功切换到目标分支: {config.PROD_BRANCH}")
+            return True
+        else:
+            # 6. 如果目标分支不存在，先切换到master分支，再从master创建新分支
+            logging.info(f"目标分支 {config.PROD_BRANCH} 不存在，准备从master创建新分支")
+            switch_master_proc = subprocess.run(
+                ["git", "checkout", "master"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=project_path,
+            )
+            if switch_master_proc.returncode != 0:
+                logging.error(f"切换到master分支失败: {switch_master_proc.stderr}")
+                return False
+
+            logging.info("成功切换到master分支")
+            create_branch_proc = subprocess.run(
+                ["git", "checkout", "-b", config.PROD_BRANCH],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=project_path,
+            )
+            if create_branch_proc.returncode != 0:
+                logging.error(f"从master创建新分支失败: {create_branch_proc.stderr}")
+                return False
+
+            logging.info(f"成功创建并切换到新分支: {config.PROD_BRANCH}")
+            return True
 
     except Exception as e:
         logging.error(f"检查Git分支时发生错误: {e}")
