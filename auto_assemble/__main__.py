@@ -19,14 +19,16 @@ def create_env_file():
         bool: 是否成功创建.env文件
     """
     env_file = ".env"
-    env_content = textwrap.dedent("""\
+    env_content = textwrap.dedent(
+        """\
         # 应用分发资源包目录
         DISTRIBUTION_PATH=D:\\dev\\identify_field\\app-distribution
         # Android基座的项目目录
         ANDROID_UNI_BASE_PATH=E:\\dev\\uni\\uni-base
         # 应用项目目录
         PROD_NAME=identify_field
-        """)
+        """
+    )
 
     try:
         with open(env_file, "w", encoding="utf-8") as f:
@@ -71,7 +73,7 @@ def main():
     try:
         result = auto_flow()
         if result != 0:
-            print("\n程序执行出错，请查看日志文件了解详细信息。")
+            print("\n程序执行中断，请查看日志文件了解详细信息。")
             input("按回车键退出...")
         return result
     except Exception as e:
