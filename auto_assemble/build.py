@@ -169,17 +169,44 @@ def update_git_info(apk_name: str):
     更新git信息，执行git add和git commit，commit message为"release_req: ${apk_name}"
     """
     try:
+        # 导入push模块中的git操作函数
+        from .push import git_add, git_commit, get_staged_files
+        
         # 切换到项目目录
         os.chdir(config.ANDROID_UNI_BASE_PATH)
         logging.info(f"已切换到项目目录: {os.getcwd()}")
 
-        # 执行git add
-        subprocess.run(["git", "add", "."])
-        # 执行git commit
-        subprocess.run(["git", "commit", "-m", f"release_req: {apk_name}"])
-        logging.info("git commit成功")
+        # 使用push.py中的git_add函数
+        if not git_add():
+            logging.error("git add 执行失败")
+            return False
+        
+        # 获取已暂存的文件
+        staged_files = get_staged_files()
+        if not staged_files:
+            logging.error("没有待提交的文件，资源文件未更新，终止执行")
+            return False
+        logging.info("待提交的文件列表:")
+        for file in staged_files:
+            logging.info(f"  - {file}")
+            
+        # 执行git commit (这里需要修改commit_message的格式)
+        commit_message = f"release_req: {apk_name}"
+        # 由于push.py中的git_commit函数使用timestamp作为参数，这里需要自定义实现
+        result = subprocess.run(
+            ["git", "commit", "-m", commit_message],
+            capture_output=True,
+            text=True,
+            cwd=config.ANDROID_UNI_BASE_PATH,
+        )
+        if result.returncode != 0:
+            logging.error("git commit 执行失败")
+            return False
+        logging.info(f"git commit 执行成功，提交信息: {commit_message}")
+        return True
     except Exception as e:
         logging.error(f"更新git信息时发生错误: {e}")
+        return False
 
 
 def main():
@@ -209,10 +236,11 @@ def main():
             logging.error("复制构建产物失败，终止执行")
             return 1
 
-        # 更新git信息，执行git add和git commit，commit message为"release_req: ${apk_name}"
-        update_git_info(apk_name)
-        logging.info(f"更新git信息成功，commit message为: <release_req: {apk_name}>")
-
+        # 更新git信息，执行git add和git commit
+        if not update_git_info(apk_name):
+            logging.error("更新git信息失败，终止执行")
+            return 1
+        
         logging.info("所有操作执行成功")
         return 0
     except Exception as e:
