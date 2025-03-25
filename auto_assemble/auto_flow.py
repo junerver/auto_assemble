@@ -20,17 +20,17 @@ def main():
 
         # 执行copy_res.py
         if copy_res_main() != 0:
-            logging.error("copy_res.py执行失败")
+            logging.warning("copy_res.py执行中断")
             return 1
 
         # 执行build.py
         if build_main() != 0:
-            logging.error("build.py执行失败")
+            logging.warning("build.py执行中断")
             return 1
 
         # 执行push.py
         if push_main() != 0:
-            logging.error("push.py执行失败")
+            logging.warning("push.py执行中断")
             return 1
 
         return 0
