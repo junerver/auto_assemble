@@ -1,13 +1,14 @@
 """
 Auto Assemble 命令行入口
 """
+
 import argparse
 import os
 import sys
 
 from dotenv import load_dotenv
 
-from .auto_flow import main as auto_flow
+from auto_assemble.auto_flow import main as auto_flow
 
 
 def main():
@@ -15,7 +16,8 @@ def main():
     主函数，用于执行命令行入口
     """
     parser = argparse.ArgumentParser(
-        description="Load environment variables from a specified .env file and execute the program.")
+        description="Load environment variables from a specified .env file and execute the program."
+    )
     parser.add_argument("--env", type=str, help="Path to the .env file")
 
     args = parser.parse_args()

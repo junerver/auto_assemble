@@ -4,8 +4,9 @@ import shutil
 import subprocess
 from datetime import datetime
 
-from .config import config
-from .log import setup_logging
+from auto_assemble.config import config
+from auto_assemble.log import setup_logging
+from auto_assemble.push import git_add, git_commit, get_staged_files
 
 
 def get_build_output_name():
@@ -149,9 +150,6 @@ def update_git_info(apk_name: str):
     更新git信息，执行git add和git commit，commit message为"release_req: ${apk_name}"
     """
     try:
-        # 导入push模块中的git操作函数
-        from .push import git_add, git_commit, get_staged_files
-
         # 切换到项目目录
         os.chdir(config.ANDROID_UNI_BASE_PATH)
         logging.info(f"已切换到项目目录: {os.getcwd()}")
@@ -192,7 +190,9 @@ def main():
     """
     try:
         # 配置日志
-        setup_logging(task_name=f"开始新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        setup_logging(
+            task_name=f"开始新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
         logging.info("开始执行构建流程")
 
         # 检查路径

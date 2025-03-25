@@ -4,9 +4,9 @@ import re
 import subprocess
 from datetime import datetime
 
-from .config import config
-from .git import get_untracked_files, get_staged_files, git_commit, git_add, git_push
-from .log import setup_logging
+from auto_assemble.config import config
+from auto_assemble.git import get_untracked_files, get_staged_files, git_commit, git_add, git_push
+from auto_assemble.log import setup_logging
 
 
 def validate_timestamp_format(timestamp):
@@ -19,7 +19,6 @@ def validate_timestamp_format(timestamp):
         return True
     except ValueError:
         return False
-
 
 
 def has_changes(cwd=config.DISTRIBUTION_PATH):
@@ -80,8 +79,6 @@ def validate_files(files):
     return True, timestamp
 
 
-
-
 def get_modified_apk():
     """获取已修改的apk文件"""
     try:
@@ -110,7 +107,6 @@ def get_modified_apk():
     except Exception as e:
         logging.error(f"获取已修改的apk文件时发生错误: {str(e)}")
         return None
-
 
 
 def confirm_push(staged_files, commit_message):

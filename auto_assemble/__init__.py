@@ -6,8 +6,8 @@ __version__ = "0.1.0"
 __author__ = "Junerver"
 __email__ = "junerver@gmail.com"
 
-from .parse_manifest import parse_and_merge_permissions
-from .parse_readme import parse_readme
+from auto_assemble.parse_manifest import parse_and_merge_permissions
+from auto_assemble.parse_readme import parse_readme
 
 __all__ = [
     "parse_and_merge_permissions",

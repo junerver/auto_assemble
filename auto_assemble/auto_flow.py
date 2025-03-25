@@ -14,9 +14,9 @@ def main():
     """主函数，按顺序执行所有步骤"""
     try:
         # 导入放在函数内部，避免循环导入
-        from .copy_res import main as copy_res_main
-        from .build import main as build_main
-        from .push import main as push_main
+        from auto_assemble.copy_res import main as copy_res_main
+        from auto_assemble.build import main as build_main
+        from auto_assemble.push import main as push_main
 
         # 执行copy_res.py
         if copy_res_main() != 0:

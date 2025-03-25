@@ -1,6 +1,6 @@
 import logging
 
-from .config import config
+from auto_assemble.config import config
 
 
 def update_build_gradle(

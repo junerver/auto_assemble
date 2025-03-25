@@ -6,13 +6,13 @@ from typing import Optional, Tuple
 
 import patoolib
 
-from .config import config
-from .git import sync_repository, check_git_branch
-from .log import setup_logging
-from .parse_readme import parse_readme
-from .update_android_manifest import update_android_manifest
-from .update_build_gradle import update_build_gradle
-from .update_control_file import update_control_file
+from auto_assemble.config import config
+from auto_assemble.git import sync_repository, check_git_branch
+from auto_assemble.log import setup_logging
+from auto_assemble.parse_readme import parse_readme
+from auto_assemble.update_android_manifest import update_android_manifest
+from auto_assemble.update_build_gradle import update_build_gradle
+from auto_assemble.update_control_file import update_control_file
 
 
 def check_dependencies():

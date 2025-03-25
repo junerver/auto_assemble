@@ -1,8 +1,9 @@
+import logging
 import os
 import sys
-import logging
 from datetime import datetime
-from .config import config
+
+from auto_assemble.config import config
 
 
 def setup_logging(clear_log_file: bool = False, task_name: str = "任务"):

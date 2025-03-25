@@ -3,7 +3,7 @@ import os
 import subprocess
 from typing import Tuple
 
-from .config import config
+from auto_assemble.config import config
 
 
 def get_git_info(repo_path: str) -> Tuple[str, str, str]:

@@ -1,9 +1,11 @@
-from typing import Dict
 import logging
 import os
-import yaml
 import re
-from .parse_manifest import parse_and_merge_permissions
+from typing import Dict
+
+import yaml
+
+from auto_assemble.parse_manifest import parse_and_merge_permissions
 
 
 def parse_yaml_block(content: str) -> Dict[str, Dict[str, str]]:
