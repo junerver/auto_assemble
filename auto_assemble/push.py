@@ -128,7 +128,7 @@ def main():
     """主函数"""
     try:
         # 配置日志
-        setup_logging(task_name=f"开始检验提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        setup_logging(task_name=f"校验分发提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行git推送流程")
 
         # 检查目录是否存在

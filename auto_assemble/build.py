@@ -173,7 +173,6 @@ def update_git_info(apk_name: str):
         if not git_commit(commit_message, repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git commit 执行失败")
             return False
-        logging.info(f"git commit 执行成功，提交信息: {commit_message}")
         return True
     except Exception as e:
         logging.error(f"更新git信息时发生错误: {e}")
@@ -190,9 +189,7 @@ def main():
     """
     try:
         # 配置日志
-        setup_logging(
-            task_name=f"开始新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        setup_logging(task_name=f"新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行构建流程")
 
         # 检查路径

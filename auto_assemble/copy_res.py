@@ -120,6 +120,7 @@ def clear_directory(directory: str) -> bool:
 def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
     """
     检查压缩文件中的目录结构是否符合要求
+    todo：未来不再根据readme文件获取版本信息，而是根据压缩文件中的manifest.json文件获取版本信息
     Args:
         compressed_file: 压缩文件路径
     Returns:
@@ -146,7 +147,7 @@ def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
             # 检查失败，清理临时目录
             shutil.rmtree(temp_dir)
             return False, ""
-        # 检查目录名称是否与UNI_APP_ID一致
+        # todo: 后续不再需要根据readme文件来校验，而是根据压缩文件中的manifest.json文件来校验
         if contents[0] != config.UNI_APP_ID:
             logging.error(
                 f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
@@ -165,7 +166,7 @@ def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
         return False, ""
 
 
-def extract_compressed_file(compressed_file: str, extract_to: str) -> bool:
+def extract_compressed_file(compressed_file: str, extract_to: str, temp_dir: str) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
     Args:
@@ -175,8 +176,6 @@ def extract_compressed_file(compressed_file: str, extract_to: str) -> bool:
         bool: 解压是否成功
     """
     try:
-        # 检查临时解压目录是否存在
-        temp_dir = os.path.join(os.path.dirname(compressed_file), "temp_check")
         if os.path.exists(temp_dir) and os.listdir(temp_dir):
             logging.info(f"发现临时解压目录，直接复制文件: {temp_dir} -> {extract_to}")
             # 获取临时目录中的应用目录
@@ -259,7 +258,7 @@ def main():
     """
     try:
         # 配置日志
-        setup_logging(clear_log_file=True, task_name="开始执行更新流程")
+        setup_logging(clear_log_file=True, task_name="执行更新流程")
 
         # 检查依赖和路径
         check_dependencies()
@@ -283,7 +282,7 @@ def main():
             logging.info(f"已经存在产物 {apk_file} 无需执行打包")
             return 1
         else:
-            # 不存在产物，则需要执行打包，读取README.md获取版本信息
+            # todo：后续不存在产物时，直接调用check_compressed_file_content解压，并尝试解析manifest.json文件获取版本信息
             logging.info(f"不存在产物 {apk_file} 需要执行打包")
             readme_path = os.path.join(latest_dir, "README.md")
             readme_info = parse_readme(readme_path)
@@ -302,6 +301,8 @@ def main():
             logging.error("压缩文件内容检查失败，终止执行")
             return 1
 
+        # todo: 解析临时目录下的{UNIAPP_ID}/www/manifest.json文件
+
         # 检查Git分支
         if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
             logging.error("Git分支检查失败，终止执行")
@@ -318,7 +319,7 @@ def main():
             return 1
 
         # 解压文件
-        if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY):
+        if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY, temp_dir):
             logging.error("解压文件失败，终止执行")
             return 1
 
