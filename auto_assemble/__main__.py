@@ -10,45 +10,15 @@ import textwrap
 from dotenv import load_dotenv
 
 from auto_assemble.auto_flow import main as auto_flow
-
-
-def create_env_file():
-    """
-    创建.env文件
-    Returns:
-        bool: 是否成功创建.env文件
-    """
-    env_file = ".env"
-    env_content = textwrap.dedent(
-        """\
-        # 应用分发资源包目录
-        DISTRIBUTION_PATH=D:\\dev\\identify_field\\app-distribution
-        # Android基座的项目目录
-        ANDROID_UNI_BASE_PATH=E:\\dev\\uni\\uni-base
-        # 应用项目目录
-        PROD_NAME=identify_field
-        """
-    )
-
-    try:
-        with open(env_file, "w", encoding="utf-8") as f:
-            f.write(env_content)
-        print(f"\n已创建 '{env_file}' 文件")
-        print("\n请按照以下步骤操作：")
-        print("1. 打开新创建的 .env 文件")
-        print("2. 修改环境变量值为您的实际路径")
-        print("3. 保存文件")
-        print("4. 重新运行程序")
-        return True
-    except Exception as e:
-        print(f"创建 .env 文件时发生错误: {e}")
-        return False
+from auto_assemble.create_env_file import check_and_create_env
+from auto_assemble.welcome import welcome
 
 
 def main():
     """
     主函数，用于执行命令行入口
     """
+    welcome()
     parser = argparse.ArgumentParser(
         description="Load environment variables from a specified .env file and execute the program."
     )
@@ -57,21 +27,36 @@ def main():
     args = parser.parse_args()
     env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
 
-    if not os.path.exists(env_file):
-        print(f"环境变量文件 '{env_file}' 不存在。")
-        if create_env_file():
-            input("\n按回车键退出...")
-        else:
-            print("\n无法创建环境变量文件，请手动创建。")
-            input("按回车键退出...")
-        return 1
+    check_and_create_env(env_file)
 
     # 加载指定的 .env 文件
     load_dotenv(env_file)
-    print(f"从 {env_file} 加载环境变量。")
-
+    print(f"已从 {env_file} 加载环境变量。")
+    print(
+        textwrap.dedent(
+            """
+            请输入下面序列号选择功能：
+            1. 从分发仓库拉取资源进行打包
+            2. 指定本地UniApp工程进行打包
+            3. 指定本地UniApp工程构建离线基座
+            """
+        )
+    )
+    select_func = input("请输入功能序号：").strip()
+    # todo：根据用户输入序号选择指定的工作流程，需要先在各个单独的脚本文件中实现
     try:
-        result = auto_flow()
+        if select_func == "1":
+            # 从分发仓库拉取资源进行打包
+            result = auto_flow()
+        elif select_func == "2":
+            # 指定本地UniApp工程进行打包
+            result = todo()
+        elif select_func == "3":
+            # 指定本地UniApp工程构建离线基座
+            result = todo()
+        else:
+            print("输入错误，请重新输入。")
+
         if result != 0:
             print("\n程序执行中断，请查看日志文件了解详细信息。")
         input("按回车键退出...")
