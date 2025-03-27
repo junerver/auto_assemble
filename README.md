@@ -12,8 +12,9 @@
 - python 3.8+
 - pip 24.1+
 
-打包构建依赖gradle工具，请确保已安装：
+打包构建依赖 Gradle 与 Android SDK，请确保已安装：
 - Java 17+
+- Android Studio / Command line tools
 
 ## 可执行程序使用说明
 

@@ -9,25 +9,20 @@ from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 
 
-def get_build_output_name():
+def get_build_output_name(release):
     """
     获取构建产物APK文件名
     Returns:
         str: APK文件名
     """
     # 查找构建输出目录下符合yyyyMMddHHmm格式的apk文件
-    for file in os.listdir(config.BUILD_OUTPUT_DIR):
-        if file.endswith(".apk") and len(file.replace(".apk", "")) == 12:
-            try:
-                # 验证文件名是否符合yyyyMMddHHmm格式
-                datetime.strptime(file.replace(".apk", ""), "%Y%m%d%H%M")
-                return file
-            except ValueError:
-                continue
+    for file in os.listdir(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR):
+        if file.endswith(".apk"):
+            return file
     raise FileNotFoundError("未找到符合yyyyMMddHHmm格式的APK文件")
 
 
-def get_build_target_dir(apk_name):
+def get_distribution_target_dir(apk_name):
     """
     根据APK文件名生成目标目录
     Args:
@@ -55,9 +50,9 @@ def check_paths():
             raise FileNotFoundError(error_msg)
 
 
-def execute_gradle_build():
+def execute_gradle_build(release: bool = True):
     """
-    执行gradle构建命令
+    执行gradle构建命令，默认构建 release 包
     Returns:
         bool: 构建是否成功
     """
@@ -81,7 +76,13 @@ def execute_gradle_build():
             return False
 
         # 执行gradle命令
-        cmd = ["cmd", "/c", "gradlew.bat", "clean", "app:assembleRelease"]
+        cmd = [
+            "cmd",
+            "/c",
+            "gradlew.bat",
+            "clean",
+            f"app:assemble{"Release" if release else "Debug"}",
+        ]
         logging.info(f"执行命令: {' '.join(cmd)}")
 
         result = subprocess.run(
@@ -102,23 +103,19 @@ def execute_gradle_build():
         return False
 
 
-def copy_build_outputs() -> tuple[bool, str]:
+def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
     """
     复制构建产物到目标目录
     Returns:
         tuple<bool, str>: 复制是否成功, apk文件名(不包含尾缀)
     """
     try:
-        # 获取构建产物名称
-        apk_name = get_build_output_name()
-        # 获取目标目录
-        target_dir = get_build_target_dir(apk_name)
-
         # 确保目标目录存在
         os.makedirs(target_dir, exist_ok=True)
 
         # 复制APK文件
-        source_apk = os.path.join(config.BUILD_OUTPUT_DIR, apk_name)
+        source_apk = os.path.join(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR,
+                                  apk_name)
         target_apk = os.path.join(target_dir, apk_name)
 
         if os.path.exists(source_apk):
@@ -128,16 +125,17 @@ def copy_build_outputs() -> tuple[bool, str]:
             logging.error(f"源APK文件不存在: {source_apk}")
             return False, ""
 
-        # 复制metadata文件
-        source_metadata = os.path.join(config.BUILD_OUTPUT_DIR, "release-metadata.md")
-        target_metadata = os.path.join(target_dir, "release-metadata.md")
+        if release:
+            # 复制metadata文件
+            source_metadata = os.path.join(config.BUILD_RELEASE_OUTPUT_DIR, "release-metadata.md")
+            target_metadata = os.path.join(target_dir, "release-metadata.md")
 
-        if os.path.exists(source_metadata):
-            shutil.copy2(source_metadata, target_metadata)
-            logging.info("成功复制metadata文件")
-        else:
-            logging.error(f"源metadata文件不存在: {source_metadata}")
-            return False, ""
+            if os.path.exists(source_metadata):
+                shutil.copy2(source_metadata, target_metadata)
+                logging.info("成功复制metadata文件")
+            else:
+                logging.error(f"源metadata文件不存在: {source_metadata}")
+                return False, ""
 
         return True, apk_name.replace(".apk", "")
     except Exception as e:
@@ -179,13 +177,16 @@ def update_git_info(apk_name: str):
         return False
 
 
-def main():
+def main(target_dir, release: bool = True):
     """
     主函数：执行整个构建流程
     1. 配置日志系统
     2. 检查路径
     3. 执行gradle构建
     4. 复制构建产物
+
+    Args:
+        -target_dir 构建产物目标输出目录，可空，不传递时默认输出到分发目录下
     """
     try:
         # 配置日志
@@ -196,12 +197,17 @@ def main():
         check_paths()
 
         # 执行gradle构建
-        if not execute_gradle_build():
+        if not execute_gradle_build(release):
             logging.error("Gradle构建失败，终止执行")
             return 1
 
+        # 获取从release目录读取构建产物名称
+        apk_name = get_build_output_name(release)
+        # 没有传递时，指向分发目录
+        if not target_dir:
+            target_dir = get_distribution_target_dir(apk_name)
         # 复制构建产物，返回是否成功和apk文件名
-        success, apk_name = copy_build_outputs()
+        success, apk_name = copy_build_outputs(apk_name, target_dir, release)
         if not success:
             logging.error("复制构建产物失败，终止执行")
             return 1

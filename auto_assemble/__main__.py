@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from auto_assemble.auto_flow import main as auto_flow
 from auto_assemble.create_env_file import check_and_create_env
+from auto_assemble.local_assemble import local_assemble
 from auto_assemble.welcome import welcome
 
 
@@ -27,15 +28,10 @@ def main():
     args = parser.parse_args()
     env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
 
-    check_and_create_env(env_file)
-
-    # 加载指定的 .env 文件
-    load_dotenv(env_file)
-    print(f"已从 {env_file} 加载环境变量。")
     print(
         textwrap.dedent(
             """
-            请输入下面序列号选择功能：
+            请输入下面序号选择功能：
             1. 从分发仓库拉取资源进行打包
             2. 指定本地UniApp工程进行打包
             3. 指定本地UniApp工程构建离线基座
@@ -43,17 +39,23 @@ def main():
         )
     )
     select_func = input("请输入功能序号：").strip()
-    # todo：根据用户输入序号选择指定的工作流程，需要先在各个单独的脚本文件中实现
+
+    check_and_create_env(env_file, select_func)
+
+    # 加载指定的 .env 文件
+    load_dotenv(env_file)
+    print(f"已从 {env_file} 加载环境变量。")
+
     try:
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
             result = auto_flow()
         elif select_func == "2":
             # 指定本地UniApp工程进行打包
-            result = todo()
+            result = local_assemble(True)
         elif select_func == "3":
             # 指定本地UniApp工程构建离线基座
-            result = todo()
+            result = local_assemble(False)
         else:
             print("输入错误，请重新输入。")
 

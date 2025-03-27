@@ -1,82 +1,207 @@
 import os
-import textwrap
+from dataclasses import dataclass
+from typing import Dict, Optional, Set
 
 
-def create_env_file():
-    """
-    创建.env文件
-    Returns:
-        bool: 是否成功创建.env文件
-    """
-    env_file = ".env"
+@dataclass
+class EnvVarConfig:
+    """环境变量配置类"""
 
-    def get_valid_directory(prompt):
+    name: str
+    description: str
+    required: bool
+    validator: Optional[callable] = None
+    default: Optional[str] = None
+
+
+class EnvVarManager:
+    """环境变量管理器"""
+
+    def __init__(self):
+        self.var_configs: Dict[str, EnvVarConfig] = {
+            "DISTRIBUTION_PATH": EnvVarConfig(
+                "DISTRIBUTION_PATH", "分发仓库的本地目录", True, self._validate_directory
+            ),
+            "ANDROID_UNI_BASE_PATH": EnvVarConfig(
+                "ANDROID_UNI_BASE_PATH", "Android 基座项目所在目录", True, self._validate_directory
+            ),
+            "PROD_NAME": EnvVarConfig(
+                "PROD_NAME", "要构建的项目标识（即分发仓库中项目目录名）", True
+            ),
+            "HBX_VERSION": EnvVarConfig(
+                "HBX_VERSION", "UniApp SDK 版本", False, self._validate_sdk_version, "4.45"
+            ),
+            "UNIAPP_ID": EnvVarConfig("UNIAPP_ID", "该项目的 UniApp APPID", True),
+            "UNIAPP_APPKEY": EnvVarConfig("UNIAPP_APPKEY", "该项目的 UniApp AppKey", True),
+            "UNIAPP_WORKSPACE": EnvVarConfig(
+                "UNIAPP_WORKSPACE", "本地UniApp项目所在目录", True, self._validate_directory
+            ),
+            "UNIAPP_IS_CLI": EnvVarConfig(
+                "UNIAPP_IS_CLI", "该 UniApp 项目是否为CLI创建（y/n）", True, self._validate_yes_no
+            ),
+            "APK_OUTPUT_DIR": EnvVarConfig(
+                "APK_OUTPUT_DIR", "最终 APK 产物输出目录", True, self._validate_directory
+            ),
+        }
+
+        # 定义不同功能需要的环境变量
+        self.function_vars: Dict[str, Set[str]] = {
+            "1": {"DISTRIBUTION_PATH", "ANDROID_UNI_BASE_PATH", "PROD_NAME"},  # 分发打包
+            "2": {
+                "PROD_NAME",
+                "ANDROID_UNI_BASE_PATH",
+                "UNIAPP_WORKSPACE",
+                "UNIAPP_IS_CLI",
+                "UNIAPP_ID",
+                "UNIAPP_APPKEY",
+                "APK_OUTPUT_DIR",
+            },  # 本地打包
+            "3": {
+                "PROD_NAME",
+                "ANDROID_UNI_BASE_PATH",
+                "UNIAPP_WORKSPACE",
+                "UNIAPP_IS_CLI",
+                "UNIAPP_ID",
+                "UNIAPP_APPKEY",
+            },  # 本地构建离线基座
+        }
+
+    def _validate_directory(self, path: str) -> bool:
+        """验证目录是否有效"""
+        return os.path.isdir(path)
+
+    def _validate_sdk_version(self, version: str) -> bool:
+        """验证SDK版本是否有效"""
+        return version in ["4.45", "4.56"]
+
+    def _validate_yes_no(self, value: str) -> bool:
+        """验证yes/no输入是否有效"""
+        return value.lower() in ["y", "n"]
+
+    def get_required_vars(self, select_func: Optional[str] = None) -> Set[str]:
+        """获取指定功能所需的环境变量"""
+        if not select_func:
+            return set(self.var_configs.keys())
+        return self.function_vars.get(select_func, set())
+
+    def read_env_file(self, env_file: str) -> Dict[str, str]:
+        """读取环境变量文件"""
+        existing_vars = {}
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            key, value = line.split("=", 1)
+                            existing_vars[key.strip()] = value.strip()
+            except Exception as e:
+                print(f"读取现有环境变量文件时发生错误: {e}")
+        return existing_vars
+
+    def write_env_file(self, env_file: str, env_vars: Dict[str, str]) -> bool:
+        """写入环境变量文件"""
+        try:
+            with open(env_file, "w", encoding="utf-8") as f:
+                for var_name, config in self.var_configs.items():
+                    if var_name in env_vars:
+                        f.write(f"# {config.description}\n")
+                        f.write(f"{var_name}={env_vars[var_name]}\n\n")
+            return True
+        except Exception as e:
+            print(f"写入环境变量文件时发生错误: {e}")
+            return False
+
+    def get_var_value(self, var_name: str, existing_value: Optional[str] = None) -> str:
+        """获取环境变量的值"""
+        config = self.var_configs[var_name]
+
+        if existing_value:
+            return existing_value
+
         while True:
-            path = input(prompt).strip()
-            if os.path.isdir(path):
-                return path
-            print(f"错误：'{path}' 不是一个有效的目录，请重新输入。")
+            prompt = f"请输入{config.description}"
+            if config.default:
+                prompt += f"（默认：{config.default}）"
+            prompt += ": "
 
-    print("\n请按照以下步骤操作：")
+            value = input(prompt).strip()
 
-    # 1. 获取分发仓库的本地目录
-    distribution_path = get_valid_directory("1. 请输入分发仓库的本地目录: ")
-    # 2. 获取 Android 基座项目所在目录
-    android_uni_base_path = get_valid_directory("2. 请输入 Android 基座项目所在目录: ")
-    # 3. 获取项目标识
-    prod_name = input("3. 请输入要构建的项目标识（即分发仓库中项目目录名）: ").strip()
-    # 4. UniApp SDK 版本，默认使用4.45
-    uniapp_sdk_version = input("4. 请输入要使用的 SDK 版本:（例如：4.45） ").strip()
-    if not uniapp_sdk_version:
-        uniapp_sdk_version = "4.45"
-    # 5. 填写该项目的 UniApp ID
-    uniapp_id = input("5. 请输入该项目的 UniApp APPID: ").strip()
-    # 6. 填写该项目的 UniApp AppKey
-    uniapp_appkey = input("6. 请输入该项目的 UniApp AppKey: ").strip()
+            if not value and config.default:
+                return config.default
 
-    env_content = textwrap.dedent(
-        f"""
-        # 应用分发资源包目录
-        DISTRIBUTION_PATH={distribution_path}
-        # Android基座的项目目录
-        ANDROID_UNI_BASE_PATH={android_uni_base_path}
-        # 应用项目目录
-        PROD_NAME={prod_name}
-        # UniApp SDK 版本
-        HBX_VERSION={uniapp_sdk_version}
-        # UniApp ID
-        UNIAPP_ID={uniapp_id}
-        # UniApp AppKey
-        UNIAPP_APPKEY={uniapp_appkey}
-        """
-    )
+            if config.validator and not config.validator(value):
+                print(f"错误：输入的值无效，请重新输入。")
+                continue
 
-    try:
-        with open(env_file, "w", encoding="utf-8") as f:
-            f.write(env_content)
+            return value
+
+
+def create_env_file(env_file=".env", select_func=None):
+    """
+    创建或更新.env文件，根据功能选择只提示用户输入必要的环境变量
+    Args:
+        env_file: 环境变量文件路径
+        select_func: 用户选择的功能，决定需要哪些环境变量
+    Returns:
+        bool: 是否成功创建/更新.env文件
+    """
+    manager = EnvVarManager()
+    needed_vars = manager.get_required_vars(select_func)
+    existing_vars = manager.read_env_file(env_file)
+
+    print("\n请按照以下步骤操作，补充必要的环境变量：")
+
+    # 收集新的环境变量
+    new_vars = {}
+    for var_name in needed_vars:
+        if var_name not in existing_vars:
+            new_vars[var_name] = manager.get_var_value(var_name)
+
+    # 合并现有变量和新变量
+    all_vars = {**existing_vars, **new_vars}
+
+    if manager.write_env_file(env_file, all_vars):
         print(
-            f"\n已成功创建 '{env_file}' 文件，你可以创建多个不同的 .env 文件，用于不同的项目。使用时通过 --env 参数指定。"
+            f"\n已成功{'更新' if os.path.exists(env_file) else '创建'} '{env_file}' 文件，"
+            "你可以创建多个不同的 .env 文件，用于不同的项目。使用时通过 --env 参数指定。"
         )
         return True
-    except Exception as e:
-        print(f"创建 .env 文件时发生错误: {e}")
-        return False
+    return False
 
 
-def check_and_create_env(env_file: str):
+def check_and_create_env(env_file: str, select_func: str):
+    """检查并创建环境变量文件"""
+    manager = EnvVarManager()
+
     if not os.path.exists(env_file):
         print(f"环境变量文件 '{env_file}' 不存在，请按照下面步骤引导，创建环境变量文件。")
-        if create_env_file():
+        if create_env_file(env_file, select_func):
             return 0
         else:
             print("\n无法创建环境变量文件，请手动创建。")
             input("按回车键退出...")
             return 1
-    else:
-        # 环境变量文件存在，输出环境变量要求用户确认
-        with open(env_file, "r", encoding="utf-8") as f:
-            env_content = f.read()
-        print("请确认下面的环境变量：")
-        print(env_content)
-        input("按回车键继续...")
-        return 0
+
+    # 检查必要的环境变量
+    existing_vars = manager.read_env_file(env_file)
+    required_vars = manager.get_required_vars(select_func)
+    missing_vars = [var for var in required_vars if var not in existing_vars]
+
+    if missing_vars:
+        print(f"环境变量文件 '{env_file}' 缺少以下环境变量: {', '.join(missing_vars)}")
+        print("请按照下面步骤引导，补充环境变量文件。")
+        if create_env_file(env_file, select_func):
+            return 0
+        else:
+            print("\n无法更新环境变量文件，请手动创建。")
+            input("按回车键退出...")
+            return 1
+
+    print("请确认下面的环境变量：")
+    for var_name, config in manager.var_configs.items():
+        if var_name in existing_vars and var_name in required_vars:
+            print(f"# {config.description}")
+            print(f"{var_name}={existing_vars[var_name]}\n")
+    input("按回车键继续...")
+    return 0

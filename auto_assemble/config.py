@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,8 +30,11 @@ class Config:
         self.LOG_FILE = os.path.join(os.getcwd(), "auto_assemble.log")
 
         # 构建输出配置
-        self.BUILD_OUTPUT_DIR = os.path.join(
+        self.BUILD_RELEASE_OUTPUT_DIR = os.path.join(
             self.ANDROID_UNI_BASE_PATH, "app", "build", "outputs", "apk", "release"
+        )
+        self.BUILD_DEBUG_OUTPUT_DIR = os.path.join(
+            self.ANDROID_UNI_BASE_PATH, "app", "build", "outputs", "apk", "debug"
         )
 
         # Git相关配置
