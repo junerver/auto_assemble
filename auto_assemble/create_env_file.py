@@ -7,9 +7,7 @@ from typing import Dict, Optional, Set
 class EnvVarConfig:
     """环境变量配置类"""
 
-    name: str
     description: str
-    required: bool
     validator: Optional[callable] = None
     default: Optional[str] = None
 
@@ -19,36 +17,32 @@ class EnvVarManager:
 
     def __init__(self):
         self.var_configs: Dict[str, EnvVarConfig] = {
-            "DISTRIBUTION_PATH": EnvVarConfig(
-                "DISTRIBUTION_PATH", "分发仓库的本地目录", True, self._validate_directory
-            ),
+            "DISTRIBUTION_PATH": EnvVarConfig("分发仓库的本地目录", self._validate_directory),
             "ANDROID_UNI_BASE_PATH": EnvVarConfig(
-                "ANDROID_UNI_BASE_PATH", "Android 基座项目所在目录", True, self._validate_directory
+                "Android 基座项目所在目录", self._validate_directory
             ),
-            "PROD_NAME": EnvVarConfig(
-                "PROD_NAME", "要构建的项目标识（即分发仓库中项目目录名）", True
-            ),
-            "HBX_VERSION": EnvVarConfig(
-                "HBX_VERSION", "UniApp SDK 版本", False, self._validate_sdk_version, "4.45"
-            ),
-            "UNIAPP_ID": EnvVarConfig("UNIAPP_ID", "该项目的 UniApp APPID", True),
-            "UNIAPP_APPKEY": EnvVarConfig("UNIAPP_APPKEY", "该项目的 UniApp AppKey", True),
-            "UNIAPP_WORKSPACE": EnvVarConfig(
-                "UNIAPP_WORKSPACE", "本地UniApp项目所在目录", True, self._validate_directory
-            ),
+            "PROD_NAME": EnvVarConfig("要构建的项目标识（即分发仓库中项目目录名）"),
+            "HBX_VERSION": EnvVarConfig("UniApp SDK 版本", self._validate_sdk_version, "4.45"),
+            "UNIAPP_ID": EnvVarConfig("该项目的 UniApp APPID"),
+            "UNIAPP_APPKEY": EnvVarConfig("该项目的 UniApp AppKey"),
+            "UNIAPP_WORKSPACE": EnvVarConfig("本地UniApp项目所在目录", self._validate_directory),
             "UNIAPP_IS_CLI": EnvVarConfig(
-                "UNIAPP_IS_CLI", "该 UniApp 项目是否为CLI创建（y/n）", True, self._validate_yes_no
+                "该 UniApp 项目是否为CLI创建（y/n）", self._validate_yes_no
             ),
-            "APK_OUTPUT_DIR": EnvVarConfig(
-                "APK_OUTPUT_DIR", "最终 APK 产物输出目录", True, self._validate_directory
-            ),
+            "APK_OUTPUT_DIR": EnvVarConfig("最终 APK 产物输出目录", self._validate_directory),
         }
 
         # 定义不同功能需要的环境变量
         self.function_vars: Dict[str, Set[str]] = {
-            "1": {"DISTRIBUTION_PATH", "ANDROID_UNI_BASE_PATH", "PROD_NAME"},  # 分发打包
+            "1": {
+                "DISTRIBUTION_PATH",
+                "ANDROID_UNI_BASE_PATH",
+                "PROD_NAME",
+                "HBX_VERSION",
+            },  # 分发打包
             "2": {
                 "PROD_NAME",
+                "HBX_VERSION",
                 "ANDROID_UNI_BASE_PATH",
                 "UNIAPP_WORKSPACE",
                 "UNIAPP_IS_CLI",
@@ -58,6 +52,7 @@ class EnvVarManager:
             },  # 本地打包
             "3": {
                 "PROD_NAME",
+                "HBX_VERSION",
                 "ANDROID_UNI_BASE_PATH",
                 "UNIAPP_WORKSPACE",
                 "UNIAPP_IS_CLI",
@@ -199,9 +194,12 @@ def check_and_create_env(env_file: str, select_func: str):
             return 1
 
     print("请确认下面的环境变量：")
-    for var_name, config in manager.var_configs.items():
-        if var_name in existing_vars and var_name in required_vars:
-            print(f"# {config.description}")
-            print(f"{var_name}={existing_vars[var_name]}\n")
+    print(
+        "\n".join(
+            f"# {config.description}\n{var_name}={existing_vars[var_name]}\n"
+            for var_name, config in manager.var_configs.items()
+            if var_name in existing_vars and var_name in required_vars
+        )
+    )
     input("按回车键继续...")
     return 0
