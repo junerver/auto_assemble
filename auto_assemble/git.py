@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import textwrap
 from typing import Tuple
 
 from auto_assemble.config import config
@@ -81,6 +82,15 @@ def sync_repository(repo_path: str) -> bool:
                 logging.info(f"提交时间: {after_date}")
                 logging.info(f"提交人: {after_author}")
                 logging.info(f"提交信息: {after_message}")
+
+            config.last_commit_message = textwrap.dedent(
+                f"""
+                
+                提交时间: {after_date}
+                提交人: {after_author}
+                提交信息: {after_message}
+                """
+            )
             return True
         else:
             logging.error(f"Git仓库同步失败: {result.stderr}")

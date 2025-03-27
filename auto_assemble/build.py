@@ -16,7 +16,9 @@ def get_build_output_name(release):
         str: APK文件名
     """
     # 查找构建输出目录下符合yyyyMMddHHmm格式的apk文件
-    for file in os.listdir(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR):
+    for file in os.listdir(
+            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
+    ):
         if file.endswith(".apk"):
             return file
     raise FileNotFoundError("未找到符合yyyyMMddHHmm格式的APK文件")
@@ -114,8 +116,9 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
         os.makedirs(target_dir, exist_ok=True)
 
         # 复制APK文件
-        source_apk = os.path.join(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR,
-                                  apk_name)
+        source_apk = os.path.join(
+            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR, apk_name
+        )
         target_apk = os.path.join(target_dir, apk_name)
 
         if os.path.exists(source_apk):
@@ -143,7 +146,7 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
         return False, ""
 
 
-def update_git_info(apk_name: str):
+def update_git_info(commit_message):
     """
     更新git信息，执行git add和git commit，commit message为"release_req: ${apk_name}"
     """
@@ -167,7 +170,6 @@ def update_git_info(apk_name: str):
             logging.info(f"  - {file}")
 
         # 执行git commit
-        commit_message = f"release_req: {apk_name}"
         if not git_commit(commit_message, repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git commit 执行失败")
             return False
@@ -213,7 +215,16 @@ def main(target_dir, release: bool = True):
             return 1
 
         # 更新git信息，执行git add和git commit
-        if not update_git_info(apk_name):
+        if not target_dir:
+            # 来自分发的打包请求，附带提交打包请求的commit信息
+            commit_message = f"release_req: {apk_name}{config.last_commit_message}"
+        else:
+            # 本地构建只记录变更时间
+            commit_message = (
+                f"{"release" if release else "debug"}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+            )
+
+        if not update_git_info(commit_message):
             logging.error("更新git信息失败，终止执行")
             return 1
 

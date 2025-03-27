@@ -43,6 +43,8 @@ class Config:
 
         # 应用配置
         self._uni_app_id = None
+        # Git提交信息
+        self.last_commit_message = ""
 
     @property
     def UNI_APP_ID(self):
