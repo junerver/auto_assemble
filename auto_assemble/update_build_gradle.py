@@ -5,7 +5,7 @@ from auto_assemble.config import config
 
 def update_build_gradle(
         build_gradle_path: str,
-        new_req_date: str,
+        artifact_name: str,
         version_info: dict,
 ) -> bool:
     """
@@ -19,7 +19,7 @@ def update_build_gradle(
 
     Args:
         build_gradle_path: build.gradle文件路径
-        new_req_date: 新的reqDate值
+        artifact_name: 最终产物名称
         version_info: 包含版本信息的字典，可能包含以下键：
             - version_name: 新的versionName值
             - version_code: 新的versionCode值
@@ -59,12 +59,12 @@ def update_build_gradle(
             lines = file.readlines()
 
         # 查找并记录旧的reqDate值
-        old_req_date = None
+        old_artifact_name = None
         for line in lines:
             if line.strip().startswith("def reqDate ="):
                 quote_char = '"' if '"' in line else "'"
-                old_req_date = line[line.index(quote_char) + 1: line.rindex(quote_char)]
-                logging.info(f"当前reqDate值: {old_req_date}")
+                old_artifact_name = line[line.index(quote_char) + 1: line.rindex(quote_char)]
+                logging.info(f"当前reqDate值: {old_artifact_name}")
                 break
 
         with open(build_gradle_path, "w", encoding="utf-8") as file:
@@ -75,7 +75,7 @@ def update_build_gradle(
                     quote_char = '"' if '"' in line else "'"
                     before_value = line[: line.index(quote_char) + 1]
                     after_value = line[line.rindex(quote_char):]
-                    file.write(f"{before_value}{new_req_date}{after_value}")
+                    file.write(f"{before_value}{artifact_name}{after_value}")
                 elif version_name and line.strip().startswith("versionName"):
                     # 解析到了versionName，更新 versionName
                     indent = line[: line.index("versionName")]
@@ -142,7 +142,7 @@ def update_build_gradle(
                 else:
                     file.write(line)
 
-        logging.info(f"成功更新build.gradle文件，reqDate从 {old_req_date} 更新为 {new_req_date}")
+        logging.info(f"成功更新build.gradle文件，reqDate从 {old_artifact_name} 更新为 {artifact_name}")
         if hbx_version:
             logging.info(f"更新 hbx_version 为: {hbx_version}")
         if version_name:

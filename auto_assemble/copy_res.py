@@ -164,12 +164,16 @@ def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
         return False, ""
 
 
-def extract_compressed_file(compressed_file: str, extract_to: str, temp_dir: str) -> bool:
+def extract_compressed_file(
+        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
     Args:
         compressed_file: 压缩文件路径
         extract_to: 解压目标目录
+        temp_dir: 已存在的资源目录缓存
+        rm_temp: 提取后是否移除原资源文件
     Returns:
         bool: 解压是否成功
     """
@@ -192,8 +196,9 @@ def extract_compressed_file(compressed_file: str, extract_to: str, temp_dir: str
                     else:
                         shutil.copy2(s, d)
                 logging.info(f"成功从临时目录复制文件到: {extract_to}")
-                # 清理临时目录
-                shutil.rmtree(temp_dir)
+                if rm_temp:
+                    # 清理临时目录
+                    shutil.rmtree(temp_dir)
                 return True
             else:
                 logging.error(f"临时目录中未找到应用目录: {app_dir}")
@@ -220,11 +225,11 @@ def check_apps_directory() -> bool:
         contents = os.listdir(config.APPS_DIRECTORY)
         logging.info(f"目录内容: {contents}")
         # 检查目录数量是否为1，不为1则警告
-        if len(contents) != 1:
+        if len(contents) > 1:
             logging.warning(f"APPS_DIRECTORY中包含多个目录或文件: {contents}")
 
         # 检查目录名称是否与UNI_APP_ID一致,不一致则警告
-        if contents[0] != config.UNI_APP_ID:
+        if len(contents) == 1 and contents[0] != config.UNI_APP_ID:
             logging.warning(
                 f"APPS_DIRECTORY中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
             )

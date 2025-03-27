@@ -14,6 +14,21 @@ def prettify_xml(elem):
     )
 
 
+def clear_namespaces(root: ET.Element) -> None:
+    """
+    清除根元素上的所有命名空间声明
+
+    Args:
+        root: XML根元素
+    """
+    # 获取所有属性名
+    attrs = list(root.attrib.keys())
+    # 移除所有命名空间声明
+    for attr in attrs:
+        if attr.startswith("xmlns:"):
+            del root.attrib[attr]
+
+
 def update_android_manifest(android_manifest_path: str, permissions: dict) -> bool:
     """
     更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）
@@ -41,6 +56,13 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
         tree = ET.parse(android_manifest_path, parser)
         root = tree.getroot()
 
+        # 先清除所有命名空间声明
+        clear_namespaces(root)
+
+        # 重新添加必要的命名空间声明
+        root.set("xmlns:tools", "http://schemas.android.com/tools")
+        root.set("xmlns:app", "http://schemas.android.com/apk/res-auto")
+
         # **移除所有 <uses-permission> 和 <uses-feature> 元素**
         for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
             root.remove(element)
@@ -66,7 +88,7 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
 
         logging.info(f"添加新的 <uses-permission> 和 <uses-feature> 元素")
 
-        # **使用 minidom 重新格式化 XML**
+        # **使用 ElementTree 格式化 XML**
         formatted_xml = prettify_xml(root)
         with open(android_manifest_path, "w", encoding="utf-8") as f:
             f.write(formatted_xml)
