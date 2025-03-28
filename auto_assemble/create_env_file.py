@@ -70,7 +70,7 @@ class EnvVarManager:
 
     def _validate_sdk_version(self, version: str) -> bool:
         """验证SDK版本是否有效"""
-        return version in ["4.45", "4.56"]
+        return version in ["4.45", "4.56", "4.57"]
 
     def _validate_yes_no(self, value: str) -> bool:
         """验证yes/no输入是否有效"""

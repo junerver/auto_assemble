@@ -44,10 +44,13 @@ def update_control_file(control_file_path: str, uniapp_id: str, debug: bool = Fa
     """
     更新 dcloud_control.xml 文件中的 uniapp_id 和 debug 状态
 
-    :param control_file_path: dcloud_control.xml 文件的路径
-    :param uniapp_id: 要替换的新的 appid
-    :param debug: 是否为 debug 模式，默认 False
-    :return: 更新成功返回 True，失败返回 False
+    Args:
+        control_file_path (str): dcloud_control.xml 文件的路径
+        uniapp_id (str): 要替换的新的 appid
+        debug (bool, optional): 是否为 debug 模式，默认 False. Defaults to False.
+
+    Returns:
+        bool: 更新成功返回 True，失败返回 False
     """
     try:
         with open(control_file_path, "r", encoding="utf-8") as file:
