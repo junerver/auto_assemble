@@ -38,6 +38,42 @@ def get_git_info(repo_path: str) -> Tuple[str, str, str]:
     return "", "", ""
 
 
+def git_fetch(repo_path: str) -> bool:
+    """
+    执行git fetch操作, 检查远程是否有更新, 如果本地代码已是最新, 则返回False, 否则返回True
+    Args:
+        repo_path: Git仓库路径
+    Returns:
+        bool: 是否需要更新
+    """
+    try:
+        # 检查远程是否有更新
+        fetch_result = subprocess.run(
+            ["git", "fetch"], capture_output=True, text=True, encoding="utf-8", cwd=repo_path
+        )
+        if fetch_result.returncode != 0:
+            logging.error(f"Git fetch失败: {fetch_result.stderr}")
+            return False
+
+        # 检查是否需要更新
+        status = subprocess.run(
+            ["git", "status", "-uno"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+        )
+        if "Your branch is up to date" in status.stdout:
+            logging.info("本地代码已是最新版本，无需更新")
+            return False
+        else:
+            logging.info("本地代码有更新，需要更新")
+            return True
+    except Exception as e:
+        logging.error(f"Git fetch执行失败: {e}")
+        return False
+
+
 def sync_repository(repo_path: str) -> bool:
     """
     同步Git仓库到最新状态
@@ -57,20 +93,8 @@ def sync_repository(repo_path: str) -> bool:
             )
 
         # 检查远程是否有更新
-        fetch_result = subprocess.run(
-            ["git", "fetch"], capture_output=True, text=True, encoding="utf-8"
-        )
-        if fetch_result.returncode != 0:
-            logging.error(f"Git fetch失败: {fetch_result.stderr}")
+        if not git_fetch(repo_path):
             return False
-
-        # 检查是否需要更新
-        status = subprocess.run(
-            ["git", "status", "-uno"], capture_output=True, text=True, encoding="utf-8"
-        )
-        if "Your branch is up to date" in status.stdout:
-            logging.info("本地代码已是最新版本，无需更新")
-            return True
 
         # 执行更新
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")

@@ -120,8 +120,11 @@ def confirm_push(staged_files, commit_message):
     logging.info(f"提交信息: {commit_message}")
     logging.info("=" * 50)
 
-    user_input = input("\n是否推送本次提交？(Y/y 确认，直接回车取消): ").strip()
-    return user_input.lower() == "y"
+    if config.work_mode == "ui":
+        user_input = input("\n是否推送本次提交？(Y/y 确认，直接回车取消): ").strip()
+        return user_input.lower() == "y"
+    else:
+        return True
 
 
 def main():

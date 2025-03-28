@@ -69,12 +69,14 @@ def main():
 
         if result != 0:
             print("\n程序执行中断，请查看日志文件了解详细信息。")
-        input("按回车键退出...")
+        if config.work_mode == "ui":
+            input("按回车键退出...")
         return result
     except Exception as e:
         print(f"\n程序发生异常: {e}")
         print("请查看日志文件了解详细信息。")
-        input("按回车键退出...")
+        if config.work_mode == "ui":
+            input("按回车键退出...")
         return 1
 
 
