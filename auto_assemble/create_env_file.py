@@ -198,7 +198,7 @@ def check_and_create_env(env_file: str, select_func: str):
         "\n".join(
             f"# {config.description}\n{var_name}={existing_vars[var_name]}\n"
             for var_name, config in manager.var_configs.items()
-            if var_name in existing_vars and var_name in required_vars
+            if var_name in required_vars
         )
     )
     input("按回车键继续...")

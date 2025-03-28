@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "auto_assemble"
-version = "0.1.2"
+version = "0.2.0"
 description = "自动化打包工具"
 authors = [
     { name = "Junerver", email = "junerver@gmail.com" }
@@ -14,10 +14,17 @@ dependencies = [
     "patool>=4.0.0",
     "rarfile>=4.2",
     "python-dotenv>=1.0.1",
+    "json5>=0.10.0",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
 license = { text = "MIT" }
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.12.0",
+    "pyinstaller-hooks-contrib>=2025.2",
+]
 
 [project.scripts]
 auto-assemble = "auto_assemble.__main__:main"
