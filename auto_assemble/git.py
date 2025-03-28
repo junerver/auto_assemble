@@ -105,7 +105,7 @@ def sync_repository(repo_path: str) -> bool:
 
 def check_git_branch(repo_path: str, target_branch: str) -> bool:
     """
-    检查Git项目分支状态并尝试切换到目标分支，需要对基座项目进行远程拉取，保证使用的分支是最新的
+    检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
 
     返回True的条件：
     1. 当前已在目标分支
@@ -213,7 +213,7 @@ def check_git_branch(repo_path: str, target_branch: str) -> bool:
         else:
             # 如果指定目标分支，则检查是否在目标分支上
             if current_branch == target_branch:
-                logging.info(f"已在目标分支 {target_branch} 上")
+                logging.info(f"已在指定分支 {target_branch} 上")
                 return True
 
         # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）

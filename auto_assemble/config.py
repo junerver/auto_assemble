@@ -1,8 +1,11 @@
 import os
+from typing import Literal
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+Work_Mode = Literal["ui", "cli"]
 
 
 class Config:
@@ -45,6 +48,8 @@ class Config:
         self._uni_app_id = None
         # Git提交信息
         self.last_commit_message = ""
+        # 工作模式：ui 或 cli , 默认ui，ui模式下需要用户确认，cli 模式下通过 --fn 直接指定功能序号，不再进行input确认
+        self.work_mode: Work_Mode = "ui"
 
     @property
     def UNI_APP_ID(self):

@@ -35,7 +35,7 @@ def local_copy_res(release):
     # 更新UNI_APP_ID
     config.UNI_APP_ID = manifest_info["uniapp_id"]
     # 检查Git分支
-    if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
+    if not check_git_branch(config.ANDROID_UNI_BASE_PATH, os.getenv("TARGET_BRANCH")):
         logging.error("Git分支检查失败，终止执行")
         return 1
 

@@ -6,7 +6,7 @@ from auto_assemble.config import config
 
 def check_uni_base():
     """
-    检查基座项目目录是否存在，检查时需要检查项目是否符合Android基座项目结构，而不是一个空目录
+    检查基座工程目录是否存在，检查时需要检查项目是否符合Android基座工程结构，而不是一个空目录
     例如：目录中应该存在如下的目录、文件
         - app
         - gradle
@@ -15,7 +15,7 @@ def check_uni_base():
         - gradlew
         - gradlew.bat
     Raises:
-        FileNotFoundError: 当基座项目目录不存在或项目结构不符合要求时抛出
+        FileNotFoundError: 当基座工程目录不存在或项目结构不符合要求时抛出
     """
     paths_to_check = {
         "项目目录": config.ANDROID_UNI_BASE_PATH,

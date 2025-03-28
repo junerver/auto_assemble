@@ -180,7 +180,7 @@ def main(target_dir: str = None, release: bool = True):
         setup_logging(task_name=f"新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行构建流程")
 
-        # 检查基座项目
+        # 检查基座工程
         check_uni_base()
 
         # 执行gradle构建

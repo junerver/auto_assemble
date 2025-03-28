@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass
 from typing import Dict, Optional, Set
 
+from auto_assemble.config import config as global_config
+
 
 @dataclass
 class EnvVarConfig:
@@ -19,7 +21,7 @@ class EnvVarManager:
         self.var_configs: Dict[str, EnvVarConfig] = {
             "DISTRIBUTION_PATH": EnvVarConfig("分发仓库的本地目录", self._validate_directory),
             "ANDROID_UNI_BASE_PATH": EnvVarConfig(
-                "Android 基座项目所在目录", self._validate_directory
+                "Android 基座工程所在目录", self._validate_directory
             ),
             "PROD_NAME": EnvVarConfig("要构建的项目标识（即分发仓库中项目目录名）"),
             "HBX_VERSION": EnvVarConfig("UniApp SDK 版本", self._validate_sdk_version, "4.45"),
@@ -30,6 +32,7 @@ class EnvVarManager:
                 "该 UniApp 项目是否为CLI创建（y/n）", self._validate_yes_no
             ),
             "APK_OUTPUT_DIR": EnvVarConfig("最终 APK 产物输出目录", self._validate_directory),
+            "TARGET_BRANCH": EnvVarConfig('指定基座工程的构建分支，不指定使用f"prod_{PROD_NAME}"'),
         }
 
         # 定义不同功能需要的环境变量
@@ -196,10 +199,11 @@ def check_and_create_env(env_file: str, select_func: str):
     print("请确认下面的环境变量：")
     print(
         "\n".join(
-            f"# {config.description}\n{var_name}={existing_vars[var_name]}\n"
-            for var_name, config in manager.var_configs.items()
+            f"# {var_config.description}\n{var_name}={existing_vars[var_name]}\n"
+            for var_name, var_config in manager.var_configs.items()
             if var_name in required_vars
         )
     )
-    input("按回车键继续...")
+    if global_config.work_mode == "ui":
+        input("按回车键继续...")
     return 0
