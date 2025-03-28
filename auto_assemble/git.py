@@ -103,9 +103,9 @@ def sync_repository(repo_path: str) -> bool:
         return False
 
 
-def check_git_branch(repo_path: str) -> bool:
+def check_git_branch(repo_path: str, target_branch: str) -> bool:
     """
-    检查Git项目分支状态并尝试切换到目标分支
+    检查Git项目分支状态并尝试切换到目标分支，需要对基座项目进行远程拉取，保证使用的分支是最新的
 
     返回True的条件：
     1. 当前已在目标分支
@@ -120,13 +120,74 @@ def check_git_branch(repo_path: str) -> bool:
 
     Args:
         repo_path: Git项目路径
+        target_branch: 指定的工作分支，如果为空，则使用config.PROD_BRANCH
     Returns:
         bool: 是否在目标分支或可以安全切换到目标分支
     """
     try:
         logging.info(f"开始检查Git分支: {repo_path}")
 
-        # 1. 获取当前分支
+        # 1. 获取远程更新
+        fetch_proc = subprocess.run(
+            ["git", "fetch", "origin"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+            timeout=30,
+        )
+        if fetch_proc.returncode != 0:
+            logging.error(f"获取远程更新失败: {fetch_proc.stderr}")
+            return False
+
+        # 2. 检查当前分支与远程分支的差异
+        diff_proc = subprocess.run(
+            ["git", "diff", "HEAD", "origin/HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+            timeout=30,
+        )
+        if diff_proc.returncode != 0:
+            logging.error(f"检查分支差异失败: {diff_proc.stderr}")
+            return False
+
+        # 3. 如果有差异，尝试安全地拉取更新
+        if diff_proc.stdout.strip():
+            # 检查是否有未提交的更改
+            status_proc = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=30,
+            )
+            if status_proc.returncode != 0:
+                logging.error(f"检查工作区状态失败: {status_proc.stderr}")
+                return False
+
+            if status_proc.stdout.strip():
+                logging.error("存在未提交的更改，无法安全拉取远程更新")
+                return False
+
+            # 尝试拉取更新
+            pull_proc = subprocess.run(
+                ["git", "pull", "origin"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=30,
+            )
+            if pull_proc.returncode != 0:
+                logging.error(f"拉取远程更新失败: {pull_proc.stderr}")
+                return False
+
+            logging.info("成功拉取远程更新")
+
+        # 4. 获取当前分支
         current_branch_proc = subprocess.run(
             ["git", "branch", "--show-current"],
             capture_output=True,
@@ -143,12 +204,19 @@ def check_git_branch(repo_path: str) -> bool:
         original_branch = current_branch  # 保存原始分支状态
         logging.info(f"当前分支: {current_branch}")
 
-        # 2. 如果已经在目标分支，直接返回True
-        if current_branch == config.PROD_BRANCH:
-            logging.info("已在目标分支上")
-            return True
+        # 5. 如果已经在目标分支，直接返回True
+        if not target_branch:
+            # 如果未指定目标分支，则使用config.PROD_BRANCH
+            if current_branch == config.PROD_BRANCH:
+                logging.info(f"已在目标分支 {config.PROD_BRANCH} 上")
+                return True
+        else:
+            # 如果指定目标分支，则检查是否在目标分支上
+            if current_branch == target_branch:
+                logging.info(f"已在目标分支 {target_branch} 上")
+                return True
 
-        # 3. 检查是否有未提交的更改（安全切换必须确保工作区干净）
+        # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）
         status_proc = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
@@ -166,7 +234,7 @@ def check_git_branch(repo_path: str) -> bool:
             return False
 
         try:
-            # 4. 检查分支是否存在（包括本地和远程）
+            # 7. 检查分支是否存在（包括本地和远程）
             branches_proc = subprocess.run(
                 ["git", "branch", "-a"],
                 capture_output=True,
@@ -191,7 +259,7 @@ def check_git_branch(repo_path: str) -> bool:
             )
 
             if local_branch_exists:
-                # 5. 如果本地分支存在，直接切换
+                # 8. 如果本地分支存在，直接切换
                 switch_proc = subprocess.run(
                     ["git", "checkout", config.PROD_BRANCH],
                     capture_output=True,
@@ -207,7 +275,7 @@ def check_git_branch(repo_path: str) -> bool:
                 logging.info(f"成功切换到目标分支: {config.PROD_BRANCH}")
                 return True
             elif remote_branch_exists:
-                # 6. 如果远程分支存在，从远程分支创建本地分支
+                # 9. 如果远程分支存在，从远程分支创建本地分支
                 logging.info(f"从远程分支创建本地分支: {config.PROD_BRANCH}")
                 create_branch_proc = subprocess.run(
                     ["git", "checkout", "-b", config.PROD_BRANCH, f"origin/{config.PROD_BRANCH}"],
@@ -224,7 +292,7 @@ def check_git_branch(repo_path: str) -> bool:
                 logging.info(f"成功创建并切换到新分支: {config.PROD_BRANCH}")
                 return True
             else:
-                # 7. 如果本地和远程都不存在，从master创建新分支
+                # 10. 如果本地和远程都不存在，从master创建新分支
                 logging.info(f"目标分支不存在，准备从master创建新分支")
 
                 # 先切换到master分支

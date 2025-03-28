@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from datetime import datetime
 
+from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.config import config
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
@@ -33,23 +34,6 @@ def get_distribution_target_dir(apk_name):
         str: 目标目录路径
     """
     return os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR, apk_name.replace(".apk", ""))
-
-
-def check_paths():
-    """
-    检查必要的路径是否存在
-    Raises:
-        FileNotFoundError: 当必要的路径不存在时抛出
-    """
-    paths_to_check = {
-        "项目目录": config.ANDROID_UNI_BASE_PATH,
-    }
-
-    for name, path in paths_to_check.items():
-        if not os.path.exists(path):
-            error_msg = f"{name}不存在: {path}"
-            logging.error(error_msg)
-            raise FileNotFoundError(error_msg)
 
 
 def execute_gradle_build(release: bool = True):
@@ -179,7 +163,7 @@ def update_git_info(commit_message):
         return False
 
 
-def main(target_dir, release: bool = True):
+def main(target_dir: str = None, release: bool = True):
     """
     主函数：执行整个构建流程
     1. 配置日志系统
@@ -188,15 +172,16 @@ def main(target_dir, release: bool = True):
     4. 复制构建产物
 
     Args:
-        -target_dir 构建产物目标输出目录，可空，不传递时默认输出到分发目录下
+        target_dir: 构建产物目标输出目录，可空，不传递时默认输出到分发目录下
+        release: 指定构建类型，True 将构建release包，False 将构建debug包
     """
     try:
         # 配置日志
         setup_logging(task_name=f"新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行构建流程")
 
-        # 检查路径
-        check_paths()
+        # 检查基座项目
+        check_uni_base()
 
         # 执行gradle构建
         if not execute_gradle_build(release):

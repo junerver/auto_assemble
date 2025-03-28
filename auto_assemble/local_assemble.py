@@ -14,10 +14,17 @@ from auto_assemble.update_control_file import update_control_file
 
 def local_copy_res(release):
     """
-    本地资源打包：
+    本地资源拷贝：
     1. 校验设置的资源路径
     2. 从项目中的 manifest.json 文件中读取信息
     3. 执行拷贝资源、修改本地文件的操作
+
+    Args:
+        release: release 为True 标识本地构建打包，commit的message为打包时间记录
+        release 为False 标识构建离线基座，commit的message为离线基座打包时间记录
+
+    Returns:
+        int: 0 表示成功，1 表示失败
     """
 
     is_ready, manifest_info, resources_dir = check_uni_project()
@@ -74,6 +81,17 @@ def local_copy_res(release):
 
 
 def local_build(release):
+    """
+    本地构建：
+    1. 从环境变量读取本地构建的目标输出目录
+    2. 执行构建
+
+    Args:
+        release: 如果release 则输出产物到指定的位置，否则输出到当前UniApp项目的基座位置
+
+    Returns:
+        int: 0 表示成功，1 表示失败
+    """
     from auto_assemble.build import main as build_main
 
     # 从环境变量读取本地构建的目标输出目录
@@ -89,9 +107,11 @@ def local_build(release):
 
 def local_assemble(release=True):
     """
-
+    本地打包流程：
+    1. 本地资源拷贝
+    2. 本地构建
     Args:
-        release: 如果release 则输出产物到指定的位置
+        release: 如果release 则输出产物到指定的位置，否则输出到当前UniApp项目的基座位置
 
     Returns:
 
