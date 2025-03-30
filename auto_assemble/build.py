@@ -18,7 +18,7 @@ def get_build_output_name(release):
     """
     # 查找构建输出目录下符合yyyyMMddHHmm格式的apk文件
     for file in os.listdir(
-            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
+        config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
     ):
         if file.endswith(".apk"):
             return file
@@ -193,6 +193,11 @@ def main(target_dir: str = None, release: bool = True):
         # 没有传递时，指向分发目录
         if not target_dir:
             target_dir = get_distribution_target_dir(apk_name)
+            # 来自分发的打包请求
+            is_distribution = True
+        else:
+            # 本地构建
+            is_distribution = False
         # 复制构建产物，返回是否成功和apk文件名
         success, apk_name = copy_build_outputs(apk_name, target_dir, release)
         if not success:
@@ -200,7 +205,7 @@ def main(target_dir: str = None, release: bool = True):
             return 1
 
         # 更新git信息，执行git add和git commit
-        if not target_dir:
+        if is_distribution:
             # 来自分发的打包请求，附带提交打包请求的commit信息
             commit_message = f"release_req: {apk_name}{config.last_commit_message}"
         else:

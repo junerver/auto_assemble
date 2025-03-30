@@ -44,7 +44,7 @@ def git_fetch(repo_path: str) -> bool:
     Args:
         repo_path: Git仓库路径
     Returns:
-        bool: 是否需要更新
+        bool: 是否需要拉取更新
     """
     try:
         # 检查远程是否有更新
@@ -94,7 +94,8 @@ def sync_repository(repo_path: str) -> bool:
 
         # 检查远程是否有更新
         if not git_fetch(repo_path):
-            return False
+            # 不需要拉取更新说明本地已经是最新
+            return True
 
         # 执行更新
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
@@ -127,7 +128,7 @@ def sync_repository(repo_path: str) -> bool:
         return False
 
 
-def check_git_branch(repo_path: str, target_branch: str) -> bool:
+def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
     """
     检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
 
@@ -193,7 +194,9 @@ def check_git_branch(repo_path: str, target_branch: str) -> bool:
                 return False
 
             if status_proc.stdout.strip():
-                logging.error("存在未提交的更改，无法安全拉取远程更新")
+                logging.error(
+                    f"{repo_path}存在未提交的更改，无法安全拉取远程更新\n{status_proc.stdout}"
+                )
                 return False
 
             # 尝试拉取更新
