@@ -4,9 +4,9 @@ from auto_assemble.config import config
 
 
 def update_build_gradle(
-        build_gradle_path: str,
-        artifact_name: str,
-        version_info: dict,
+    build_gradle_path: str,
+    artifact_name: str,
+    version_info: dict,
 ) -> bool:
     """
     更新build.gradle文件中的reqDate变量和版本信息，
@@ -26,6 +26,7 @@ def update_build_gradle(
             - uniapp_id: 新的uniapp_id值
             - uniapp_key: 新的uniapp_key值
             - hbx_version: 新的hbx_version值
+            - abi_filters: 新的abi_filters值
             - third_party_config: 新的third_party_config值
     Returns:
         bool: 更新是否成功
@@ -38,6 +39,7 @@ def update_build_gradle(
         uniapp_id = version_info.get("uniapp_id", "")
         uniapp_key = version_info.get("uniapp_key", "")
         third_party_config = version_info.get("third_party_config", {})
+        abi_filters = version_info.get("abi_filters", '"armeabi-v7a", "arm64-v8a"')
 
         # 如果设置了hbx_version，需要修改version.toml文件中的hbx_version
         if hbx_version:
@@ -63,7 +65,7 @@ def update_build_gradle(
         for line in lines:
             if line.strip().startswith("def reqDate ="):
                 quote_char = '"' if '"' in line else "'"
-                old_artifact_name = line[line.index(quote_char) + 1: line.rindex(quote_char)]
+                old_artifact_name = line[line.index(quote_char) + 1 : line.rindex(quote_char)]
                 logging.info(f"当前reqDate值: {old_artifact_name}")
                 break
 
@@ -74,14 +76,18 @@ def update_build_gradle(
                     indent = line[: line.index("def")]
                     quote_char = '"' if '"' in line else "'"
                     before_value = line[: line.index(quote_char) + 1]
-                    after_value = line[line.rindex(quote_char):]
+                    after_value = line[line.rindex(quote_char) :]
                     file.write(f"{before_value}{artifact_name}{after_value}")
+                elif abi_filters and line.strip().startswith("abiFilters"):
+                    # 解析到了abi_filters，更新 abiFilters
+                    indent = line[: line.index("abiFilters")]
+                    file.write(f"{indent}abiFilters {abi_filters}\n")
                 elif version_name and line.strip().startswith("versionName"):
                     # 解析到了versionName，更新 versionName
                     indent = line[: line.index("versionName")]
                     quote_char = '"' if '"' in line else "'"
                     before_value = line[: line.index(quote_char) + 1]
-                    after_value = line[line.rindex(quote_char):]
+                    after_value = line[line.rindex(quote_char) :]
                     file.write(f"{indent}versionName {quote_char}{version_name}{quote_char}\n")
                 elif version_code and line.strip().startswith("versionCode"):
                     # 解析到了versionCode，更新 versionCode
@@ -96,10 +102,10 @@ def update_build_gradle(
                     indent = line[: line.index('"DCLOUD_APPKEY"')]
                     file.write(f'{indent}"DCLOUD_APPKEY"         : "{uniapp_key}",\n')
                 elif (
-                        third_party_config
-                        and third_party_config.get("wechat")
-                        and third_party_config["wechat"].get("appid")
-                        and line.strip().startswith('"WX_APPID"')
+                    third_party_config
+                    and third_party_config.get("wechat")
+                    and third_party_config["wechat"].get("appid")
+                    and line.strip().startswith('"WX_APPID"')
                 ):
                     # 解析到了wechat的appid，修改 manifestPlaceholders 中 WECHAT_APPID 的值
                     indent = line[: line.index('"WX_APPID"')]
@@ -107,10 +113,10 @@ def update_build_gradle(
                         f'{indent}"WX_APPID"              : "{third_party_config["wechat"]["appid"]}",\n'
                     )
                 elif (
-                        third_party_config
-                        and third_party_config.get("wechat")
-                        and third_party_config["wechat"].get("secret")
-                        and line.strip().startswith('"WX_SECRET"')
+                    third_party_config
+                    and third_party_config.get("wechat")
+                    and third_party_config["wechat"].get("secret")
+                    and line.strip().startswith('"WX_SECRET"')
                 ):
                     # 解析到了wechat的secret，修改 manifestPlaceholders 中 WX_SECRET 的值
                     indent = line[: line.index('"WX_SECRET"')]
@@ -118,10 +124,10 @@ def update_build_gradle(
                         f'{indent}"WX_SECRET"             : "{third_party_config["wechat"]["secret"]}",\n'
                     )
                 elif (
-                        third_party_config
-                        and third_party_config.get("amap")
-                        and third_party_config["amap"].get("appkey")
-                        and line.strip().startswith('"AMAP_APIKEY"')
+                    third_party_config
+                    and third_party_config.get("amap")
+                    and third_party_config["amap"].get("appkey")
+                    and line.strip().startswith('"AMAP_APIKEY"')
                 ):
                     # 解析到了amap的appkey，修改 manifestPlaceholders 中 AMAP_APIKEY 的值
                     indent = line[: line.index('"AMAP_APIKEY"')]
@@ -129,10 +135,10 @@ def update_build_gradle(
                         f'{indent}"AMAP_APIKEY"           : "{third_party_config["amap"]["appkey"]}",\n'
                     )
                 elif (
-                        third_party_config
-                        and third_party_config.get("baidu")
-                        and third_party_config["baidu"].get("appkey")
-                        and line.strip().startswith('"BAIDU_MAP_APIKEY"')
+                    third_party_config
+                    and third_party_config.get("baidu")
+                    and third_party_config["baidu"].get("appkey")
+                    and line.strip().startswith('"BAIDU_MAP_APIKEY"')
                 ):
                     # 解析到了baidu的appkey，修改 manifestPlaceholders 中 BAIDU_MAP_APIKEY 的值
                     indent = line[: line.index('"BAIDU_MAP_APIKEY"')]
@@ -142,7 +148,9 @@ def update_build_gradle(
                 else:
                     file.write(line)
 
-        logging.info(f"成功更新build.gradle文件，reqDate从 {old_artifact_name} 更新为 {artifact_name}")
+        logging.info(
+            f"成功更新build.gradle文件，reqDate从 {old_artifact_name} 更新为 {artifact_name}"
+        )
         if hbx_version:
             logging.info(f"更新 hbx_version 为: {hbx_version}")
         if version_name:
@@ -155,6 +163,8 @@ def update_build_gradle(
             logging.info(f"更新 uniapp_key 为: {uniapp_key}")
         if third_party_config:
             logging.info(f"更新 third_party_config 为: {third_party_config}")
+        if abi_filters:
+            logging.info(f"更新 abi_filters 为: {abi_filters}")
         return True
     except Exception as e:
         logging.error(f"更新build.gradle文件时发生错误: {e}")

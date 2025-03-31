@@ -91,6 +91,11 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
                             permissions_content += f"{perm}\n"
                         permissions_content += "```\n"
 
+                    # 添加abi_filters
+                    if "abiFilters" in android_config:
+                        # 取出的字符串数组需要补充 " " 包裹
+                        abi_filters = ", ".join(f'"{abi}"' for abi in android_config["abiFilters"])
+
         # 使用parse_and_merge_permissions处理权限
         permissions = parse_and_merge_permissions(permissions_content)
 
@@ -106,6 +111,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             ),  # manifest.json中不包含uniapp_key信息, 使用环境变量UNIAPP_APPKEY
             "third_party_config": third_party_config,
             "permissions": permissions,
+            "abi_filters": abi_filters,
         }
 
         if all(result.values()):
