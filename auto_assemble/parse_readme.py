@@ -82,6 +82,8 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             - uniapp_key: Uniapp App key
             - third_party_config: 第三方配置信息
             - permissions: permissions 和 features 的合并结果
+            - abi_filters: abiFilters 配置
+            - schemes: 注册schema在其它App中打开当前App，多个scheme使用','号分割，例如：test1,test2
         如果解析失败则对应值为空字符串
     """
     try:
@@ -105,6 +107,8 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
         uniapp_key_match = re.search(r"Uniapp App key：`([^`]+)`", content)
         version_name_match = re.search(r"versionName：`([^`]+)`", content)
         version_code_match = re.search(r"versionCode：`([^`]+)`", content)
+        abi_filters_match = re.search(r"AbiFilters：`([^`]+)`", content)
+        schemes_match = re.search(r"UrlSchemes：`([^`]+)`", content)
 
         # 解析第三方配置
         third_party_config = parse_yaml_block(content)
@@ -122,14 +126,20 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             "uniapp_key": uniapp_key_match.group(1) if uniapp_key_match else "",
             "third_party_config": third_party_config,
             "permissions": permissions,
+            "abi_filters": abi_filters_match.group(1) if abi_filters_match else "",
+            "schemes": schemes_match.group(1) if schemes_match else "",
         }
 
         if all(result.values()):
             logging.info(
-                f"成功解析版本信息 - versionName: {result['version_name']}, "
+                f"成功解析版本信息 - "
+                f"hbx_version: {result['hbx_version']}, "
+                f"versionName: {result['version_name']}, "
                 f"versionCode: {result['version_code']}, "
                 f"uniapp_id: {result['uniapp_id']}, "
-                f"uniapp_key: {result['uniapp_key']}"
+                f"uniapp_key: {result['uniapp_key']}, "
+                f"abi_filters: {result['abi_filters']}, "
+                f"schemes: {result['schemes']}"
             )
         else:
             logging.warning(f"未能完整解析README.md信息，解析结果：{result}")

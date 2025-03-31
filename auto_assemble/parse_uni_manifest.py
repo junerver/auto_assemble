@@ -36,7 +36,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             - uniapp_key: Uniapp App key
             - third_party_config: 第三方配置信息
             - permissions: permissions 和 features 的合并结果
-            - abi_filters: abiFilters 配置
+            - abi_filters: abiFilters 配置, 取出的字符串数组需要补充 " " 包裹，例如："armeabi-v7a", "arm64-v8a"
             - schemes: 注册schema在其它App中打开当前App，多个scheme使用','号分割，例如：test1,test2
         如果解析失败则对应值为空字符串
     """
