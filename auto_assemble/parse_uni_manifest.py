@@ -5,7 +5,7 @@ from typing import Dict
 
 import json5
 
-from auto_assemble.parse_manifest import parse_and_merge_permissions
+from auto_assemble.parse_permissions import parse_and_merge_permissions
 
 # 默认权限列表
 DEFAULT_PERMISSIONS = """```xml
@@ -36,6 +36,8 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             - uniapp_key: Uniapp App key
             - third_party_config: 第三方配置信息
             - permissions: permissions 和 features 的合并结果
+            - abi_filters: abiFilters 配置
+            - schemes: 注册schema在其它App中打开当前App，多个scheme使用','号分割，例如：test1,test2
         如果解析失败则对应值为空字符串
     """
     logging.info(f"解析manifest.json文件: {manifest_path}")
@@ -96,6 +98,10 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
                         # 取出的字符串数组需要补充 " " 包裹
                         abi_filters = ", ".join(f'"{abi}"' for abi in android_config["abiFilters"])
 
+                    # 添加schemes
+                    if "schemes" in android_config:
+                        schemes = android_config["schemes"]
+
         # 使用parse_and_merge_permissions处理权限
         permissions = parse_and_merge_permissions(permissions_content)
 
@@ -112,6 +118,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             "third_party_config": third_party_config,
             "permissions": permissions,
             "abi_filters": abi_filters,
+            "schemes": schemes,
         }
 
         if all(result.values()):

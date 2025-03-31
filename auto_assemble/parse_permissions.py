@@ -2,7 +2,7 @@ import re
 import xml.etree.ElementTree as ET
 
 """
-文件名称: parse_manifest.py
+文件名称: parse_permissions.py
 作者: junerver
 日期: 2025-03-19
 描述: 这个脚本用于解析 Android Manifest 权限，并进行合并和过滤操作。

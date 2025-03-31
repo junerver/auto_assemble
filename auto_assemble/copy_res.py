@@ -338,7 +338,7 @@ def main():
             return 1
 
         # 跟新 AndroidManifest.xml 文件，更新权限
-        if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info["permissions"]):
+        if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info):
             logging.error("更新 AndroidManifest.xml 文件失败，终止执行")
             return 1
 

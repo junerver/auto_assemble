@@ -29,13 +29,25 @@ def clear_namespaces(root: ET.Element) -> None:
             del root.attrib[attr]
 
 
-def update_android_manifest(android_manifest_path: str, permissions: dict) -> bool:
+# Android 命名空间
+namespaces = {
+    "android": "http://schemas.android.com/apk/res/android",
+    "tools": "http://schemas.android.com/tools",
+    "app": "http://schemas.android.com/apk/res-auto",
+}
+
+
+def update_android_manifest(
+        android_manifest_path: str, update_info: dict, launch_activity: str = "io.dcloud.PandoraEntry"
+) -> bool:
     """
-    更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）
+    更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）,
+    并处理schemes
 
     Args:
         android_manifest_path: AndroidManifest.xml 文件的路径
-        permissions: 包含 "permissions" 和 "features" 的字典
+        update_info: 更新信息，包含permissions和schemes
+        launch_activity: 启动Activity，默认是io.dcloud.PandoraEntry
 
     Returns:
         bool: 更新成功返回 True，失败返回 False
@@ -44,12 +56,18 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
     backup_path = os.path.join(os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml")
     # 暂时不备份，因为git本身会追踪文件的修改
     # shutil.copy(android_manifest_path, backup_path)
+    permissions = update_info["permissions"]
+    # 注册schema在其它App中打开当前App，多个scheme使用','号分割，需要解析成数组，例如：test1,test2
+    if "schemes" in update_info:
+        logging.info(f"解析schemes: {update_info['schemes']}")
+        schemes = update_info["schemes"].split(",")
+    else:
+        schemes = []
 
     try:
         # 定义 namespace
-        ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
-        ET.register_namespace("tools", "http://schemas.android.com/tools")
-        ET.register_namespace("app", "http://schemas.android.com/apk/res-auto")
+        for prefix, uri in namespaces.items():
+            ET.register_namespace(prefix, uri)
 
         # 解析 XML
         parser = ET.XMLParser(target=ET.TreeBuilder())
@@ -60,8 +78,8 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
         clear_namespaces(root)
 
         # 重新添加必要的命名空间声明
-        root.set("xmlns:tools", "http://schemas.android.com/tools")
-        root.set("xmlns:app", "http://schemas.android.com/apk/res-auto")
+        root.set("xmlns:tools", namespaces["tools"])
+        root.set("xmlns:app", namespaces["app"])
 
         # **移除所有 <uses-permission> 和 <uses-feature> 元素**
         for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
@@ -87,6 +105,41 @@ def update_android_manifest(android_manifest_path: str, permissions: dict) -> bo
             root.insert(insert_index, element)
 
         logging.info(f"添加新的 <uses-permission> 和 <uses-feature> 元素")
+
+        # 处理schemes
+        logging.info(f"处理schemes: {schemes}")
+        # 查找PandoraEntry activity
+        for activity in root.findall(".//activity"):
+            # 使用正确的命名空间获取name属性
+            name = activity.get(f"{{{namespaces['android']}}}name")
+            if name == launch_activity:
+                # 查找包含VIEW action的intent-filter
+                for intent_filter in activity.findall("intent-filter"):
+                    has_view_action = False
+                    for action in intent_filter.findall("action"):
+                        action_name = action.get(f"{{{namespaces['android']}}}name")
+                        if action_name == "android.intent.action.VIEW":
+                            has_view_action = True
+                            break
+
+                    if has_view_action:
+                        # 移除现有的data标签
+                        for data in intent_filter.findall("data"):
+                            intent_filter.remove(data)
+
+                        # 添加新的data标签
+                        if schemes:
+                            for scheme in schemes:
+                                data = ET.Element("data")
+                                data.set(f"{{{namespaces['android']}}}scheme", scheme.strip())
+                                intent_filter.append(data)
+                        else:
+                            # 如果没有schemes，添加默认的空scheme
+                            data = ET.Element("data")
+                            data.set(f"{{{namespaces['android']}}}scheme", " ")
+                            intent_filter.append(data)
+
+                break
 
         # **使用 ElementTree 格式化 XML**
         formatted_xml = prettify_xml(root)

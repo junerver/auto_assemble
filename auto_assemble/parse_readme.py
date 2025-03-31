@@ -5,7 +5,7 @@ from typing import Dict
 
 import yaml
 
-from auto_assemble.parse_manifest import parse_and_merge_permissions
+from auto_assemble.parse_permissions import parse_and_merge_permissions
 
 
 def parse_yaml_block(content: str) -> Dict[str, Dict[str, str]]:
