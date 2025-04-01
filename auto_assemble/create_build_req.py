@@ -68,6 +68,11 @@ def create_readme_file(req_dir: str, manifest_info: dict):
                 permissions_content=manifest_info["permissions_content"],
             )
         )
+        # 写入模块信息
+        if manifest_info["modules"]:
+            f.write("9. 模块信息：\n\n")
+            for module in manifest_info["modules"]:
+                f.write(f"    > - {module}\n")
 
         # 写入第三方配置
         if manifest_info["third_party_config"]:
@@ -80,7 +85,7 @@ def create_readme_file(req_dir: str, manifest_info: dict):
             f.write(
                 dedent(
                     f"""\
-               9. 第三方平台配置信息：
+               10. 第三方平台配置信息：
 
                   ```yml
 {third_party_config_text}                  ```
