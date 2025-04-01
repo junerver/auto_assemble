@@ -17,7 +17,7 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
     3. 校验打包后资源目录是否存在，是否与解析到的uniapp_id值一致
     4. 返回值用于判断是否校验通过
     Returns:
-        Tuple[bool, Dict[str, str]]: (是否校验通过, manifest解析结果)
+        Tuple[bool, Dict[str, str], str]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
     """
     try:
         # 获取环境变量
@@ -51,20 +51,19 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
             logging.error(f"资源目录不存在: {resources_dir}")
             return False, manifest_info
 
-        # 检查资源目录中的目录名是否与 uniapp_id 一致
+        # 检查资源目录中是否存在名称为uniapp_id的目录
         resources_contents = os.listdir(resources_dir)
         if not resources_contents:
             logging.error("资源目录为空")
             return False, manifest_info
-
-        if resources_contents[0] != manifest_info["uniapp_id"]:
-            logging.error(
-                f"资源目录名称与 uniapp_id 不匹配: {resources_contents[0]} != {manifest_info['uniapp_id']}"
-            )
-            return False, manifest_info
-
-        logging.info(f"UniApp 项目检查通过 - uniapp_id: {manifest_info['uniapp_id']}")
-        return True, manifest_info, resources_dir
+        for content in resources_contents:
+            if content == manifest_info["uniapp_id"]:
+                logging.info(
+                    f"资源目录名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}"
+                )
+                return True, manifest_info, resources_dir
+        logging.error(f"资源目录中不存在名称为{manifest_info['uniapp_id']}的目录")
+        return False, manifest_info
 
     except Exception as e:
         error_msg = f"检查 UniApp 项目时发生错误: {str(e)}"

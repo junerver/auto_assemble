@@ -36,6 +36,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             - uniapp_key: Uniapp App key
             - third_party_config: 第三方配置信息
             - permissions: permissions 和 features 的合并结果
+            - permissions_content: 完整的权限文本内容
             - abi_filters: abiFilters 配置, 取出的字符串数组需要补充 " " 包裹，例如："armeabi-v7a", "arm64-v8a"
             - schemes: 注册schema在其它App中打开当前App，多个scheme使用','号分割，例如：test1,test2
         如果解析失败则对应值为空字符串
@@ -117,6 +118,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             ),  # manifest.json中不包含uniapp_key信息, 使用环境变量UNIAPP_APPKEY
             "third_party_config": third_party_config,
             "permissions": permissions,
+            "permissions_content": permissions_content,  # 添加完整的权限文本内容
             "abi_filters": abi_filters,
             "schemes": schemes,
         }
@@ -141,6 +143,7 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
             "uniapp_key": "",
             "third_party_config": {},
             "permissions": {},
+            "permissions_content": "",  # 添加空的权限文本内容
         }
 
 

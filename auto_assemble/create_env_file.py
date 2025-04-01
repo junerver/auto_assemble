@@ -33,6 +33,7 @@ class EnvVarManager:
             ),
             "APK_OUTPUT_DIR": EnvVarConfig("最终 APK 产物输出目录", self._validate_directory),
             "TARGET_BRANCH": EnvVarConfig('指定基座工程的构建分支，不指定使用f"prod_{PROD_NAME}"'),
+            "WECHAT_SECRET": EnvVarConfig("微信分享需要提供secret"),
         }
 
         # 定义不同功能需要的环境变量
@@ -62,6 +63,15 @@ class EnvVarManager:
                 "UNIAPP_ID",
                 "UNIAPP_APPKEY",
             },  # 本地构建离线基座
+            "4": {
+                "DISTRIBUTION_PATH",
+                "PROD_NAME",
+                "HBX_VERSION",
+                "UNIAPP_WORKSPACE",
+                "UNIAPP_IS_CLI",
+                "UNIAPP_ID",
+                "UNIAPP_APPKEY",
+            },  # 创建构建请求
         }
 
     def _validate_directory(self, path: str) -> bool:
