@@ -5,6 +5,7 @@ from typing import Dict
 
 import yaml
 
+from auto_assemble.config import config
 from auto_assemble.parse_permissions import parse_and_merge_permissions
 
 
@@ -112,6 +113,13 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
 
         # 解析第三方配置
         third_party_config = parse_yaml_block(content)
+        if config.PROD_NAME == "identify_field":
+            logging.info("识田间项目使用正式微信配置")
+            third_party_config.pop("wechat", None)
+            third_party_config["wechat"] = {
+                "appid": "wx4d4456070d11a01a",
+                "secret": "b8ad75cd1cd6715de7d27b350e1814a5",
+            }
 
         # 解析权限
         permissions = parse_and_merge_permissions(content)
