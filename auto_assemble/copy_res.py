@@ -241,13 +241,69 @@ def check_apps_directory() -> bool:
         return False
 
 
+def get_project_name(distribution_path: str) -> Tuple[str, str]:
+    """
+    从分发仓库中获取最新的项目名称和最新时间戳目录
+    Args:
+        distribution_path: 分发仓库路径
+    Returns:
+        Tuple[str, str]: (项目名称, 最新时间戳目录的完整路径)
+    Raises:
+        ValueError: 当无法获取项目名称时抛出
+    """
+    try:
+        # 获取分发仓库下的所有目录（项目目录）
+        project_dirs = [
+            d
+            for d in os.listdir(distribution_path)
+            if os.path.isdir(os.path.join(distribution_path, d))
+        ]
+        if not project_dirs:
+            raise ValueError(f"在 {distribution_path} 中没有找到项目目录")
+
+        # 遍历所有项目目录，找到最新的时间戳目录
+        latest_project = None
+        latest_timestamp = None
+        latest_timestamp_path = None
+
+        for project_dir in project_dirs:
+            project_path = os.path.join(distribution_path, project_dir)
+            # 获取项目目录下的所有时间戳目录
+            timestamp_dirs = [
+                d for d in os.listdir(project_path) if os.path.isdir(os.path.join(project_path, d))
+            ]
+            if not timestamp_dirs:
+                continue
+
+            # 获取最新的时间戳目录
+            try:
+                latest_timestamp_dir = max(
+                    timestamp_dirs, key=lambda d: datetime.strptime(d, "%Y%m%d%H%M")
+                )
+                if latest_timestamp is None or latest_timestamp_dir > latest_timestamp:
+                    latest_timestamp = latest_timestamp_dir
+                    latest_project = project_dir
+                    latest_timestamp_path = os.path.join(project_path, latest_timestamp_dir)
+            except ValueError:
+                continue
+
+        if latest_project is None:
+            raise ValueError(f"在 {distribution_path} 中没有找到有效的时间戳目录")
+
+        logging.info(f"获取到项目名称: {latest_project}, 最新时间戳目录: {latest_timestamp_path}")
+        return latest_project, latest_timestamp_path
+    except Exception as e:
+        logging.error(f"获取项目名称失败: {e}")
+        raise
+
+
 def main():
     """
     主函数：执行整个更新流程
     1. 配置日志系统
     2. 检查依赖和路径
     3. 同步Git仓库
-    4. 查找最新目录
+    4. 获取项目名称和最新目录
     5. 检查是否已存在对应的APK文件，如果不存在则读取README.md获取版本信息
     6. 查找压缩文件
     7. 检查压缩文件内容（确保只有一个目录且目录名与UNI_APP_ID一致）
@@ -272,9 +328,13 @@ def main():
             logging.error("Git仓库同步失败，终止执行")
             return
 
-        # 查找最新目录
-        identify_field_path = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME)
-        latest_dir = find_latest_directory(identify_field_path)
+        # 获取项目名称和最新目录
+        try:
+            config.PROD_NAME, latest_dir = get_project_name(config.DISTRIBUTION_PATH)
+            logging.info(f"获取到项目名称: {config.PROD_NAME}")
+        except ValueError as e:
+            logging.error(f"获取项目名称失败: {e}")
+            return 1
 
         # 查找是否已存在对应的APK文件
         latest_dir_name = os.path.basename(latest_dir)
