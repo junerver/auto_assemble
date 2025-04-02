@@ -26,7 +26,7 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")
-            return False, {}
+            return False, {}, ""
 
         # 确定 manifest.json 文件位置
         manifest_path = (
@@ -37,25 +37,25 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
 
         if not os.path.exists(manifest_path):
             logging.error(f"manifest.json 文件不存在: {manifest_path}")
-            return False, {}
+            return False, {}, ""
 
         # 解析 manifest.json 文件
         manifest_info = parse_uni_manifest(manifest_path)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
-            return False, manifest_info
+            return False, manifest_info, ""
 
         # 检查资源目录
         resources_dir = os.path.join(workspace, "unpackage", "resources")
         if not os.path.exists(resources_dir):
             logging.error(f"资源目录不存在: {resources_dir}")
-            return False, manifest_info
+            return False, manifest_info, ""
 
         # 检查资源目录中是否存在名称为uniapp_id的目录
         resources_contents = os.listdir(resources_dir)
         if not resources_contents:
             logging.error("资源目录为空")
-            return False, manifest_info
+            return False, manifest_info, ""
         for content in resources_contents:
             if content == manifest_info["uniapp_id"]:
                 logging.info(
@@ -63,9 +63,9 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
                 )
                 return True, manifest_info, resources_dir
         logging.error(f"资源目录中不存在名称为{manifest_info['uniapp_id']}的目录")
-        return False, manifest_info
+        return False, manifest_info, ""
 
     except Exception as e:
         error_msg = f"检查 UniApp 项目时发生错误: {str(e)}"
         logging.error(error_msg)
-        return False, {}
+        return False, {}, ""

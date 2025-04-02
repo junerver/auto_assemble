@@ -273,7 +273,7 @@ def main():
             return
 
         # 查找最新目录
-        identify_field_path = os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR)
+        identify_field_path = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME)
         latest_dir = find_latest_directory(identify_field_path)
 
         # 查找是否已存在对应的APK文件

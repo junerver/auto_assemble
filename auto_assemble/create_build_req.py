@@ -6,10 +6,14 @@ import zipfile
 from datetime import datetime
 from textwrap import dedent
 
+from dotenv import load_dotenv
+
 from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
+from auto_assemble.git import get_staged_files, get_untracked_files, git_add, git_commit, git_push
 from auto_assemble.log import setup_logging
+from auto_assemble.push import confirm_push, has_changes
 
 
 def create_readme_file(req_dir: str, manifest_info: dict):
@@ -37,15 +41,9 @@ def create_readme_file(req_dir: str, manifest_info: dict):
 
             4. Uniapp App key：`{uniapp_key}`
 
-               [申请 Appkey](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/appkey.html)
-
             5. AbiFilters：`{abi_filters}`
 
-               支持的 CPU 类型，多个CPU使用`,`隔开
-
             6. UrlSchemes：`{schemes}`
-
-               设置 UrlSchemes，多个scheme使用`,`隔开（默认为空），例如`test,test1`，[参考文档](https://uniapp.dcloud.net.cn/tutorial/app-android-schemes.html)
 
             7. manifest.json 中配置的版本名称 versionName、版本号 versionCode
 
@@ -84,7 +82,7 @@ def create_readme_file(req_dir: str, manifest_info: dict):
 
             f.write(
                 dedent(
-                    f"""\
+                    f"""
                10. 第三方平台配置信息：
 
                   ```yml
@@ -100,50 +98,121 @@ def create_build_req():
     """
     创建构建请求
     """
-    parser = argparse.ArgumentParser(
-        description="Load environment variables from a specified .env file and execute the program."
-    )
-    # 指定.env文件路径
-    parser.add_argument("--env", type=str, help="Path to the .env file")
+    try:
+        parser = argparse.ArgumentParser(
+            description="Load environment variables from a specified .env file and execute the program."
+        )
+        # 指定.env文件路径
+        parser.add_argument("--env", type=str, help="Path to the .env file")
+        parser.add_argument("-m", "--message", type=str, help="Commit message")
+        args = parser.parse_args()
 
-    args = parser.parse_args()
-    env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
-    setup_logging(True, "创建构建请求")
-    check_and_create_env(env_file, "4")
+        env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
+        # 没有指定message，说明执行模式是ui模式
+        commit_message = args.message
 
-    is_ready, manifest_info, resources_dir = check_uni_project()
-    if not is_ready:
-        logging.error("本地资源文件校验失败")
+        setup_logging(True, "创建构建请求")
+        check_and_create_env(env_file, "4")
+
+        # 加载指定的 .env 文件
+        load_dotenv(env_file)
+
+        if commit_message:
+            config.work_mode = "cli"
+        else:
+            config.work_mode = "ui"
+
+        is_ready, manifest_info, resources_dir = check_uni_project()
+        if not is_ready:
+            logging.error("本地资源文件校验失败")
+            return 1
+        # 更新UNI_APP_ID
+        config.UNI_APP_ID = manifest_info["uniapp_id"]
+        # 创建时间
+        req_date = datetime.now().strftime("%Y%m%d%H%M")
+        # 压缩资源目录下的名称为config.UNI_APP_ID的目录，并重命名为req_date.zip
+        zip_file_path = os.path.join(resources_dir, f"{req_date}.zip")
+        # 压缩资源目录下的名称为config.UNI_APP_ID的目录
+        target_dir = os.path.join(resources_dir, config.UNI_APP_ID)
+        if not os.path.exists(target_dir):
+            logging.error(f"目录 {target_dir} 不存在")
+            return 1
+        # 压缩资源目录下的名称为config.UNI_APP_ID的目录
+        with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(target_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.join(
+                        config.UNI_APP_ID, os.path.relpath(file_path, target_dir)
+                    )
+                    zipf.write(file_path, arcname)
+        logging.info(f"已将 {target_dir} 目录压缩为 {zip_file_path}")
+
+        # 检查配置路径是否有效
+        if not config.DISTRIBUTION_PATH:
+            logging.error("配置错误: DISTRIBUTION_PATH 未设置或为空")
+            return 1
+        if not config.PROD_NAME:
+            logging.error("配置错误: PROD_NAME 未设置或为空")
+            return 1
+
+        # 在分发目录的PROD_NAME目录下创建req_date目录
+        req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
+        os.makedirs(req_date_dir, exist_ok=True)
+        # 复制zip文件到指定目录
+        shutil.copy(zip_file_path, req_date_dir)
+        os.remove(zip_file_path)
+        logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
+        create_readme_file(req_date_dir, manifest_info)
+        # 在分发目录执行git add
+        os.chdir(config.DISTRIBUTION_PATH)
+        # 检查是否有任何修改
+        if not has_changes():
+            logging.info("没有需要提交的修改")
+            return 1
+        # 获取未跟踪的文件
+        untracked_files = get_untracked_files(config.DISTRIBUTION_PATH)
+        if not untracked_files:
+            logging.info("没有未跟踪的文件，继续检查已修改的文件")
+            return 1
+        # 执行git add
+        if not git_add(repo_path=config.DISTRIBUTION_PATH):
+            return 1
+        # 获取已暂存的文件并验证
+        staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
+        if not staged_files:
+            logging.error("没有待提交的文件")
+            return 1
+        logging.info("待提交的文件列表:")
+        for file in staged_files:
+            logging.info(f"  - {file}")
+        # 执行git commit
+        if config.work_mode == "ui":
+            commit_message = input("请输入提交信息：")
+
+        if not git_commit(commit_message, config.DISTRIBUTION_PATH):
+            return 1
+
+        # 确认是否推送
+        if not confirm_push(staged_files, commit_message):
+            logging.info("用户取消推送")
+            return 1
+
+        # 执行git push
+        if not git_push(repo_path=config.DISTRIBUTION_PATH):
+            return 1
+
+        logging.info("所有操作执行成功")
+        return 0
+    except Exception as e:
+        logging.error(f"创建构建请求时发生错误: {str(e)}")
+        import traceback
+
+        logging.error(f"错误详情: {traceback.format_exc()}")
         return 1
-    # 更新UNI_APP_ID
-    config.UNI_APP_ID = manifest_info["uniapp_id"]
-    # 创建时间
-    req_date = datetime.now().strftime("%Y%m%d%H%M")
-    # 压缩资源目录下的名称为config.UNI_APP_ID的目录，并重命名为req_date.zip
-    zip_file_path = os.path.join(resources_dir, f"{req_date}.zip")
-    # 压缩资源目录下的名称为config.UNI_APP_ID的目录
-    target_dir = os.path.join(resources_dir, config.UNI_APP_ID)
-    if not os.path.exists(target_dir):
-        logging.error(f"目录 {target_dir} 不存在")
-        return 1
-    # 压缩资源目录下的名称为config.UNI_APP_ID的目录
-    with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(target_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.join(config.UNI_APP_ID, os.path.relpath(file_path, target_dir))
-                zipf.write(file_path, arcname)
-    logging.info(f"已将 {target_dir} 目录压缩为 {zip_file_path}")
-
-    # 在分发目录的PROD_DIR目录下创建req_date目录
-    req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR, req_date)
-    os.makedirs(req_date_dir, exist_ok=True)
-    # 复制zip文件到指定目录
-    shutil.copy(zip_file_path, req_date_dir)
-    os.remove(zip_file_path)
-    logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
-    create_readme_file(req_date_dir, manifest_info)
 
 
 if __name__ == "__main__":
     create_build_req()
+    if config.work_mode == "ui":
+        input("按回车键退出")

@@ -33,7 +33,7 @@ def get_distribution_target_dir(apk_name):
     Returns:
         str: 目标目录路径
     """
-    return os.path.join(config.DISTRIBUTION_PATH, config.PROD_DIR, apk_name.replace(".apk", ""))
+    return os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, apk_name.replace(".apk", ""))
 
 
 def execute_gradle_build(release: bool = True):

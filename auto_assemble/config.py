@@ -11,38 +11,30 @@ Work_Mode = Literal["ui", "cli"]
 class Config:
     def __init__(self):
         # 应用分发资源包目录
-        self.DISTRIBUTION_PATH = os.getenv("DISTRIBUTION_PATH")
+        self._distribution_path = None
         # Android基座的项目目录
-        self.ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
+        self._android_uni_base_path = None
 
         # UniApp的资源包目录
-        self.APPS_DIRECTORY = rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\apps"
+        self._apps_directory = None
         # 应用的AndroidManifest.xml文件路径
-        self.ANDROID_MANIFEST_PATH = (
-            rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\AndroidManifest.xml"
-        )
+        self._android_manifest_path = None
         # UniApp的 dcloud_control.xml 文件位置
-        self.CONTROL_FILE_PATH = (
-            rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\data\dcloud_control.xml"
-        )
+        self._control_file_path = None
         # 应用的build.gradle文件路径
-        self.BUILD_GRADLE_PATH = rf"{self.ANDROID_UNI_BASE_PATH}\app\build.gradle"
+        self._build_gradle_path = None
         # 应用的version.toml文件路径
-        self.VERSIONS_TOML_PATH = rf"{self.ANDROID_UNI_BASE_PATH}\gradle\libs.versions.toml"
+        self._versions_toml_path = None
         # 日志文件路径
         self.LOG_FILE = os.path.join(os.getcwd(), "auto_assemble.log")
 
         # 构建输出配置
-        self.BUILD_RELEASE_OUTPUT_DIR = os.path.join(
-            self.ANDROID_UNI_BASE_PATH, "app", "build", "outputs", "apk", "release"
-        )
-        self.BUILD_DEBUG_OUTPUT_DIR = os.path.join(
-            self.ANDROID_UNI_BASE_PATH, "app", "build", "outputs", "apk", "debug"
-        )
+        self._build_release_output_dir = None
+        self._build_debug_output_dir = None
 
         # Git相关配置
-        self.PROD_BRANCH = rf"prod_{os.getenv('PROD_NAME')}"
-        self.PROD_DIR = os.getenv("PROD_NAME")
+        self._prod_branch = None
+        self._prod_name = None
 
         # 应用配置
         self._uni_app_id = None
@@ -50,6 +42,80 @@ class Config:
         self.last_commit_message = ""
         # 工作模式：ui 或 cli , 默认ui，ui模式下需要用户确认，cli 模式下通过 --fn 直接指定功能序号，不再进行input确认
         self.work_mode: Work_Mode = "ui"
+
+    @property
+    def DISTRIBUTION_PATH(self):
+        if self._distribution_path is None:
+            self._distribution_path = os.getenv("DISTRIBUTION_PATH")
+        return self._distribution_path
+
+    @property
+    def ANDROID_UNI_BASE_PATH(self):
+        if self._android_uni_base_path is None:
+            self._android_uni_base_path = os.getenv("ANDROID_UNI_BASE_PATH")
+        return self._android_uni_base_path
+
+    @property
+    def APPS_DIRECTORY(self):
+        if self._apps_directory is None:
+            self._apps_directory = rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\apps"
+        return self._apps_directory
+
+    @property
+    def ANDROID_MANIFEST_PATH(self):
+        if self._android_manifest_path is None:
+            self._android_manifest_path = (
+                rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\AndroidManifest.xml"
+            )
+        return self._android_manifest_path
+
+    @property
+    def CONTROL_FILE_PATH(self):
+        if self._control_file_path is None:
+            self._control_file_path = (
+                rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\data\dcloud_control.xml"
+            )
+        return self._control_file_path
+
+    @property
+    def BUILD_GRADLE_PATH(self):
+        if self._build_gradle_path is None:
+            self._build_gradle_path = rf"{self.ANDROID_UNI_BASE_PATH}\app\build.gradle"
+        return self._build_gradle_path
+
+    @property
+    def VERSIONS_TOML_PATH(self):
+        if self._versions_toml_path is None:
+            self._versions_toml_path = rf"{self.ANDROID_UNI_BASE_PATH}\gradle\libs.versions.toml"
+        return self._versions_toml_path
+
+    @property
+    def BUILD_RELEASE_OUTPUT_DIR(self):
+        if self._build_release_output_dir is None:
+            self._build_release_output_dir = (
+                rf"{self.ANDROID_UNI_BASE_PATH}\app\build\outputs\apk\release"
+            )
+        return self._build_release_output_dir
+
+    @property
+    def BUILD_DEBUG_OUTPUT_DIR(self):
+        if self._build_debug_output_dir is None:
+            self._build_debug_output_dir = (
+                rf"{self.ANDROID_UNI_BASE_PATH}\app\build\outputs\apk\debug"
+            )
+        return self._build_debug_output_dir
+
+    @property
+    def PROD_NAME(self):
+        if self._prod_name is None:
+            self._prod_name = os.getenv("PROD_NAME")
+        return self._prod_name
+
+    @property
+    def PROD_BRANCH(self):
+        if self._prod_branch is None:
+            self._prod_branch = rf"prod_{self.PROD_NAME}"
+        return self._prod_branch
 
     @property
     def UNI_APP_ID(self):
