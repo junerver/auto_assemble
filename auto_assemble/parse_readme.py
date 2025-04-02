@@ -120,6 +120,13 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
                 "appid": "wx4d4456070d11a01a",
                 "secret": "b8ad75cd1cd6715de7d27b350e1814a5",
             }
+        # 普通项目正常读取
+        abi_filters = (
+            abi_filters_match.group(1) if abi_filters_match else '"armeabi-v7a", "arm64-v8a"'
+        )
+        # 识田间项目使用armeabi-v7a，arm64-v8a
+        if config.PROD_NAME == "identify_field":
+            abi_filters = '"armeabi-v7a", "arm64-v8a"'
 
         # 解析权限
         permissions = parse_and_merge_permissions(content)
@@ -134,7 +141,7 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             "uniapp_key": uniapp_key_match.group(1) if uniapp_key_match else "",
             "third_party_config": third_party_config,
             "permissions": permissions,
-            "abi_filters": abi_filters_match.group(1) if abi_filters_match else "",
+            "abi_filters": abi_filters,
             "schemes": schemes_match.group(1) if schemes_match else "",
         }
 
