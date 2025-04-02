@@ -82,11 +82,44 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
                 distribute = app_plus["distribute"]
                 if "sdkConfigs" in distribute:
                     sdk_configs = distribute["sdkConfigs"]
-                    # 提取微信配置
+
+                    # 提取微信配置 - 从oauth、payment和share三个位置提取appid
+                    wechat_appid = None
+
+                    # 从oauth中提取
                     if "oauth" in sdk_configs and "weixin" in sdk_configs["oauth"]:
+                        oauth_appid = sdk_configs["oauth"]["weixin"].get("appid", "")
+                        if oauth_appid:
+                            wechat_appid = oauth_appid
+
+                    # 从payment中提取
+                    if "payment" in sdk_configs and "weixin" in sdk_configs["payment"]:
+                        payment_appid = sdk_configs["payment"]["weixin"].get("appid", "")
+                        if payment_appid:
+                            if wechat_appid is None:
+                                wechat_appid = payment_appid
+                            elif wechat_appid != payment_appid:
+                                logging.error(
+                                    f"微信appid不一致: oauth={wechat_appid}, payment={payment_appid}"
+                                )
+
+                    # 从share中提取
+                    if "share" in sdk_configs and "weixin" in sdk_configs["share"]:
+                        share_appid = sdk_configs["share"]["weixin"].get("appid", "")
+                        if share_appid:
+                            if wechat_appid is None:
+                                wechat_appid = share_appid
+                            elif wechat_appid != share_appid:
+                                logging.error(
+                                    f"微信appid不一致: 已存在={wechat_appid}, share={share_appid}"
+                                )
+
+                    # 如果找到了微信appid，添加到配置中
+                    if wechat_appid:
                         third_party_config["wechat"] = {
-                            "appid": sdk_configs["oauth"]["weixin"].get("appid", "")
+                            "appid": wechat_appid,
                         }
+
                     # 提取高德地图配置
                     if "maps" in sdk_configs and "amap" in sdk_configs["maps"]:
                         third_party_config["amap"] = {
