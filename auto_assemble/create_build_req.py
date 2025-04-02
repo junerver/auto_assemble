@@ -119,16 +119,16 @@ def create_build_req():
         # 没有指定message，说明执行模式是ui模式
         commit_message = args.message
 
+        if commit_message:
+            config.work_mode = "cli"
+        else:
+            config.work_mode = "ui"
+
         setup_logging(True, "创建构建请求")
         check_and_create_env(env_file, "4")
 
         # 加载指定的 .env 文件
         load_dotenv(env_file)
-
-        if commit_message:
-            config.work_mode = "cli"
-        else:
-            config.work_mode = "ui"
 
         is_ready, manifest_info, resources_dir = check_uni_project()
         if not is_ready:
