@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import shutil
@@ -11,7 +12,14 @@ from dotenv import load_dotenv
 from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
-from auto_assemble.git import get_staged_files, get_untracked_files, git_add, git_commit, git_push
+from auto_assemble.git import (
+    get_staged_files,
+    get_untracked_files,
+    git_add,
+    git_commit,
+    git_push,
+    sync_repository,
+)
 from auto_assemble.log import setup_logging
 from auto_assemble.push import confirm_push, has_changes
 
@@ -126,6 +134,12 @@ def create_build_req():
         if not is_ready:
             logging.error("本地资源文件校验失败")
             return 1
+        # 美观的打印manifest_info，但排除permissions字段
+        manifest_info_without_permissions = manifest_info.copy()
+        manifest_info_without_permissions.pop("permissions", {})
+        manifest_info_without_permissions.pop("permissions_content", {})
+        logging.info(f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}")
+
         # 更新UNI_APP_ID
         config.UNI_APP_ID = manifest_info["uniapp_id"]
         # 创建时间
@@ -155,7 +169,10 @@ def create_build_req():
         if not config.PROD_NAME:
             logging.error("配置错误: PROD_NAME 未设置或为空")
             return 1
-
+        # 同步仓库
+        if not sync_repository(config.DISTRIBUTION_PATH):
+            logging.error("Git仓库同步失败，终止执行")
+            return 1
         # 在分发目录的PROD_NAME目录下创建req_date目录
         req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
         os.makedirs(req_date_dir, exist_ok=True)
