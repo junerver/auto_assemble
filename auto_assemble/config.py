@@ -111,6 +111,11 @@ class Config:
             self._prod_name = os.getenv("PROD_NAME")
         return self._prod_name
 
+    @PROD_NAME.setter
+    def PROD_NAME(self, value):
+        self._prod_name = value
+        self._prod_branch = rf"prod_{self.PROD_NAME}"
+
     @property
     def PROD_BRANCH(self):
         if self._prod_branch is None:
