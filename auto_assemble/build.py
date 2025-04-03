@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -91,7 +92,7 @@ def execute_gradle_build(release: bool = True):
 
 def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
     """
-    复制构建产物到目标目录
+    复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
     Returns:
         tuple<bool, str>: 复制是否成功, apk文件名(不包含尾缀)
     """
@@ -118,7 +119,18 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
             target_metadata = os.path.join(target_dir, "release-metadata.md")
 
             if os.path.exists(source_metadata):
+                # 提取metadata文件中的MD5字段
+                with open(source_metadata, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    md5 = re.search(r"MD5: (\w+)", content).group(1)
+
+                # 在metadata末尾追加写入
+                with open(target_metadata, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n打包请求: \n{config.last_commit_message}")
+
                 shutil.copy2(source_metadata, target_metadata)
+                # 在目标目录下创建md5作为文件名的空白文件
+                open(os.path.join(target_dir, md5), "w").close()
                 logging.info("成功复制metadata文件")
             else:
                 logging.error(f"源metadata文件不存在: {source_metadata}")
