@@ -7,13 +7,17 @@ from typing import Tuple
 from auto_assemble.config import config
 
 
-def get_git_info(repo_path: str) -> Tuple[str, str, str]:
+def get_git_info(repo_path: str) -> Tuple[str, str, str, str]:
     """
-    获取Git仓库信息
+    获取Git仓库信息，包含下面信息：
+    1. 最后提交时间
+    2. 最后提交人
+    3. 最后提交信息
+    4. 最后提交的MD5
     Args:
         repo_path: Git仓库路径
     Returns:
-        Tuple[str, str, str]: (最后提交时间, 最后提交人, 最后提交信息)
+        Tuple[str, str, str, str]: (最后提交时间, 最后提交人, 最后提交信息, 最后提交的MD5)
     """
     try:
         # 获取最后一次提交信息
@@ -22,7 +26,7 @@ def get_git_info(repo_path: str) -> Tuple[str, str, str]:
                 "git",
                 "log",
                 "-1",
-                "--format=%cd,%an,%s",
+                "--format=%cd,%an,%s,%H",
                 "--date=format:%Y-%m-%d %H:%M:%S",
             ],
             capture_output=True,
@@ -31,11 +35,13 @@ def get_git_info(repo_path: str) -> Tuple[str, str, str]:
             cwd=repo_path,
         )
         if last_commit.returncode == 0:
-            commit_date, author, message = last_commit.stdout.strip().split(",", 2)
-            return commit_date, author, message
+            commit_date, author, message, commit_hash = last_commit.stdout.strip().split(",", 3)
+            return commit_date, author, message, commit_hash
+        else:
+            logging.error(f"获取Git信息失败: {last_commit.stderr}")
     except Exception as e:
         logging.error(f"获取Git信息失败: {e}")
-    return "", "", ""
+    return "", "", "", ""
 
 
 def git_fetch(repo_path: str) -> bool:
@@ -86,7 +92,7 @@ def sync_repository(repo_path: str) -> bool:
         os.chdir(repo_path)
 
         # 获取更新前的提交信息
-        before_date, before_author, before_message = get_git_info(repo_path)
+        before_date, before_author, before_message, _ = get_git_info(repo_path)
         if before_date:
             logging.info(
                 f"当前版本 - 提交时间: {before_date}, 提交人: {before_author}, 提交信息: {before_message}"
@@ -101,12 +107,13 @@ def sync_repository(repo_path: str) -> bool:
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
         if result.returncode == 0:
             # 获取更新后的提交信息
-            after_date, after_author, after_message = get_git_info(repo_path)
+            after_date, after_author, after_message, after_md5 = get_git_info(repo_path)
             if after_date:
                 logging.info(f"更新成功 - 新版本信息:")
                 logging.info(f"提交时间: {after_date}")
                 logging.info(f"提交人: {after_author}")
                 logging.info(f"提交信息: {after_message}")
+                logging.info(f"提交哈希: {after_md5}")
 
             config.last_commit_message = textwrap.dedent(
                 f"""
@@ -114,6 +121,7 @@ def sync_repository(repo_path: str) -> bool:
                 提交时间: {after_date}
                 提交人: {after_author}
                 提交信息: {after_message}
+                提交哈希: {after_md5}
                 """
             )
             return True
