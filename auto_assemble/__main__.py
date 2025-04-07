@@ -29,6 +29,8 @@ def main():
         parser.add_argument("--env", type=str, help="Path to the .env file")
         # 指定执行的功能序号
         parser.add_argument("--fn", type=str, help="function name")
+        # task任务信息
+        parser.add_argument("--task", type=str, help="task info: prod_name,task_dir")
         args = parser.parse_args()
         env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
         fn = args.fn if args.fn else None
@@ -57,7 +59,7 @@ def main():
 
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
-            result = auto_flow()
+            result = auto_flow(args.task if args.task else None)
         elif select_func == "2":
             # 指定本地UniApp工程进行打包
             result = local_assemble(True)

@@ -10,8 +10,13 @@ import logging
 import sys
 
 
-def main():
-    """主函数，按顺序执行所有步骤"""
+def main(task: str = None):
+    """
+    主函数，按顺序执行所有步骤
+
+    Args:
+        task: 任务信息，由项目名称与任务目录拼接而成，用于指定构建的目录
+    """
     try:
         # 导入放在函数内部，避免循环导入
         from auto_assemble.copy_res import main as copy_res_main
@@ -19,7 +24,11 @@ def main():
         from auto_assemble.push import main as push_main
 
         # 执行copy_res.py
-        if copy_res_main() != 0:
+        prod_name = None
+        task_dir = None
+        if task:
+            prod_name, task_dir = task.split(",")
+        if copy_res_main(prod_name, task_dir) != 0:
             logging.warning("copy_res.py执行中断")
             return 1
 

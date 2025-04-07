@@ -165,7 +165,7 @@ def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
 
 
 def extract_compressed_file(
-        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+    compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
@@ -297,7 +297,7 @@ def get_project_name(distribution_path: str) -> Tuple[str, str]:
         raise
 
 
-def main():
+def main(prod_name: str = None, task_dir: str = None):
     """
     主函数：执行整个更新流程
     1. 配置日志系统
@@ -314,6 +314,12 @@ def main():
     12. 更新build.gradle
     13. 更新control文件
     14. 更新 AndroidManifest.xml 文件，更新权限
+
+    Args:
+        prod_name: 项目名称，用于指向本次需要构建的项目，对应本地基座的 f"prod_{prod_name}" 分支
+        task_dir: 任务目录，用于指向本次构建任务的目录，如果为空，则从分发仓库中获取最新的项目名称和最新时间戳目录
+    Returns:
+        int: 返回0表示成功，返回1表示失败
     """
     try:
         # 配置日志
@@ -330,15 +336,19 @@ def main():
 
         # 获取项目名称和最新目录
         try:
-            config.PROD_NAME, latest_dir = get_project_name(config.DISTRIBUTION_PATH)
+            if task_dir and prod_name:
+                config.PROD_NAME = prod_name
+                config.cur_task_dir = task_dir
+            else:
+                config.PROD_NAME, config.cur_task_dir = get_project_name(config.DISTRIBUTION_PATH)
             logging.info(f"获取到项目名称: {config.PROD_NAME}")
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
             return 1
 
         # 查找是否已存在对应的APK文件
-        latest_dir_name = os.path.basename(latest_dir)
-        apk_file = os.path.join(latest_dir, f"{latest_dir_name}.apk")
+        latest_dir_name = os.path.basename(config.cur_task_dir)
+        apk_file = os.path.join(config.cur_task_dir, f"{latest_dir_name}.apk")
 
         # 如果存在产物，则无需执行打包
         if os.path.exists(apk_file):
@@ -346,13 +356,13 @@ def main():
             return 1
 
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
-        readme_path = os.path.join(latest_dir, "README.md")
+        readme_path = os.path.join(config.cur_task_dir, "README.md")
         readme_info = parse_readme(readme_path)
 
         # 更新UNI_APP_ID
         config.UNI_APP_ID = readme_info["uniapp_id"]
         # 查找压缩文件
-        compressed_file = find_compressed_file(latest_dir)
+        compressed_file = find_compressed_file(config.cur_task_dir)
         if not compressed_file:
             logging.error("未找到压缩文件，终止执行")
             return 1
@@ -385,9 +395,9 @@ def main():
 
         # 更新build.gradle
         if not update_build_gradle(
-                config.BUILD_GRADLE_PATH,
-                os.path.basename(latest_dir),
-                readme_info,
+            config.BUILD_GRADLE_PATH,
+            latest_dir_name,
+            readme_info,
         ):
             logging.error("更新build.gradle失败，终止执行")
             return 1

@@ -26,7 +26,7 @@ def get_build_output_name(release):
     raise FileNotFoundError("未找到符合yyyyMMddHHmm格式的APK文件")
 
 
-def get_distribution_target_dir(apk_name):
+def get_distribution_target_dir(apk_name: str):
     """
     根据APK文件名生成目标目录
     Args:
@@ -93,6 +93,11 @@ def execute_gradle_build(release: bool = True):
 def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
     """
     复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
+
+    Args:
+        apk_name: APK文件名
+        target_dir: 目标目录
+        release: 是否为release包
     Returns:
         tuple<bool, str>: 复制是否成功, apk文件名(不包含尾缀)
     """
