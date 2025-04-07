@@ -44,6 +44,138 @@ queue_lock = Lock()
 stop_event = Event()
 
 
+def init_db():
+    """初始化数据库"""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS tasks (
+            id TEXT PRIMARY KEY,
+            project_name TEXT NOT NULL,
+            task_name TEXT NOT NULL,
+            author TEXT,
+            commit_title TEXT,
+            commit_message TEXT,
+            commit_url TEXT,
+            priority INTEGER DEFAULT 0,
+            retries INTEGER DEFAULT 0,
+            created_at TIMESTAMP NOT NULL,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            status TEXT NOT NULL,
+            error TEXT
+        )
+    """
+    )
+    conn.commit()
+    conn.close()
+
+
+# 初始化数据库
+init_db()
+
+# 加载环境变量
+load_dotenv()
+
+
+def cleanup():
+    """清理函数"""
+    stop_event.set()
+    # 等待队列处理线程结束
+    for thread in threading.enumerate():
+        if thread != threading.current_thread():
+            thread.join(timeout=5)
+
+
+# 注册清理函数
+import atexit
+
+atexit.register(cleanup)
+
+
+def process_task_queue():
+    """处理任务队列"""
+    while not stop_event.is_set():
+        try:
+            with queue_lock:
+                if not task_queue.empty():
+                    current_task = task_queue.get()
+
+                    # 检查任务是否超时
+                    if (
+                        current_task.started_at
+                        and (datetime.now() - current_task.started_at).total_seconds()
+                        > TASK_TIMEOUT
+                    ):
+                        logging.warning(f"任务 {current_task.task_id} 执行超时")
+                        current_task.status = "failed"
+                        current_task.error = "Task timeout"
+                        save_task(current_task)
+                        show_toast(current_task, False)
+                        continue
+
+                    # 更新任务状态
+                    current_task.started_at = datetime.now()
+                    current_task.status = "running"
+                    save_task(current_task)
+
+                    logging.info(f"开始执行任务: {current_task.task_id}")
+
+                    # 执行构建
+                    process = subprocess.Popen(
+                        ["auto-assemble", "--fn", "1", "--task", current_task.task_id],
+                        cwd=os.path.dirname(os.path.abspath(__file__)),
+                        encoding="utf-8",
+                    )
+
+                    # 等待进程完成
+                    try:
+                        process.wait(timeout=TASK_TIMEOUT)
+                        if process.returncode == 0:
+                            current_task.status = "completed"
+                            show_toast(current_task, True)
+                            logging.info(f"任务 {current_task.task_id} 执行成功")
+                        else:
+                            current_task.status = "failed"
+                            current_task.error = (
+                                f"Build failed with return code {process.returncode}"
+                            )
+                            show_toast(current_task, False)
+                            logging.error(
+                                f"任务 {current_task.task_id} 执行失败: {current_task.error}"
+                            )
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        current_task.status = "failed"
+                        current_task.error = "Build process timeout"
+                        show_toast(current_task, False)
+                        logging.error(f"任务 {current_task.task_id} 执行超时")
+
+                    # 处理失败重试
+                    if current_task.status == "failed" and current_task.retries < MAX_RETRIES:
+                        current_task.retries += 1
+                        current_task.priority += 1  # 增加重试任务的优先级
+                        task_queue.put(current_task)
+                        logging.info(
+                            f"任务 {current_task.task_id} 加入重试队列，当前重试次数: {current_task.retries}"
+                        )
+
+                    # 保存任务状态
+                    current_task.completed_at = datetime.now()
+                    save_task(current_task)
+
+            time.sleep(CHECK_INTERVAL)
+        except Exception as e:
+            logging.error(f"处理任务队列时发生错误: {str(e)}")
+            time.sleep(CHECK_INTERVAL)
+
+
+# 启动任务队列处理线程
+queue_thread = Thread(target=process_task_queue, daemon=True)
+queue_thread.start()
+
+
 class BuildTask:
     """构建任务类"""
 
@@ -86,34 +218,6 @@ class BuildTask:
             "started_at": self.started_at,
             "completed_at": self.completed_at,
         }
-
-
-def init_db():
-    """初始化数据库"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY,
-            project_name TEXT NOT NULL,
-            task_name TEXT NOT NULL,
-            author TEXT,
-            commit_title TEXT,
-            commit_message TEXT,
-            commit_url TEXT,
-            priority INTEGER DEFAULT 0,
-            retries INTEGER DEFAULT 0,
-            created_at TIMESTAMP NOT NULL,
-            started_at TIMESTAMP,
-            completed_at TIMESTAMP,
-            status TEXT NOT NULL,
-            error TEXT
-        )
-    """
-    )
-    conn.commit()
-    conn.close()
 
 
 def save_task(task):
@@ -207,83 +311,6 @@ def get_running_task():
         task.status = row[8]
         return task
     return None
-
-
-def process_task_queue():
-    """处理任务队列"""
-    while not stop_event.is_set():
-        try:
-            with queue_lock:
-                if not task_queue.empty():
-                    current_task = task_queue.get()
-
-                    # 检查任务是否超时
-                    if (
-                        current_task.started_at
-                        and (datetime.now() - current_task.started_at).total_seconds()
-                        > TASK_TIMEOUT
-                    ):
-                        logging.warning(f"任务 {current_task.task_id} 执行超时")
-                        current_task.status = "failed"
-                        current_task.error = "Task timeout"
-                        save_task(current_task)
-                        show_toast(current_task, False)
-                        continue
-
-                    # 更新任务状态
-                    current_task.started_at = datetime.now()
-                    current_task.status = "running"
-                    save_task(current_task)
-
-                    logging.info(f"开始执行任务: {current_task.task_id}")
-
-                    # 执行构建
-                    process = subprocess.Popen(
-                        ["auto-assemble", "--fn", "1", "--task", current_task.task_id],
-                        cwd=os.path.dirname(os.path.abspath(__file__)),
-                        encoding="utf-8",
-                    )
-
-                    # 等待进程完成
-                    try:
-                        process.wait(timeout=TASK_TIMEOUT)
-                        if process.returncode == 0:
-                            current_task.status = "completed"
-                            show_toast(current_task, True)
-                            logging.info(f"任务 {current_task.task_id} 执行成功")
-                        else:
-                            current_task.status = "failed"
-                            current_task.error = (
-                                f"Build failed with return code {process.returncode}"
-                            )
-                            show_toast(current_task, False)
-                            logging.error(
-                                f"任务 {current_task.task_id} 执行失败: {current_task.error}"
-                            )
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        current_task.status = "failed"
-                        current_task.error = "Build process timeout"
-                        show_toast(current_task, False)
-                        logging.error(f"任务 {current_task.task_id} 执行超时")
-
-                    # 处理失败重试
-                    if current_task.status == "failed" and current_task.retries < MAX_RETRIES:
-                        current_task.retries += 1
-                        current_task.priority += 1  # 增加重试任务的优先级
-                        task_queue.put(current_task)
-                        logging.info(
-                            f"任务 {current_task.task_id} 加入重试队列，当前重试次数: {current_task.retries}"
-                        )
-
-                    # 保存任务状态
-                    current_task.completed_at = datetime.now()
-                    save_task(current_task)
-
-            time.sleep(CHECK_INTERVAL)
-        except Exception as e:
-            logging.error(f"处理任务队列时发生错误: {str(e)}")
-            time.sleep(CHECK_INTERVAL)
 
 
 def is_valid_build_task(added_files):
@@ -463,31 +490,7 @@ def get_queue_status():
     )
 
 
-def cleanup():
-    """清理函数"""
-    stop_event.set()
-    # 等待队列处理线程结束
-    for thread in threading.enumerate():
-        if thread != threading.current_thread():
-            thread.join(timeout=5)
-
-
 if __name__ == "__main__":
-    # 初始化数据库
-    init_db()
-
-    # 加载环境变量
-    load_dotenv()
-
-    # 启动任务队列处理线程
-    queue_thread = Thread(target=process_task_queue, daemon=True)
-    queue_thread.start()
-
-    # 注册清理函数
-    import atexit
-
-    atexit.register(cleanup)
-
     # 从环境变量获取端口和调试模式
     port = int(os.getenv("PORT", 5005))
     debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
