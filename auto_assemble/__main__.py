@@ -21,7 +21,6 @@ def main():
     主函数，用于执行命令行入口
     """
     try:
-        welcome()
         parser = argparse.ArgumentParser(
             description="Load environment variables from a specified .env file and execute the program."
         )
@@ -34,21 +33,22 @@ def main():
         args = parser.parse_args()
         env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
         fn = args.fn if args.fn else None
-
-        print(
-            textwrap.dedent(
-                """
-                请输入下面序号选择功能：
-                1. 从分发仓库拉取资源进行打包
-                2. 指定本地UniApp工程进行打包
-                3. 指定本地UniApp工程构建离线基座
-                """
-            )
-        )
         if fn:
             select_func = fn
             config.work_mode = "cli"
-        else:
+
+        if config.work_mode == "ui":
+            welcome()
+            print(
+                textwrap.dedent(
+                    """
+                    请输入下面序号选择功能：
+                    1. 从分发仓库拉取资源进行打包
+                    2. 指定本地UniApp工程进行打包
+                    3. 指定本地UniApp工程构建离线基座
+                    """
+                )
+            )
             select_func = input("请输入功能序号：").strip()
 
         check_and_create_env(env_file, select_func)

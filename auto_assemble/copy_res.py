@@ -317,7 +317,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
     Args:
         prod_name: 项目名称，用于指向本次需要构建的项目，对应本地基座的 f"prod_{prod_name}" 分支
-        task_dir: 任务目录，用于指向本次构建任务的目录，如果为空，则从分发仓库中获取最新的项目名称和最新时间戳目录
+        task_dir: 任务目录的名称，用于指向本次构建任务的目录，如果为空，则从分发仓库中获取最新的项目名称和最新时间戳目录
     Returns:
         int: 返回0表示成功，返回1表示失败
     """
@@ -338,7 +338,7 @@ def main(prod_name: str = None, task_dir: str = None):
         try:
             if task_dir and prod_name:
                 config.PROD_NAME = prod_name
-                config.cur_task_dir = task_dir
+                config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
             else:
                 config.PROD_NAME, config.cur_task_dir = get_project_name(config.DISTRIBUTION_PATH)
             logging.info(f"获取到项目名称: {config.PROD_NAME}")

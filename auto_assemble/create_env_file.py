@@ -206,14 +206,14 @@ def check_and_create_env(env_file: str, select_func: str):
             input("按回车键退出...")
             return 1
 
-    print("请确认下面的环境变量：")
-    print(
-        "\n".join(
-            f"# {var_config.description}\n{var_name}={existing_vars[var_name]}\n"
-            for var_name, var_config in manager.var_configs.items()
-            if var_name in required_vars
-        )
-    )
     if global_config.work_mode == "ui":
+        print("请确认下面的环境变量：")
+        print(
+            "\n".join(
+                f"# {var_config.description}\n{var_name}={existing_vars[var_name]}\n"
+                for var_name, var_config in manager.var_configs.items()
+                if var_name in required_vars
+            )
+        )
         input("按回车键继续...")
     return 0

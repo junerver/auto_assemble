@@ -1,18 +1,19 @@
 import logging
 import os
+import re
+import sqlite3
 import subprocess
 import sys
 import threading
 import time
-import json
-import re
-import sqlite3
+from datetime import datetime
 from pathlib import Path
 from queue import PriorityQueue
 from threading import Thread, Lock, Event
-from datetime import datetime
-from flask import Flask, jsonify, request
+
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+from win11toast import toast
 
 # 配置日志
 logging.basicConfig(
@@ -46,7 +47,7 @@ stop_event = Event()
 class BuildTask:
     """构建任务类"""
 
-    def __init__(self, project_name, task_name, priority=0, retries=0):
+    def __init__(self, project_name, task_name, commit_info=None, priority=0, retries=0):
         self.project_name = project_name
         self.task_name = task_name
         self.priority = priority
@@ -56,6 +57,12 @@ class BuildTask:
         self.completed_at = None
         self.status = "pending"  # pending, running, completed, failed
         self.error = None
+        # 添加提交信息
+        self.commit_info = commit_info or {}
+        self.author = self.commit_info.get("author", {}).get("name")
+        self.commit_title = self.commit_info.get("title")
+        self.commit_message = self.commit_info.get("message")
+        self.commit_url = self.commit_info.get("url")
 
     def __lt__(self, other):
         # 优先级高的先执行
@@ -64,6 +71,21 @@ class BuildTask:
     @property
     def task_id(self):
         return f"{self.project_name},{self.task_name}"
+
+    def to_dict(self):
+        """转换为字典格式"""
+        return {
+            "id": self.task_id,
+            "project_name": self.project_name,
+            "task_name": self.task_name,
+            "author": self.author,
+            "commit_title": self.commit_title,
+            "status": self.status,
+            "error": self.error,
+            "created_at": self.created_at,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+        }
 
 
 def init_db():
@@ -76,6 +98,10 @@ def init_db():
             id TEXT PRIMARY KEY,
             project_name TEXT NOT NULL,
             task_name TEXT NOT NULL,
+            author TEXT,
+            commit_title TEXT,
+            commit_message TEXT,
+            commit_url TEXT,
             priority INTEGER DEFAULT 0,
             retries INTEGER DEFAULT 0,
             created_at TIMESTAMP NOT NULL,
@@ -97,13 +123,18 @@ def save_task(task):
     cursor.execute(
         """
         INSERT OR REPLACE INTO tasks 
-        (id, project_name, task_name, priority, retries, created_at, started_at, completed_at, status, error)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, project_name, task_name, author, commit_title, commit_message, commit_url,
+         priority, retries, created_at, started_at, completed_at, status, error)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             task.task_id,
             task.project_name,
             task.task_name,
+            task.author,
+            task.commit_title,
+            task.commit_message,
+            task.commit_url,
             task.priority,
             task.retries,
             task.created_at,
@@ -171,7 +202,7 @@ def get_running_task():
     conn.close()
 
     if row:
-        task = BuildTask(row[1], row[2], row[3], row[4])
+        task = BuildTask(row[1], row[2], row[3], row[4], row[5])
         task.started_at = row[6]
         task.status = row[8]
         return task
@@ -196,6 +227,7 @@ def process_task_queue():
                         current_task.status = "failed"
                         current_task.error = "Task timeout"
                         save_task(current_task)
+                        show_toast(current_task, False)
                         continue
 
                     # 更新任务状态
@@ -217,12 +249,14 @@ def process_task_queue():
                         process.wait(timeout=TASK_TIMEOUT)
                         if process.returncode == 0:
                             current_task.status = "completed"
+                            show_toast(current_task, True)
                             logging.info(f"任务 {current_task.task_id} 执行成功")
                         else:
                             current_task.status = "failed"
                             current_task.error = (
                                 f"Build failed with return code {process.returncode}"
                             )
+                            show_toast(current_task, False)
                             logging.error(
                                 f"任务 {current_task.task_id} 执行失败: {current_task.error}"
                             )
@@ -230,6 +264,7 @@ def process_task_queue():
                         process.kill()
                         current_task.status = "failed"
                         current_task.error = "Build process timeout"
+                        show_toast(current_task, False)
                         logging.error(f"任务 {current_task.task_id} 执行超时")
 
                     # 处理失败重试
@@ -282,6 +317,15 @@ def parse_build_task(added_files):
     return project_name, task_name
 
 
+def show_toast(task, success=True):
+    """显示构建结果通知"""
+    status = "成功" if success else "失败"
+    message = f"项目: {task.project_name}\n任务: {task.task_name}\n提交人: {task.author}\n提交标题: {task.commit_title}\n状态: {status}"
+    if not success and task.error:
+        message += f"\n错误: {task.error}"
+    toast(message)
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -305,8 +349,10 @@ def webhook():
             logging.info("不是有效的构建任务")
             return jsonify({"message": "Not a valid build task"}), 200
 
+        # 获取提交信息
+        commit_info = commits[0]
         project_name, task_name = parse_build_task(added_files)
-        task = BuildTask(project_name, task_name)
+        task = BuildTask(project_name, task_name, commit_info)
 
         # 检查是否有正在运行的任务
         running_task = get_running_task()
@@ -319,7 +365,7 @@ def webhook():
                 jsonify(
                     {
                         "message": "Task added to queue",
-                        "task": task.task_id,
+                        "task": task.to_dict(),
                         "position": task_queue.qsize(),
                     }
                 ),
@@ -342,9 +388,11 @@ def webhook():
                     process.wait(timeout=TASK_TIMEOUT)
                     if process.returncode == 0:
                         task.status = "completed"
+                        show_toast(task, True)
                     else:
                         task.status = "failed"
                         task.error = f"Build failed with return code {process.returncode}"
+                        show_toast(task, False)
                         if task.retries < MAX_RETRIES:
                             task.retries += 1
                             task.priority += 1
@@ -354,13 +402,14 @@ def webhook():
                     process.kill()
                     task.status = "failed"
                     task.error = "Build process timeout"
+                    show_toast(task, False)
                 finally:
                     task.completed_at = datetime.now()
                     save_task(task)
 
             Thread(target=cleanup, daemon=True).start()
 
-            return jsonify({"message": "Build started successfully", "task": task.task_id}), 200
+            return jsonify({"message": "Build started successfully", "task": task.to_dict()}), 200
 
     except Exception as e:
         logging.error(f"处理webhook请求时发生错误: {str(e)}")
@@ -389,26 +438,27 @@ def get_queue_status():
 
     conn.close()
 
+    def format_task(task):
+        if not task:
+            return None
+        return {
+            "id": task[0],
+            "project": task[1],
+            "task": task[2],
+            "author": task[3],
+            "commit_title": task[4],
+            "commit_message": task[5],
+            "commit_url": task[6],
+            "started_at": task[10],
+            "status": task[12],
+            "error": task[13],
+        }
+
     return jsonify(
         {
-            "running_task": {
-                "id": running_task[0] if running_task else None,
-                "project": running_task[1] if running_task else None,
-                "task": running_task[2] if running_task else None,
-                "started_at": running_task[6] if running_task else None,
-            },
+            "running_task": format_task(running_task),
             "queue_size": pending_count,
-            "recent_tasks": [
-                {
-                    "id": task[0],
-                    "project": task[1],
-                    "task": task[2],
-                    "status": task[8],
-                    "completed_at": task[7],
-                    "error": task[9],
-                }
-                for task in recent_tasks
-            ],
+            "recent_tasks": [format_task(task) for task in recent_tasks],
         }
     )
 
