@@ -92,10 +92,19 @@ def sync_repository(repo_path: str) -> bool:
         os.chdir(repo_path)
 
         # 获取更新前的提交信息
-        before_date, before_author, before_message, _ = get_git_info(repo_path)
+        before_date, before_author, before_message, before_md5 = get_git_info(repo_path)
         if before_date:
             logging.info(
                 f"当前版本 - 提交时间: {before_date}, 提交人: {before_author}, 提交信息: {before_message}"
+            )
+            config.last_commit_message = textwrap.dedent(
+                f"""
+                
+                提交时间: {before_date}
+                提交人: {before_author}
+                提交信息: {before_message}
+                提交哈希: {before_md5}
+                """
             )
 
         # 检查远程是否有更新
