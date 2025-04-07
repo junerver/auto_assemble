@@ -54,3 +54,6 @@ coverage.xml
 *.cover 
 *.spec
 /version.txt
+
+*.db
+*.json5
