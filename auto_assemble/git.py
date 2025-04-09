@@ -167,7 +167,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
         bool: 是否在目标分支或可以安全切换到目标分支
     """
     try:
-        logging.info(f"开始检查Git分支: {repo_path}")
+        logging.info(f"开始检查Git分支: {repo_path}/{target_branch}")
 
         # 1. 获取远程更新
         fetch_proc = subprocess.run(
@@ -254,12 +254,13 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
             if current_branch == config.PROD_BRANCH:
                 logging.info(f"已在目标分支 {config.PROD_BRANCH} 上")
                 return True
+            target_branch = config.PROD_BRANCH
         else:
             # 如果指定目标分支，则检查是否在目标分支上
             if current_branch == target_branch:
                 logging.info(f"已在指定分支 {target_branch} 上")
                 return True
-
+        logging.info(f"开始准备切换到目标分支: {target_branch}")
         # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）
         status_proc = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -296,16 +297,16 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                 branch.strip() for branch in branches_proc.stdout.split("\n") if branch.strip()
             ]
             local_branch_exists = any(
-                branch.replace("*", "").strip() == config.PROD_BRANCH for branch in branches
+                branch.replace("*", "").strip() == target_branch for branch in branches
             )
             remote_branch_exists = any(
-                branch.strip() == f"remotes/origin/{config.PROD_BRANCH}" for branch in branches
+                branch.strip() == f"remotes/origin/{target_branch}" for branch in branches
             )
 
             if local_branch_exists:
                 # 8. 如果本地分支存在，直接切换
                 switch_proc = subprocess.run(
-                    ["git", "checkout", config.PROD_BRANCH],
+                    ["git", "checkout", target_branch],
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -316,13 +317,13 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                     logging.error(f"切换到目标分支失败: {switch_proc.stderr}")
                     return False
 
-                logging.info(f"成功切换到目标分支: {config.PROD_BRANCH}")
+                logging.info(f"成功切换到目标分支: {target_branch}")
                 return True
             elif remote_branch_exists:
                 # 9. 如果远程分支存在，从远程分支创建本地分支
-                logging.info(f"从远程分支创建本地分支: {config.PROD_BRANCH}")
+                logging.info(f"从远程分支创建本地分支: {target_branch}")
                 create_branch_proc = subprocess.run(
-                    ["git", "checkout", "-b", config.PROD_BRANCH, f"origin/{config.PROD_BRANCH}"],
+                    ["git", "checkout", "-b", target_branch, f"origin/{target_branch}"],
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -333,7 +334,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                     logging.error(f"从远程分支创建本地分支失败: {create_branch_proc.stderr}")
                     return False
 
-                logging.info(f"成功创建并切换到新分支: {config.PROD_BRANCH}")
+                logging.info(f"成功创建并切换到新分支: {target_branch}")
                 return True
             else:
                 # 10. 如果本地和远程都不存在，从master创建新分支
@@ -356,7 +357,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
 
                 # 从master创建新分支
                 create_branch_proc = subprocess.run(
-                    ["git", "checkout", "-b", config.PROD_BRANCH],
+                    ["git", "checkout", "-b", target_branch],
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -367,7 +368,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                     logging.error(f"从master创建新分支失败: {create_branch_proc.stderr}")
                     return False
 
-                logging.info(f"成功创建并切换到新分支: {config.PROD_BRANCH}")
+                logging.info(f"成功创建并切换到新分支: {target_branch}")
                 return True
 
         except subprocess.TimeoutExpired as e:

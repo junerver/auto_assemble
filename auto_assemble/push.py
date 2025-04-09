@@ -24,17 +24,30 @@ def validate_timestamp_format(timestamp):
 def has_changes(cwd=config.DISTRIBUTION_PATH):
     """检查是否有任何修改（包括未跟踪和已修改的文件）"""
     try:
+        # 检查未跟踪的文件
         result = subprocess.run(
-            ["git", "status", "--porcelain"],
+            ["git", "ls-files", "--others", "--exclude-standard"],
             capture_output=True,
             text=True,
             cwd=cwd,
         )
         if result.returncode != 0:
+            logging.error("获取未跟踪文件列表失败")
+            return False
+
+        # 检查已修改的文件
+        modified_result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+        if modified_result.returncode != 0:
             logging.error("获取git状态失败")
             return False
 
-        return bool(result.stdout.strip())
+        # 如果有未跟踪的文件或已修改的文件，返回True
+        return bool(result.stdout.strip()) or bool(modified_result.stdout.strip())
     except Exception as e:
         logging.error(f"检查git状态时发生错误: {str(e)}")
         return False

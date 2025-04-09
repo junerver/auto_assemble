@@ -14,6 +14,7 @@ from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
 from auto_assemble.git import (
+    check_git_branch,
     get_staged_files,
     get_untracked_files,
     git_add,
@@ -183,6 +184,11 @@ def create_build_req():
         if not sync_repository(config.DISTRIBUTION_PATH):
             logging.error("Git仓库同步失败，终止执行")
             return 1
+        if req_mode == "dev":
+            check_git_branch(config.DISTRIBUTION_PATH, "master")
+        else:
+            check_git_branch(config.DISTRIBUTION_PATH, req_mode)
+
         # 在分发目录的PROD_NAME目录下创建req_date目录
         req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
         os.makedirs(req_date_dir, exist_ok=True)
