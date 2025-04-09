@@ -203,19 +203,26 @@ def create_build_req():
         if not has_changes():
             logging.info("没有需要提交的修改")
             return 1
+
         # 获取未跟踪的文件
         untracked_files = get_untracked_files(config.DISTRIBUTION_PATH)
         if not untracked_files:
             logging.info("没有未跟踪的文件，继续检查已修改的文件")
-            return 1
-        # 执行git add
-        if not git_add(repo_path=config.DISTRIBUTION_PATH):
-            return 1
-        # 获取已暂存的文件并验证
-        staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
-        if not staged_files:
-            logging.error("没有待提交的文件")
-            return 1
+            # 获取已修改的文件
+            staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
+            if not staged_files:
+                logging.error("没有待提交的文件")
+                return 1
+        else:
+            # 执行git add
+            if not git_add(repo_path=config.DISTRIBUTION_PATH):
+                return 1
+            # 获取已暂存的文件
+            staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
+            if not staged_files:
+                logging.error("没有待提交的文件")
+                return 1
+
         logging.info("待提交的文件列表:")
         for file in staged_files:
             logging.info(f"  - {file}")

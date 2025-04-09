@@ -371,6 +371,11 @@ def main(prod_name: str = None, task_dir: str = None):
             logging.error(f"获取项目名称失败: {e}")
             return 1
 
+        if config.build_mode == "dev":
+            check_git_branch(config.DISTRIBUTION_PATH, "master")
+        else:
+            check_git_branch(config.DISTRIBUTION_PATH, config.build_mode)
+
         # 查找是否已存在对应的APK文件
         latest_dir_name = os.path.basename(config.cur_task_dir)
         apk_file = os.path.join(config.cur_task_dir, f"{latest_dir_name}.apk")
