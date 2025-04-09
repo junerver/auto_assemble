@@ -115,15 +115,18 @@ def create_build_req():
         # 指定.env文件路径
         parser.add_argument("--env", type=str, help="Path to the .env file")
         parser.add_argument("-m", "--message", type=str, help="Commit message")
+        parser.add_argument("-d", "--dev", action="store_true", help="Dev mode")
         parser.add_argument("-t", "--test", action="store_true", help="Test mode")
         parser.add_argument("-r", "--release", action="store_true", help="Release mode")
         args = parser.parse_args()
 
         # 默认打包模式为dev
         req_mode = "dev"
+        if args.dev:
+            req_mode = "dev"
         if args.test:
             req_mode = "test"
-        elif args.release:
+        if args.release:
             req_mode = "release"
 
         env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
