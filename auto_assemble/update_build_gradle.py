@@ -77,6 +77,8 @@ def update_build_gradle(
                     quote_char = '"' if '"' in line else "'"
                     before_value = line[: line.index(quote_char) + 1]
                     after_value = line[line.rindex(quote_char) :]
+                    if config.build_mode == "dev":
+                        artifact_name = artifact_name + "_debug"
                     file.write(f"{before_value}{artifact_name}{after_value}")
                 elif abi_filters and line.strip().startswith("abiFilters"):
                     # 解析到了abi_filters，更新 abiFilters

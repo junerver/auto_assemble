@@ -5,6 +5,7 @@ rarfile>=4.2
 python-dotenv>=1.0.1
 json5>=0.10.0
 waitress>=3.0.0
+requests>=2.31.0
 
 # 开发依赖（用于打包）
 pyinstaller>=6.12.0

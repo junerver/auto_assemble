@@ -179,8 +179,10 @@ def main():
             logging.error("待提交的文件不符合要求")
             return 1
 
-        # 执行git commit
-        commit_message = f"#{timestamp} 打包"
+        # todo 执行git commit，提交消息需要完善
+        from auto_assemble.build import get_build_resp_message
+
+        commit_message = get_build_resp_message(f"{timestamp} 打包")
         if not git_commit(commit_message, config.DISTRIBUTION_PATH):
             return 1
 

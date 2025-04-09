@@ -102,7 +102,7 @@ def local_build(release):
         workspace = os.getenv("UNIAPP_WORKSPACE")
         is_cli = os.getenv("UNIAPP_IS_CLI", "n").lower() == "y"
         target_dir = os.path.join(workspace, "dist" if is_cli else "unpackage", "debug")
-    return build_main(target_dir, release)
+    return build_main(target_dir, release, is_distribution=False)
 
 
 def local_assemble(release=True):

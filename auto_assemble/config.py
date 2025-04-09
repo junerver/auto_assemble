@@ -44,6 +44,8 @@ class Config:
         self.work_mode: Work_Mode = "ui"
         # 当前任务目录，用于指向本次构建任务的目录
         self.cur_task_dir = ""
+        # 构建模式，默认dev，可选值：dev、test、release
+        self.build_mode = "release"
 
     @property
     def DISTRIBUTION_PATH(self):

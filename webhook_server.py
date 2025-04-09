@@ -184,13 +184,23 @@ class BuildTask:
         self.task_name = task_name
         self.priority = priority
         self.retries = retries
-        self.created_at = datetime.now()
         self.started_at = None
         self.completed_at = None
         self.status = "pending"  # pending, running, completed, failed
         self.error = None
-        # 添加提交信息
-        self.commit_info = commit_info or {}
+        # 确保 commit_info 是字典类型
+        self.commit_info = commit_info if isinstance(commit_info, dict) else {}
+        try:
+            # 创建时间依据push的timestamp，其格式是文本字符串，例如timestamp: "2025-04-07T09:06:56+08:00"
+            timestamp = self.commit_info.get("timestamp")
+            if timestamp:
+                self.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+            else:
+                self.created_at = datetime.now()
+        except (ValueError, TypeError) as e:
+            logging.warning(f"解析时间戳失败: {str(e)}，使用当前时间")
+            self.created_at = datetime.now()
+
         self.author = self.commit_info.get("author", {}).get("name")
         self.commit_title = self.commit_info.get("title")
         self.commit_message = self.commit_info.get("message")
@@ -441,6 +451,32 @@ def webhook():
     except Exception as e:
         logging.error(f"处理webhook请求时发生错误: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+# 添加一个接口，这个接口可以通过传递 task_id 来获取任务的详细信息
+@app.route("/task/<task_id>", methods=["GET"])
+def get_task_info(task_id):
+    """获取任务详细信息"""
+    logging.info(f"获取任务详细信息: {task_id}")
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    task = cursor.fetchone()
+    conn.close()
+    if task:
+        task_dict = {
+            "id": task[0],
+            "project_name": task[1],
+            "task_name": task[2],
+            "author": task[3],
+            "commit_title": task[4],
+            "commit_message": task[5],
+            "commit_date": task[9],
+        }
+        logging.info(f"获取任务详细信息: {task_dict}")
+        return jsonify({"task": task_dict}), 200
+    else:
+        return jsonify({"error": "Task not found"}), 404
 
 
 @app.route("/queue", methods=["GET"])

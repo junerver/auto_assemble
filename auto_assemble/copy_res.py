@@ -1,11 +1,14 @@
 import logging
 import os
 import shutil
+import textwrap
 from datetime import datetime
 from typing import Optional, Tuple
 
 import patoolib
+import requests
 
+from auto_assemble.build import parse_build_req_message
 from auto_assemble.config import config
 from auto_assemble.git import sync_repository, check_git_branch
 from auto_assemble.log import setup_logging
@@ -339,6 +342,28 @@ def main(prod_name: str = None, task_dir: str = None):
             if task_dir and prod_name:
                 config.PROD_NAME = prod_name
                 config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
+                # 说明任务来自于webhook，需要更新任务ID
+                config.task_id = f"{prod_name},{task_dir}"
+                logging.info(f"本次构建任务ID: {config.task_id}")
+                # 请求webhook服务的/task/<task_id>接口，获取提交信息
+                response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.task_id}")
+                if response.status_code == 200:
+                    task_info = response.json()["task"]
+                    logging.info(f"获取到提交信息: {task_info}")
+                    config.build_mode, commit_message = parse_build_req_message(
+                        task_info["commit_message"]
+                    )
+                    config.last_commit_message = textwrap.dedent(
+                        f"""
+                        
+                        提交时间：{task_info["commit_date"]}
+                        提交人: {task_info["author"]}
+                        提交信息: {commit_message}
+                        """
+                    )
+
+                else:
+                    logging.error(f"获取提交信息失败: {response.status_code}")
             else:
                 config.PROD_NAME, config.cur_task_dir = get_project_name(config.DISTRIBUTION_PATH)
             logging.info(f"获取到项目名称: {config.PROD_NAME}")
@@ -403,7 +428,9 @@ def main(prod_name: str = None, task_dir: str = None):
             return 1
 
         # 更新 dcloud_control.xml 文件
-        if not update_control_file(config.CONTROL_FILE_PATH, readme_info["uniapp_id"]):
+        if not update_control_file(
+                config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
+        ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 1
 
@@ -420,4 +447,9 @@ def main(prod_name: str = None, task_dir: str = None):
 
 
 if __name__ == "__main__":
-    main()
+    response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/identify_field,202504071846")
+    if response.status_code == 200:
+        task_info = response.json()
+        logging.info(f"获取到任务信息: {task_info}")
+    else:
+        logging.error(f"获取任务信息失败: {response.status_code}")

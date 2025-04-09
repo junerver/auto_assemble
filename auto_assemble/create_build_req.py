@@ -9,6 +9,7 @@ from textwrap import dedent
 
 from dotenv import load_dotenv
 
+from auto_assemble.build import get_build_req_label
 from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
@@ -113,7 +114,16 @@ def create_build_req():
         # 指定.env文件路径
         parser.add_argument("--env", type=str, help="Path to the .env file")
         parser.add_argument("-m", "--message", type=str, help="Commit message")
+        parser.add_argument("-t", "--test", action="store_true", help="Test mode")
+        parser.add_argument("-r", "--release", action="store_true", help="Release mode")
         args = parser.parse_args()
+
+        # 默认打包模式为dev
+        req_mode = "dev"
+        if args.test:
+            req_mode = "test"
+        elif args.release:
+            req_mode = "release"
 
         env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
         # 没有指定message，说明执行模式是ui模式
@@ -207,10 +217,12 @@ def create_build_req():
         if config.work_mode == "ui":
             commit_message = input("请输入提交信息：")
 
+        commit_message = get_build_req_label(req_mode) + commit_message
+        logging.info(f"提交信息：{commit_message}")
         if not git_commit(commit_message, config.DISTRIBUTION_PATH):
             return 1
 
-        # 确认是否推送
+        # 确认是否推送，推送消息中追加构建模式的标识
         if not confirm_push(staged_files, commit_message):
             logging.info("用户取消推送")
             return 1

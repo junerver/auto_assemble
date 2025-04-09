@@ -417,6 +417,7 @@ def get_untracked_files(repo_path: str):
         for line in result.stdout.splitlines():
             if line.startswith("??"):  # 未跟踪的文件
                 files.append(line[3:])
+                logging.info(f"     -{line[3:]}")
         return files
     except Exception as e:
         logging.error(f"获取未跟踪文件时发生错误: {str(e)}")
@@ -447,7 +448,7 @@ def git_add(repo_path: str):
     try:
         result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=repo_path)
         if result.returncode != 0:
-            logging.error("git add 执行失败")
+            logging.error(f"git add 执行失败: {result.stderr}")
             return False
         logging.info("git add 执行成功")
         return True
@@ -475,7 +476,7 @@ def git_commit(commit_message, repo_path):
             cwd=repo_path,
         )
         if result.returncode != 0:
-            logging.error("git commit 执行失败")
+            logging.error(f"git commit 执行失败: {result.stderr}")
             return False
         logging.info(f"git commit 执行成功，提交信息: {commit_message}")
         return True
@@ -494,7 +495,7 @@ def git_push(repo_path: str):
             cwd=repo_path,
         )
         if result.returncode != 0:
-            logging.error("git push 执行失败")
+            logging.error(f"git push 执行失败: {result.stderr}")
             return False
         logging.info("git push 执行成功")
         return True

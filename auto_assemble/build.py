@@ -11,6 +11,36 @@ from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 
 
+def get_build_req_label(build_mode: str, req_resp: str = "req"):
+    """
+    获取构建请求标签
+    Args:
+        build_mode (str): 构建模式，可选值：dev、test、release
+    Returns:
+        str: 构建请求标签
+    """
+    return f"#{build_mode}_{req_resp}# "
+
+
+def get_build_resp_message(commit_message: str):
+    return f"{get_build_req_label(config.build_mode, "resp")}{commit_message}"
+
+
+def parse_build_req_message(message: str):
+    """
+    解析构建请求标签
+    Args:
+        message (str): 构建请求消息，它是一个 `#{build_mode}_req# {commit_message}` 格式的字符串，需要通过正则提取出build_mode和commit_message
+    Returns:
+        tuple: 构建模式，构建请求类型
+    """
+    pattern = r"#(\w+)_req# (.*)"
+    match = re.search(pattern, message)
+    if match:
+        return match.group(1), match.group(2)
+    return None, None
+
+
 def get_build_output_name(release):
     """
     获取构建产物APK文件名
@@ -104,11 +134,10 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
     try:
         # 确保目标目录存在
         os.makedirs(target_dir, exist_ok=True)
-
+        # 根据构建模式确定输出目录
+        output_dir = config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
         # 复制APK文件
-        source_apk = os.path.join(
-            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR, apk_name
-        )
+        source_apk = os.path.join(output_dir, apk_name)
         target_apk = os.path.join(target_dir, apk_name)
 
         if os.path.exists(source_apk):
@@ -118,27 +147,26 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
             logging.error(f"源APK文件不存在: {source_apk}")
             return False, ""
 
-        if release:
-            # 复制metadata文件
-            source_metadata = os.path.join(config.BUILD_RELEASE_OUTPUT_DIR, "release-metadata.md")
-            target_metadata = os.path.join(target_dir, "release-metadata.md")
+        # 复制metadata文件
+        source_metadata = os.path.join(output_dir, "release-metadata.md")
+        target_metadata = os.path.join(target_dir, "release-metadata.md")
 
-            if os.path.exists(source_metadata):
-                # 提取metadata文件中的MD5字段
-                with open(source_metadata, "r", encoding="utf-8") as f:
-                    content = f.read()
-                    md5 = re.search(r"MD5: (\w+)", content).group(1)
-                # 复制metadata文件
-                shutil.copy2(source_metadata, target_metadata)
-                # 在metadata末尾追加写入
-                with open(target_metadata, "a", encoding="utf-8") as f:
-                    f.write(f"\n\n打包请求: \n{config.last_commit_message}")
-                # 在目标目录下创建md5作为文件名的空白文件
-                open(os.path.join(target_dir, md5), "w").close()
-                logging.info("成功复制metadata文件")
-            else:
-                logging.error(f"源metadata文件不存在: {source_metadata}")
-                return False, ""
+        if os.path.exists(source_metadata):
+            # 提取metadata文件中的MD5字段
+            with open(source_metadata, "r", encoding="utf-8") as f:
+                content = f.read()
+                md5 = re.search(r"MD5: (\w+)", content).group(1)
+            # 复制metadata文件
+            shutil.copy2(source_metadata, target_metadata)
+            # 在metadata末尾追加写入
+            with open(target_metadata, "a", encoding="utf-8") as f:
+                f.write(f"\n\n打包请求: \n{config.last_commit_message}")
+            # 在目标目录下创建md5作为文件名的空白文件
+            open(os.path.join(target_dir, md5), "w").close()
+            logging.info("成功复制metadata文件")
+        else:
+            logging.error(f"源metadata文件不存在: {source_metadata}")
+            return False, ""
 
         return True, apk_name.replace(".apk", "")
     except Exception as e:
@@ -179,7 +207,7 @@ def update_git_info(commit_message):
         return False
 
 
-def main(target_dir: str = None, release: bool = True):
+def main(target_dir: str = None, release: bool = True, is_distribution: bool = True):
     """
     主函数：执行整个构建流程
     1. 配置日志系统
@@ -209,11 +237,7 @@ def main(target_dir: str = None, release: bool = True):
         # 没有传递时，指向分发目录
         if not target_dir:
             target_dir = get_distribution_target_dir(apk_name)
-            # 来自分发的打包请求
-            is_distribution = True
-        else:
-            # 本地构建
-            is_distribution = False
+
         # 复制构建产物，返回是否成功和apk文件名
         success, apk_name = copy_build_outputs(apk_name, target_dir, release)
         if not success:

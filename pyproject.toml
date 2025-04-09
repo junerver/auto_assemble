@@ -15,6 +15,7 @@ dependencies = [
     "rarfile>=4.2",
     "python-dotenv>=1.0.1",
     "json5>=0.10.0",
+    "requests>=2.31.0",
 ]
 requires-python = ">=3.8"
 readme = "README.md"

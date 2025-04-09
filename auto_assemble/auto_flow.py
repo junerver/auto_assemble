@@ -9,13 +9,15 @@
 import logging
 import sys
 
+from auto_assemble.config import config
 
-def main(task: str = None):
+
+def main(task_id: str = None):
     """
     主函数，按顺序执行所有步骤
 
     Args:
-        task: 任务信息，由项目名称与任务目录拼接而成，用于指定构建的目录
+        task_id: 任务ID，由项目名称与任务目录拼接而成，用于指定构建的目录
     """
     try:
         # 导入放在函数内部，避免循环导入
@@ -26,14 +28,21 @@ def main(task: str = None):
         # 执行copy_res.py
         prod_name = None
         task_dir = None
-        if task:
-            prod_name, task_dir = task.split(",")
+        if task_id:
+            prod_name, task_dir = task_id.split(",")
         if copy_res_main(prod_name, task_dir) != 0:
             logging.warning("copy_res.py执行中断")
             return 1
 
-        # 执行build.py
-        if build_main() != 0:
+        # 执行build.py，只有dev模式时才打debug包，其他时候打release包，在copy_res_main执行完毕后cur_task_dir被赋值，可以使用
+        if (
+                build_main(
+                    target_dir=config.cur_task_dir,
+                    release=False if config.build_mode == "dev" else True,
+                    is_distribution=True,
+                )
+                != 0
+        ):
             logging.warning("build.py执行中断")
             return 1
 
