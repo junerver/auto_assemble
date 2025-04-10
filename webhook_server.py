@@ -328,7 +328,7 @@ def is_valid_build_task(added_files):
     if len(added_files) != 2:
         return False
 
-    pattern = r"^([^/]+)/([^/]+)/([^/]+\.zip|[^/]+\.md)$"
+    pattern = r"^([^/]+)/([^/]+)/([^/]+\.(zip|rar|7z|tar\.gz|tar\.bz2)|[^/]+\.md)$"
     paths = []
     for file_path in added_files:
         match = re.match(pattern, file_path)
@@ -339,10 +339,14 @@ def is_valid_build_task(added_files):
     if paths[0][0] != paths[1][0] or paths[0][1] != paths[1][1]:
         return False
 
-    has_zip = any(file_path.endswith(".zip") for file_path in added_files)
+    # 检查是否包含压缩包和markdown文件
+    has_archive = any(
+        file_path.endswith((".zip", ".rar", ".7z", ".tar.gz", ".tar.bz2"))
+        for file_path in added_files
+    )
     has_md = any(file_path.endswith(".md") for file_path in added_files)
 
-    return has_zip and has_md
+    return has_archive and has_md
 
 
 def parse_build_task(added_files):
@@ -472,6 +476,7 @@ def get_task_info(task_id):
             "commit_title": task[4],
             "commit_message": task[5],
             "commit_date": task[9],
+            "status": task[12],  # 构建状态
         }
         logging.info(f"获取任务详细信息: {task_dict}")
         return jsonify({"task": task_dict}), 200
