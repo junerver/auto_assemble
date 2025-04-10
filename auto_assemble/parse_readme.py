@@ -1,12 +1,41 @@
 import logging
 import os
 import re
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 
 from auto_assemble.config import config
 from auto_assemble.parse_permissions import parse_and_merge_permissions
+
+
+def parse_uni_modules(content: str) -> List[str]:
+    """
+    从README.md内容中解析模块信息
+    Args:
+        content: README.md文件内容
+    Returns:
+        List[str]: 解析出的模块列表，每个元素为模块名称
+    """
+    try:
+        # 使用正则表达式匹配模块信息部分
+        modules_section = re.search(r"9\. 模块信息：\n\n(.*?)(?=\n\n|$)", content, re.DOTALL)
+        if not modules_section:
+            logging.warning("未找到模块信息部分")
+            return []
+
+        modules_text = modules_section.group(1)
+        # 匹配每个模块行，直接提取 > - 后面的内容
+        modules = re.findall(r"> - (.*?)\n", modules_text)
+
+        # 清理每个模块名称
+        modules = [module.strip() for module in modules]
+
+        logging.info(f"成功解析模块信息: {modules}")
+        return modules
+    except Exception as e:
+        logging.error(f"解析模块信息时发生错误: {e}")
+        return []
 
 
 def parse_yaml_block(content: str) -> Dict[str, Dict[str, str]]:
@@ -85,6 +114,7 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             - permissions: permissions 和 features 的合并结果
             - abi_filters: abiFilters 配置
             - schemes: 注册schema在其它App中打开当前App，多个scheme使用','号分割，例如：test1,test2
+            - modules: 项目使用的模块列表
         如果解析失败则对应值为空字符串
     """
     try:
@@ -97,6 +127,7 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
                 "uniapp_key": "",
                 "third_party_config": {},
                 "permissions": {},
+                "modules": [],
             }
 
         with open(readme_path, "r", encoding="utf-8") as file:
@@ -131,7 +162,8 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
         # 解析权限
         permissions = parse_and_merge_permissions(content)
 
-        # todo: 解析模块使用，未来自动根据使用的模块配置依赖
+        # 解析模块信息
+        modules = parse_uni_modules(content)
 
         result = {
             "hbx_version": hbx_version_match.group(1) if hbx_version_match else "",
@@ -143,6 +175,7 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             "permissions": permissions,
             "abi_filters": abi_filters,
             "schemes": schemes_match.group(1) if schemes_match else "",
+            "modules": modules,
         }
 
         if all(result.values()):
@@ -154,7 +187,8 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
                 f"uniapp_id: {result['uniapp_id']}, "
                 f"uniapp_key: {result['uniapp_key']}, "
                 f"abi_filters: {result['abi_filters']}, "
-                f"schemes: {result['schemes']}"
+                f"schemes: {result['schemes']}, "
+                f"modules: {result['modules']}"
             )
         else:
             logging.warning(f"未能完整解析README.md信息，解析结果：{result}")
@@ -169,6 +203,7 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
             "uniapp_key": "",
             "third_party_config": {},
             "permissions": {},
+            "modules": [],
         }
 
 

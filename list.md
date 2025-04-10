@@ -6,20 +6,13 @@
 
 2. Uniapp 打包后的资源包
 
-3. Uniapp App ID：`填写hbuilderx中显示的uniapp应用标识`
+3. Uniapp App ID：`__UNI__882CCF1`
 
-4. Uniapp App key：`填写dcloud开发者中心申请的appkey`
+4. Uniapp App key：`2b78b3e878310b084550b0efd28ab762`
 
-   [申请 Appkey](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/appkey.html)
+5. AbiFilters：`"armeabi-v7a"`
 
-5. AbiFilters：`"armeabi-v7a", "arm64-v8a"`
-
-   支持的 CPU 类型，多个CPU使用`,`隔开
-
-6. UrlSchemes：` `
-
-   设置 UrlSchemes，多个scheme使用`,`隔开（默认为空），例如
-   `test,test1`，[参考文档](https://uniapp.dcloud.net.cn/tutorial/app-android-schemes.html)
+6. UrlSchemes：`identifyField`
 
 7. manifest.json 中配置的版本名称 versionName、版本号 versionCode
 
@@ -29,61 +22,62 @@
 
 8. 提供 Android 基座需要添加、移除的权限列表，基座默认权限如下：
 
-   ```xml
-   <uses-permission android:name="android.permission.INTERNET" />
-   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-   <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-   <uses-permission android:name="com.asus.msa.SupplementaryDID.ACCESS" />
-   <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" />
-   <uses-permission android:name="android.permission.INSTALL_PACKAGES" />
-   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-   ```
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="com.asus.msa.SupplementaryDID.ACCESS" />
+<uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" />
+<uses-permission android:name="android.permission.INSTALL_PACKAGES" />
+<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+```
 
-   需要额外添加：
+需要额外添加：
 
-   ```xml
-   <!-- 在此处填写需要添加的权限 -->
-   ```
+```xml
+<uses-feature android:name="android.hardware.camera"/>
+<uses-feature android:name="android.hardware.camera.autofocus"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+<uses-permission android:name="android.permission.CAMERA"/>
+<uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+<uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+<uses-permission android:name="android.permission.FLASHLIGHT"/>
+<uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+<uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<uses-permission android:name="android.permission.READ_LOGS"/>
+<uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+<uses-permission android:name="android.permission.VIBRATE"/>
+<uses-permission android:name="android.permission.WAKE_LOCK"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+<uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+```
 
-   需要移除：
+9. 模块信息：
 
-   ```xml
-   <!-- 在此处填写需要移除的权限 -->
-   ```
+   > - Share : weixin
+   > - Maps : amap
+   > - Payment : weixin
+   > - Payment : alipay
+   > - Geolocation : system
+   > - LivePusher
+   > - Camera
+   > - VideoPlayer
 
-9. uniapp 中使用的模块，请参照[uni 官方文档](https://nativesupport.dcloud.net.cn/AppDocs/)下的**模块及三方 SDK 配置**
-   栏目，提供准确的模块名称列表（模块包含多个实现的，需要列出完整的子项实现），例如：
-
-   > Geolocation（定位）
-   >
-   >  - 高德定位
-   >
-   > Share（分享）
-   >
-   >  - 微信分享
-   >
-   > Map（地图）
-   >
-   >  - 高德地图（需要标注页面为 vue、nvue）
-   >
-   > Payment（支付）
-   >
-   >  - 支付宝、微信支付
-   >
-   > Android X5 Webview（腾讯 TBS）
-
-10. 如果涉及到的第三方平台需要在 AndroidManifest 清单中注册的，需要提供第三方平台的 sdk 相关信息与涉及的各类密钥信息，注意微信登录、分享都需要提供
-    `secret` 字段。
+10. 第三方平台配置信息：
 
    ```yml
-   wechat:
-     appid: 微信开放平台申请应用的AppID
-     secret: 微信开放平台申请应用的Secret
-   amap:
-     appkey: 高德地图开放平台申请的AppKey
-   baidu:
-     appkey: 百度地图开放平台申请的AppKey
+
+wechat:
+appid: wxfdc91fa8da31c36f
+amap:
+appkey: 0cce8770e83236802f5fd1babf5685f1
    ```

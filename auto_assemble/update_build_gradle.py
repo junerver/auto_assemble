@@ -2,6 +2,21 @@ import logging
 
 from auto_assemble.config import config
 
+# 模块依赖映射字典
+MODULE_DEPENDENCY_MAP = {
+    "Share : weixin": "implementation(libs.bundles.uni.share.wechat)",
+    "Maps : amap": "implementation(libs.bundles.uni.map.amap.maponly)",
+    "Payment : weixin": "implementation(libs.bundles.uni.payment.wechat)",
+    "Payment : alipay": "implementation(libs.bundles.uni.payment.alipay)",
+    "Geolocation : system": None,
+    "Geolocation : amap": "implementation(libs.bundles.uni.location.amap.locationonly)",
+    "LivePusher": "implementation(libs.bundles.uni.livepusher)",
+    "Camera": None,
+    "VideoPlayer": "implementation(libs.bundles.uni.videoplayer)",
+    "OAuth : weixin": "implementation(libs.bundles.uni.oauth.wechat)",
+    "Webview-x5": "implementation(libs.bundles.uni.x5)",
+}
+
 
 def update_build_gradle(
     build_gradle_path: str,
