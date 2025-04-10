@@ -393,6 +393,13 @@ def webhook():
         # 获取提交信息
         commit_info = commits[0]
         project_name, task_name = parse_build_task(added_files)
+
+        # 显示收到构建请求的toast提示
+        toast(
+            "📜收到构建请求",
+            f"🗃️项目: {project_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
+        )
+
         task = BuildTask(project_name, task_name, commit_info)
 
         # 检查是否有正在运行的任务

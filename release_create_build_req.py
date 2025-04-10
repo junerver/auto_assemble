@@ -28,8 +28,27 @@ def build_exe():
     print("打包完成！exe文件位于 dist 目录中。")
 
 
+# 复制文件到 release 目录
+def copy_to_release(exe_name="create_build_req"):
+    """将打包好的文件复制到 release 目录"""
+    release_dir = r"E:\temp"
+    if not os.path.exists(release_dir):
+        os.makedirs(release_dir)
+        print(f"📁 创建 {release_dir} 目录")
+
+    src_path = f"dist/{exe_name}.exe"
+    dst_path = f"{release_dir}/{exe_name}.exe"
+
+    if os.path.exists(src_path):
+        shutil.copy2(src_path, dst_path)
+        print(f"📋 已复制到 {dst_path}")
+    else:
+        print(f"❌ 错误：源文件 {src_path} 不存在")
+
+
 if __name__ == "__main__":
     """
     构建前端项目打包请求小工具
     """
     build_exe()
+    copy_to_release()

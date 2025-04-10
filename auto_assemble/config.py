@@ -46,6 +46,8 @@ class Config:
         self.cur_task_dir = ""
         # 构建模式，默认dev，可选值：dev、test、release
         self.build_mode = "release"
+        # 当前任务id，即 prod_name,req_date
+        self.cur_task_id = ""
 
     @property
     def DISTRIBUTION_PATH(self):

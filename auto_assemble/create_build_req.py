@@ -3,11 +3,14 @@ import json
 import logging
 import os
 import shutil
+import time
 import zipfile
 from datetime import datetime
 from textwrap import dedent
 
+import requests
 from dotenv import load_dotenv
+from win11toast import toast
 
 from auto_assemble.build import get_build_req_label
 from auto_assemble.check_uni_project import check_uni_project
@@ -95,8 +98,8 @@ def create_readme_file(req_dir: str, manifest_info: dict):
                     f"""
                10. 第三方平台配置信息：
 
-                  ```yml
-{third_party_config_text}                  ```
+               ```yml
+{third_party_config_text}               ```
             """
                 )
             )
@@ -194,6 +197,9 @@ def create_build_req():
 
         # 在分发目录的PROD_NAME目录下创建req_date目录
         req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
+        config.cur_task_id = f"{config.PROD_NAME},{req_date}"
+        config.cur_task_dir = req_date_dir
+        logging.info(f"本次请求id:{config.cur_task_id}")
         os.makedirs(req_date_dir, exist_ok=True)
         # 复制zip文件到指定目录
         shutil.copy(zip_file_path, req_date_dir)
@@ -247,7 +253,7 @@ def create_build_req():
         if not git_push(repo_path=config.DISTRIBUTION_PATH):
             return 1
 
-        logging.info("所有操作执行成功")
+        logging.info("打包请求已提交，请稍等...")
         return 0
     except Exception as e:
         logging.error(f"创建构建请求时发生错误: {str(e)}")
@@ -257,7 +263,55 @@ def create_build_req():
         return 1
 
 
+def rolling_req_build_status():
+    """
+    轮询请求构建主机，获取构建状态，toast通知成功、失败
+    """
+    dots = ""  # 用于存储进度点
+    while True:
+        try:
+            response = requests.get(f"http://192.168.172.110:5005/task/{config.cur_task_id}")
+            if response.status_code == 200:
+                task_info = response.json().get("task", {})
+                status = task_info.get("status")
+
+                if status == "running":
+                    dots = dots + "." if len(dots) < 30 else "."
+                    logging.info(f"打包中{dots}")
+                    time.sleep(5)  # 等待5秒后继续轮询
+                    continue
+                elif status in ["completed", "failed"]:
+                    # 简化版的toast提示
+                    success = status == "completed"
+                    status_text = "✅成功" if success else "❌失败"
+                    logging.info("打包完毕，正在同步本地仓库....")
+                    if success:
+                        sync_repository(config.DISTRIBUTION_PATH)
+                    message = f"🗃️项目: {task_info.get('project_name', '')}\n🏗️任务: {task_info.get('task_name', '')}"
+                    if success:
+                        buttons = [
+                            {
+                                "activationType": "protocol",
+                                "arguments": f'file:///{config.cur_task_dir.replace("\\", "/")}',
+                                "content": "打开目录",
+                            }
+                        ]
+                        toast(f"🎉构建结果:{status_text}", message, buttons=buttons)
+                    else:
+                        toast(f"🎉构建结果:{status_text}", message, button="我知道了！")
+
+                    break
+            else:
+                logging.error(f"获取任务状态失败: {response.status_code}")
+                break
+        except Exception as e:
+            logging.error(f"轮询任务状态时发生错误: {str(e)}")
+            break
+
+
 if __name__ == "__main__":
     create_build_req()
+    time.sleep(5)  # 等待5秒后开始轮询
+    rolling_req_build_status()
     if config.work_mode == "ui":
         input("按回车键退出")
