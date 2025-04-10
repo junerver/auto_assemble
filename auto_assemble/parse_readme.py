@@ -25,8 +25,8 @@ def parse_uni_modules(content: str) -> List[str]:
             return []
 
         modules_text = modules_section.group(1)
-        # 匹配每个模块行，直接提取 > - 后面的内容
-        modules = re.findall(r"> - (.*?)\n", modules_text)
+        # 匹配每个模块行，直接提取 > - 后面的内容，直到行尾
+        modules = re.findall(r"> - (.*?)(?=\n|$)", modules_text)
 
         # 清理每个模块名称
         modules = [module.strip() for module in modules]
@@ -208,5 +208,16 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
 
 
 if __name__ == "__main__":
+    # 模块依赖映射字典
     result = parse_readme(os.path.join(r"./", "list.md"))
     print(result)
+    modules = result.get("modules", [])
+    if "Maps : amap" in modules and "Geolocation : amap" in modules:
+        # 同时存在高德地图与高德定位
+        modules.remove("Maps : amap")
+        modules.remove("Geolocation : amap")
+        modules.append("Maps : amap & Geolocation : amap")
+    from auto_assemble.update_build_gradle import MODULE_DEPENDENCY_MAP
+
+    deps = [dep for m in modules if (dep := MODULE_DEPENDENCY_MAP.get(m)) is not None]
+    [print(dep) for dep in deps]

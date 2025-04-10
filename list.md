@@ -68,6 +68,7 @@
    > - Payment : weixin
    > - Payment : alipay
    > - Geolocation : system
+   > - Geolocation : amap
    > - LivePusher
    > - Camera
    > - VideoPlayer
