@@ -356,11 +356,11 @@ def parse_build_task(added_files):
 
 def show_toast(task, success=True):
     """显示构建结果通知"""
-    status = "成功" if success else "失败"
-    message = f"项目: {task.project_name}\n任务: {task.task_name}\n提交人: {task.author}\n提交标题: {task.commit_title}\n状态: {status}"
+    status = "✅成功" if success else "❌失败"
+    message = f"🗃️项目: {task.project_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}\n🚩装调: {status}"
     if not success and task.error:
         message += f"\n错误: {task.error}"
-    toast(message)
+    toast("🎉构建通知", message)
 
 
 @app.route("/webhook", methods=["POST"])

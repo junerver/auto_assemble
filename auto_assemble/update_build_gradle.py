@@ -49,7 +49,7 @@ def update_build_gradle(
             # 查找并替换uniSdkVersion
             for i, line in enumerate(lines):
                 if line.strip().startswith("uniSdkVersion = "):
-                    lines[i] = f'uniSdkVersion =  "{hbx_version}"\n'  # 修改对应行
+                    lines[i] = f'uniSdkVersion = "{hbx_version}"\n'  # 修改对应行
 
             # 将修改后的内容重新写回文件
             with open(config.VERSIONS_TOML_PATH, "w", encoding="utf-8") as file:
