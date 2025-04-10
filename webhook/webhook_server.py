@@ -12,7 +12,7 @@ from queue import PriorityQueue
 from threading import Thread, Lock, Event
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from win11toast import toast
 
 # 配置日志
@@ -25,7 +25,7 @@ logging.basicConfig(
     ],
 )
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 
 # 数据库文件路径
 DB_FILE = Path(__file__).parent / "tasks.db"
@@ -104,19 +104,21 @@ def process_task_queue():
 
                     # 检查任务是否超时
                     if (
-                        current_task.started_at
-                        and (datetime.now() - current_task.started_at).total_seconds()
-                        > TASK_TIMEOUT
+                            current_task.started_at
+                            and (datetime.now() - current_task.started_at).total_seconds()
+                            > TASK_TIMEOUT
                     ):
                         logging.warning(f"任务 {current_task.task_id} 执行超时")
                         current_task.status = "failed"
                         current_task.error = "Task timeout"
+                        current_task.completed_at = datetime.now()
                         save_task(current_task)
                         show_toast(current_task, False)
                         continue
 
-                    # 更新任务状态
-                    current_task.started_at = datetime.now()
+                    # 如果是第一次执行，设置开始时间
+                    if current_task.started_at is None:
+                        current_task.started_at = datetime.now()
                     current_task.status = "running"
                     save_task(current_task)
 
@@ -134,6 +136,7 @@ def process_task_queue():
                         process.wait(timeout=TASK_TIMEOUT)
                         if process.returncode == 0:
                             current_task.status = "completed"
+                            current_task.completed_at = datetime.now()
                             show_toast(current_task, True)
                             logging.info(f"任务 {current_task.task_id} 执行成功")
                         else:
@@ -141,6 +144,7 @@ def process_task_queue():
                             current_task.error = (
                                 f"Build failed with return code {process.returncode}"
                             )
+                            current_task.completed_at = datetime.now()
                             show_toast(current_task, False)
                             logging.error(
                                 f"任务 {current_task.task_id} 执行失败: {current_task.error}"
@@ -149,6 +153,7 @@ def process_task_queue():
                         process.kill()
                         current_task.status = "failed"
                         current_task.error = "Build process timeout"
+                        current_task.completed_at = datetime.now()
                         show_toast(current_task, False)
                         logging.error(f"任务 {current_task.task_id} 执行超时")
 
@@ -160,10 +165,9 @@ def process_task_queue():
                         logging.info(
                             f"任务 {current_task.task_id} 加入重试队列，当前重试次数: {current_task.retries}"
                         )
-
-                    # 保存任务状态
-                    current_task.completed_at = datetime.now()
-                    save_task(current_task)
+                    else:
+                        # 保存任务状态（仅在不再重试时）
+                        save_task(current_task)
 
             time.sleep(CHECK_INTERVAL)
         except Exception as e:
@@ -367,6 +371,12 @@ def show_toast(task, success=True):
     toast(f"🎉构建通知:{status}", message)
 
 
+@app.route("/")
+def index():
+    """显示打包服务器状态页面"""
+    return render_template("index.html")
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -436,10 +446,12 @@ def webhook():
                     process.wait(timeout=TASK_TIMEOUT)
                     if process.returncode == 0:
                         task.status = "completed"
+                        task.completed_at = datetime.now()
                         show_toast(task, True)
                     else:
                         task.status = "failed"
                         task.error = f"Build failed with return code {process.returncode}"
+                        task.completed_at = datetime.now()
                         show_toast(task, False)
                         if task.retries < MAX_RETRIES:
                             task.retries += 1
@@ -450,9 +462,9 @@ def webhook():
                     process.kill()
                     task.status = "failed"
                     task.error = "Build process timeout"
+                    task.completed_at = datetime.now()
                     show_toast(task, False)
                 finally:
-                    task.completed_at = datetime.now()
                     save_task(task)
 
             Thread(target=cleanup, daemon=True).start()
@@ -524,7 +536,9 @@ def get_queue_status():
             "commit_title": task[4],
             "commit_message": task[5],
             "commit_url": task[6],
+            "created_at": task[9],
             "started_at": task[10],
+            "completed_at": task[11],
             "status": task[12],
             "error": task[13],
         }

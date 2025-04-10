@@ -9,6 +9,6 @@ cd /d %MODULE_DIR%
 call venv\Scripts\activate.bat
 
 :: 使用当前激活环境中的 Python 运行 push 脚本
-python webhook_server.py
+python webhook/webhook_server.py
 
 pause
