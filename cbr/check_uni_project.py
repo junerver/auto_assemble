@@ -110,13 +110,8 @@ def check_uni_project(env_vars: Dict[str, str] | None = None) -> Tuple[bool, Dic
     """
     try:
 
-        if not env_vars:
-            # 获取环境变量
-            workspace = os.getenv("UNIAPP_WORKSPACE")
-            is_cli = os.getenv("UNIAPP_IS_CLI", "n").lower() == "y"
-        else:
-            workspace = env_vars["UNIAPP_WORKSPACE"]
-            is_cli = env_vars["UNIAPP_IS_CLI"].lower() == "y"
+        workspace = env_vars["UNIAPP_WORKSPACE"]
+        is_cli = env_vars["UNIAPP_IS_CLI"].lower() == "y"
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")

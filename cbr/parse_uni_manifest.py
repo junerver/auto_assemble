@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from typing import Dict
 
 import json5
@@ -184,8 +183,8 @@ def parse_uni_manifest(manifest_path: str, env_vars: Dict[str, str] | None = Non
                         else:
                             # 如果没有子模块，直接添加基础模块
                             modules.append(module_name)
-        hbx_version = env_vars["HBX_VERSION"] if env_vars else os.getenv("HBX_VERSION")
-        uniapp_key = env_vars["UNIAPP_APPKEY"] if env_vars else os.getenv("UNIAPP_APPKEY")
+        hbx_version = env_vars["HBX_VERSION"] if env_vars else ""
+        uniapp_key = env_vars["UNIAPP_APPKEY"] if env_vars else ""
         result = {
             "hbx_version": hbx_version,  # manifest.json中不包含HBuilderX版本信息, 使用环境变量HBX_VERSION
             "version_name": version_name,
