@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 from auto_assemble.auto_flow import main as auto_flow
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
-from auto_assemble.local_assemble import local_assemble
 from auto_assemble.welcome import welcome
 
 
@@ -44,8 +43,6 @@ def main():
                     """
                     请输入下面序号选择功能：
                     1. 从分发仓库拉取资源进行打包
-                    2. 指定本地UniApp工程进行打包
-                    3. 指定本地UniApp工程构建离线基座
                     """
                 )
             )
@@ -60,12 +57,6 @@ def main():
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
             result = auto_flow(args.task if args.task else None)
-        elif select_func == "2":
-            # 指定本地UniApp工程进行打包
-            result = local_assemble(True)
-        elif select_func == "3":
-            # 指定本地UniApp工程构建离线基座
-            result = local_assemble(False)
         else:
             print("输入错误，请重新输入。")
 

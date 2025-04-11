@@ -41,8 +41,6 @@ class EnvVarManager:
             "1": {
                 "DISTRIBUTION_PATH",
                 "ANDROID_UNI_BASE_PATH",
-                "PROD_NAME",
-                "HBX_VERSION",
             },  # 分发打包
             "2": {
                 "PROD_NAME",

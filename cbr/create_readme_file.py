@@ -72,7 +72,7 @@ def create_readme_file(req_dir: str, manifest_info: dict):
                     f"""
                10. 第三方平台配置信息：
 
-               ```yml
+               ```yaml
 {third_party_config_text}               ```
             """
                 )

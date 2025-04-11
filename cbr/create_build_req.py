@@ -8,12 +8,10 @@ import zipfile
 from datetime import datetime
 
 import requests
-from dotenv import load_dotenv
 from win11toast import toast
 
 from auto_assemble.build import get_build_req_label
 from auto_assemble.config import config
-from auto_assemble.create_env_file import check_and_create_env
 from auto_assemble.git import (
     check_git_branch,
     get_staged_files,
@@ -38,8 +36,6 @@ def create_build_req():
         parser = argparse.ArgumentParser(
             description="Load environment variables from a specified .env file and execute the program."
         )
-        # 指定.env文件路径
-        parser.add_argument("-e", "--env", type=str, help="Path to the .env file")
         # 配置 UniApp 项目地址
         parser.add_argument("-u", "--uni", type=str, help="Path to the uniapp project root")
         # 提交消息参数，配置此参数时，通过cli模式运行，不需要用户确认
@@ -59,7 +55,6 @@ def create_build_req():
         if args.release:
             req_mode = "release"
 
-        env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
         # 没有指定message，说明执行模式是ui模式
         commit_message = args.message
 
@@ -68,17 +63,14 @@ def create_build_req():
         else:
             config.work_mode = "ui"
         # 如果指定了UniApp项目目录（即--uni ${projectDir}），则通过查询后台配置来进行项目配置
-        if args.uni and not args.env:
-            # 校验通过，检查
-            env_file, env_vars = scan_uni_project(args.uni, os.getcwd())
+        if not args.uni:
+            logging.error("没有执行UniApp项目路径，请追加 `--uni ${projectDir}`")
+            return 1
 
+        # 校验通过，检查
+        env_vars = scan_uni_project(args.uni, os.getcwd())
 
-        check_and_create_env(env_file, "4")
-
-        # 加载指定的 .env 文件
-        load_dotenv(env_file)
-
-        is_ready, manifest_info, resources_dir = check_uni_project()
+        is_ready, manifest_info, resources_dir = check_uni_project(env_vars)
         if not is_ready:
             logging.error("本地资源文件校验失败")
             return 1

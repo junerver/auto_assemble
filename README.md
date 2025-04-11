@@ -152,7 +152,7 @@ set MODULE_DIR=E:\dev\auto_assemble
 - 读取 uniapp id 与 uniapp key，并更新 `build.gradle` 文件
 - 读取 versionName、versionCode，并更新 `build.gradle` 文件
 - 读取 hbx_version ，更新 `lib.version.toml` 文件
-- 第三方sdk配置（yml代码块），并更新 `build.gradle` 文件
+- 第三方sdk配置（yaml代码块），并更新 `build.gradle` 文件
 - 读取权限列表，更新应用权限清单 `AndroidManifest.xml` 文件
 
 `build.py` 用于执行构建任务，并将最后的构建产物、产物元数据拷贝到**分发仓库**目录下

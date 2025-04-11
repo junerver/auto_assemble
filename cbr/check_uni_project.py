@@ -1,12 +1,12 @@
+import json
 import logging
 import os
 from typing import Dict, Tuple
 
-from auto_assemble.create_env_file import EnvVarManager
 from cbr.parse_uni_manifest import parse_uni_manifest
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[str, Dict[str, str] | None]:
+def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -25,14 +25,14 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[str, Dict[str, st
         cbr_dir: cbr目录
 
     Returns:
-        str: 环境变量文件路径
+        Dict[str, str] | None: 环境变量文件对应的数据字典
     """
     try:
         # 1. 读取 .git/config 文件获取项目URL
         git_config_path = os.path.join(project_root, ".git", "config")
         if not os.path.exists(git_config_path):
             logging.error(f"Git配置文件不存在: {git_config_path}")
-            return "", None
+            return None
 
         project_url = ""
         in_origin_section = False
@@ -49,25 +49,24 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[str, Dict[str, st
 
         if not project_url:
             logging.error("未能在git配置中找到origin远程仓库的URL")
-            return "", None
+            return None
 
         # 2. 调用API获取项目配置
         import requests
-        from auto_assemble.config import Config
+        from auto_assemble.config import config
 
-        config = Config()
         api_url = f"{config.server_host_url}/api/config/project"
         params = {"url": project_url}
 
         response = requests.get(api_url, params=params)
         if response.status_code != 200:
             logging.error(f"获取项目配置失败: {response.text}")
-            return "", None
+            return None
 
         data = response.json()
         if "error" in data:
             logging.error(f"获取项目配置错误: {data['error']}")
-            return "", None
+            return None
 
         project_config = data["project_config"]
 
@@ -81,20 +80,17 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[str, Dict[str, st
             "UNIAPP_APPKEY": project_config["uniapp_appkey"],
             "UNIAPP_IS_CLI": "y" if project_config["uniapp_is_cli"] else "n",
         }
-        # 4. 写入环境变量文件
-        env_file = os.path.join(project_root, ".env.assemble.local")
-        manager = EnvVarManager()
-        manager.write_env_file(env_file, env_vars)
-
-        logging.info(f"成功写入环境变量文件: {env_file}")
-        return env_file, env_vars
+        config._distribution_path = env_vars["DISTRIBUTION_PATH"]
+        config.PROD_NAME = env_vars["PROD_NAME"]
+        logging.info(f"读取到项目配置如下:\n {json.dumps(env_vars)}")
+        return env_vars
 
     except Exception as e:
         logging.error(f"扫描项目时发生错误: {str(e)}")
-        return "", None
+        return None
 
 
-def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
+def check_uni_project(env_vars: Dict[str, str] | None = None) -> Tuple[bool, Dict[str, str], str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -105,13 +101,22 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
     2. 调用parse_uni_manifest解析文件，获得响应的数据
     3. 校验打包后资源目录是否存在，是否与解析到的uniapp_id值一致
     4. 返回值用于判断是否校验通过
+
+    Args:
+        - env_vars: 用来代替环境变量的参数值传递
+
     Returns:
         Tuple[bool, Dict[str, str], str]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
     """
     try:
-        # 获取环境变量
-        workspace = os.getenv("UNIAPP_WORKSPACE")
-        is_cli = os.getenv("UNIAPP_IS_CLI", "n").lower() == "y"
+
+        if not env_vars:
+            # 获取环境变量
+            workspace = os.getenv("UNIAPP_WORKSPACE")
+            is_cli = os.getenv("UNIAPP_IS_CLI", "n").lower() == "y"
+        else:
+            workspace = env_vars["UNIAPP_WORKSPACE"]
+            is_cli = env_vars["UNIAPP_IS_CLI"].lower() == "y"
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")
@@ -129,7 +134,7 @@ def check_uni_project() -> Tuple[bool, Dict[str, str], str]:
             return False, {}, ""
 
         # 解析 manifest.json 文件
-        manifest_info = parse_uni_manifest(manifest_path)
+        manifest_info = parse_uni_manifest(manifest_path, env_vars)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
             return False, manifest_info, ""

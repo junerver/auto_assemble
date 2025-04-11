@@ -116,13 +116,13 @@ class Config:
     @property
     def PROD_NAME(self):
         if self._prod_name is None:
-            self._prod_name = os.getenv("PROD_NAME")
+            raise ValueError("未设置 PROD_NAME")
         return self._prod_name
 
     @PROD_NAME.setter
     def PROD_NAME(self, value):
         self._prod_name = value
-        self._prod_branch = rf"prod_{self.PROD_NAME}"
+        self._prod_branch = rf"prod_{value}"
 
     @property
     def PROD_BRANCH(self):

@@ -75,7 +75,7 @@
 
 10. 第三方平台配置信息：
 
-   ```yml
+```yaml
 
 wechat:
 appid: wxfdc91fa8da31c36f

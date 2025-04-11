@@ -44,7 +44,7 @@ modules_map = {
 }
 
 
-def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
+def parse_uni_manifest(manifest_path: str, env_vars: Dict[str, str] | None = None) -> Dict[str, str]:
     """
     解析uniapp的manifest.json文件
     Args:
@@ -184,17 +184,14 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
                         else:
                             # 如果没有子模块，直接添加基础模块
                             modules.append(module_name)
-
+        hbx_version = env_vars["HBX_VERSION"] if env_vars else os.getenv("HBX_VERSION")
+        uniapp_key = env_vars["UNIAPP_APPKEY"] if env_vars else os.getenv("UNIAPP_APPKEY")
         result = {
-            "hbx_version": os.getenv(
-                "HBX_VERSION"
-            ),  # manifest.json中不包含HBuilderX版本信息, 使用环境变量HBX_VERSION
+            "hbx_version": hbx_version,  # manifest.json中不包含HBuilderX版本信息, 使用环境变量HBX_VERSION
             "version_name": version_name,
             "version_code": version_code,
             "uniapp_id": uniapp_id,
-            "uniapp_key": os.getenv(
-                "UNIAPP_APPKEY"
-            ),  # manifest.json中不包含uniapp_key信息, 使用环境变量UNIAPP_APPKEY
+            "uniapp_key": uniapp_key,  # manifest.json中不包含uniapp_key信息, 使用环境变量UNIAPP_APPKEY
             "third_party_config": third_party_config,
             "permissions": permissions,
             "permissions_content": permissions_content,  # 添加完整的权限文本内容
@@ -231,6 +228,9 @@ def parse_uni_manifest(manifest_path: str) -> Dict[str, str]:
 
 
 if __name__ == "__main__":
+    """
+    本地测试代码
+    """
     # 配置日志
     logging.basicConfig(level=logging.INFO)
 
