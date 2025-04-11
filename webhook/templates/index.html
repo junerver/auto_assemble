@@ -4,13 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打包服务器状态</title>
+    <title>Auto Assemble status</title>
+    <!-- 添加网页图标 -->
+    <link rel="icon"
+          href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+    <!-- 添加Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
             background-color: #f8f9fa;
             padding: 20px;
+        }
+
+        .page-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(45deg, #0d6efd, #0dcaf0);
+            border-radius: 2px;
         }
 
         .status-card {
@@ -69,6 +100,28 @@
             font-weight: 600;
         }
 
+        .req-badge {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-right: 8px;
+        }
+
+        .dev-req {
+            background-color: #0dcaf0;
+            color: white;
+        }
+
+        .test-req {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .release-req {
+            background-color: #198754;
+            color: white;
+        }
+
         .empty-state {
             padding: 30px;
             text-align: center;
@@ -91,11 +144,8 @@
 </head>
 
 <body>
-<div class="auto-refresh-indicator">
-    <i class="bi bi-arrow-repeat"></i> 自动刷新中...
-</div>
 <div class="container">
-    <h1 class="text-center mb-4">打包服务器状态</h1>
+    <h1 class="page-title text-center">Auto Assemble</h1>
 
     <!-- 当前运行任务 -->
     <div class="card status-card">
@@ -138,26 +188,99 @@
     </div>
 </div>
 
-<button class="btn btn-primary refresh-btn" onclick="refreshStatus()" title="立即刷新">
-    <i class="bi bi-arrow-clockwise"></i>
-</button>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function formatDateTime(dateString) {
         if (!dateString) return '未知';
-        const date = new Date(dateString);
-        return date.toLocaleString('zh-CN');
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return '未知';
+            }
+            return date.toLocaleString('zh-CN');
+        } catch (e) {
+            return '未知';
+        }
     }
 
     function formatDuration(startTime, endTime) {
         if (!startTime || !endTime) return '未知';
-        const start = new Date(startTime);
-        const end = new Date(endTime);
-        const duration = Math.floor((end - start) / 1000);
-        const minutes = Math.floor(duration / 60);
-        const seconds = duration % 60;
-        return `${minutes}分${seconds}秒`;
+        try {
+            const start = new Date(startTime);
+            const end = new Date(endTime);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                return '未知';
+            }
+            const duration = Math.floor((end - start) / 1000);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            return `${minutes}分${seconds}秒`;
+        } catch (e) {
+            return '未知';
+        }
+    }
+
+    function getReqTypeBadge(commitTitle) {
+        if (!commitTitle) return '';
+        if (commitTitle.startsWith('#dev_req#')) {
+            return '<span class="badge req-badge dev-req">dev</span>';
+        } else if (commitTitle.startsWith('#test_req#')) {
+            return '<span class="badge req-badge test-req">test</span>';
+        } else if (commitTitle.startsWith('#release_req#')) {
+            return '<span class="badge req-badge release-req">release</span>';
+        }
+        return '';
+    }
+
+    function getBranchName(commitTitle) {
+        if (!commitTitle) return 'master';
+        if (commitTitle.startsWith('#dev_req#')) {
+            return 'master';
+        } else if (commitTitle.startsWith('#test_req#')) {
+            return 'test';
+        } else if (commitTitle.startsWith('#release_req#')) {
+            return 'release';
+        }
+        return 'master';
+    }
+
+    function formatCommitTitle(commitTitle) {
+        if (!commitTitle) return '无标题';
+        return commitTitle.replace(/^#(dev|test|release)_req#\s*/, '');
+    }
+
+    function createTaskItem(task, isRunning = false) {
+        const duration = isRunning ?
+            formatDuration(task.started_at, new Date()) :
+            formatDuration(task.started_at, task.completed_at);
+
+        const statusBadge = isRunning ?
+            '<span class="badge bg-info status-badge"><i class="bi bi-play-circle"></i> 运行中</span>' :
+            `<span class="badge ${task.status === 'completed' ? 'bg-success' : 'bg-danger'} status-badge">
+                <i class="bi ${task.status === 'completed' ? 'bi-check-circle' : 'bi-x-circle'}"></i> ${task.status === 'completed' ? '成功' : '失败'}
+            </span>`;
+
+        // 构建完成时间显示（仅对已完成的任务显示）
+        const completedTimeInfo = !isRunning && task.status !== 'pending' && task.completed_at ?
+            `<p class="mb-1 time-info"><i class="bi bi-calendar-check"></i> 完成时间: ${formatDateTime(task.completed_at)}</p>` : '';
+
+        // 为已完成的任务标题添加点击事件
+        const titleClickHandler = !isRunning && task.status !== 'pending' ?
+            `onclick="window.open('http://192.168.187.232:28088/rdcenter/app-distribution/-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+
+        return `
+            <div class="task-item">
+                <h6 class="task-title" ${titleClickHandler}>${task.project} - ${task.task}</h6>
+                <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
+                <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${getReqTypeBadge(task.commit_title)}${formatCommitTitle(task.commit_title)}</p>
+                <p class="mb-1 time-info"><i class="bi bi-clock"></i> ${isRunning ? '开始时间' : '提交时间'}: ${formatDateTime(isRunning ? task.started_at : task.created_at)}</p>
+                <p class="mb-1 time-info"><i class="bi bi-hourglass-split"></i> ${isRunning ? '已运行' : '构建耗时'}: ${duration}</p>
+                ${completedTimeInfo}
+                <p class="mb-1">状态: ${statusBadge}</p>
+                ${task.error ? `<p class="mb-1 text-danger"><i class="bi bi-exclamation-triangle"></i> 错误: ${task.error}</p>` : ''}
+            </div>
+        `;
     }
 
     function updateStatus(data) {
@@ -165,42 +288,42 @@
         const runningTaskDiv = document.getElementById('running-task');
         if (data.running_task) {
             document.getElementById('no-running-task').style.display = 'none';
-            const duration = formatDuration(data.running_task.started_at, new Date());
-            runningTaskDiv.innerHTML = `
-                    <div class="task-item">
-                        <h6 class="task-title">${data.running_task.project} - ${data.running_task.task}</h6>
-                        <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${data.running_task.author || '未知'}</p>
-                        <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${data.running_task.commit_title || '无标题'}</p>
-                        <p class="mb-1 time-info"><i class="bi bi-clock"></i> 开始时间: ${formatDateTime(data.running_task.started_at)}</p>
-                        <p class="mb-1 time-info"><i class="bi bi-hourglass-split"></i> 已运行: ${duration}</p>
-                        <span class="badge bg-info status-badge"><i class="bi bi-play-circle"></i> 运行中</span>
-                    </div>
-                `;
+            runningTaskDiv.innerHTML = createTaskItem(data.running_task, true);
         } else {
             document.getElementById('no-running-task').style.display = 'block';
             runningTaskDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无运行中的任务</p></div>';
         }
 
-        // 更新队列大小
+        // 更新队列大小和等待中的任务
+        const queueListDiv = document.getElementById('queue-list');
         document.getElementById('queue-size').textContent = data.queue_size;
+
+        if (data.pending_tasks && data.pending_tasks.length > 0) {
+            document.getElementById('empty-queue').style.display = 'none';
+            // 确保等待中的任务按创建时间正序排列
+            const sortedPendingTasks = [...data.pending_tasks].sort((a, b) => {
+                return new Date(a.created_at) - new Date(b.created_at);
+            });
+            queueListDiv.innerHTML = sortedPendingTasks.map(task => createTaskItem(task)).join('');
+        } else {
+            document.getElementById('empty-queue').style.display = 'block';
+            queueListDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>队列为空</p></div>';
+        }
 
         // 更新最近任务
         const recentTasksDiv = document.getElementById('recent-tasks');
         if (data.recent_tasks && data.recent_tasks.length > 0) {
             document.getElementById('no-recent-tasks').style.display = 'none';
-            recentTasksDiv.innerHTML = data.recent_tasks.map(task => `
-                    <div class="task-item">
-                        <h6 class="task-title">${task.project} - ${task.task}</h6>
-                        <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
-                        <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${task.commit_title || '无标题'}</p>
-                        <p class="mb-1 time-info"><i class="bi bi-clock"></i> 提交时间: ${formatDateTime(task.created_at)}</p>
-                        <p class="mb-1 time-info"><i class="bi bi-hourglass-split"></i> 构建耗时: ${formatDuration(task.started_at, task.completed_at)}</p>
-                        <p class="mb-1">状态: <span class="badge ${task.status === 'completed' ? 'bg-success' : 'bg-danger'} status-badge">
-                            <i class="bi ${task.status === 'completed' ? 'bi-check-circle' : 'bi-x-circle'}"></i> ${task.status === 'completed' ? '成功' : '失败'}
-                        </span></p>
-                        ${task.error ? `<p class="mb-1 text-danger"><i class="bi bi-exclamation-triangle"></i> 错误: ${task.error}</p>` : ''}
-                    </div>
-                `).join('');
+            // 确保按completed_at倒序排列
+            const sortedTasks = [...data.recent_tasks].sort((a, b) => {
+                const dateA = new Date(a.completed_at);
+                const dateB = new Date(b.completed_at);
+                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+                    return 0;
+                }
+                return dateB - dateA;
+            });
+            recentTasksDiv.innerHTML = sortedTasks.map(task => createTaskItem(task)).join('');
         } else {
             document.getElementById('no-recent-tasks').style.display = 'block';
             recentTasksDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无最近任务</p></div>';

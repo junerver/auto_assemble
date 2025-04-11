@@ -28,7 +28,7 @@ logging.basicConfig(
 app = Flask(__name__, template_folder="templates")
 
 # 数据库文件路径
-DB_FILE = Path(__file__).parent / "tasks.db"
+DB_FILE = Path(__file__).parent / "webhook_server.db"
 # 检查间隔（秒）
 CHECK_INTERVAL = 1  # 减少检查间隔
 # 任务超时时间（秒）
@@ -514,12 +514,22 @@ def get_queue_status():
     running_task = cursor.fetchone()
 
     # 获取等待中的任务
-    cursor.execute("SELECT COUNT(*) FROM tasks WHERE status = 'pending'")
-    pending_count = cursor.fetchone()[0]
+    cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
+    pending_tasks = cursor.fetchall()
 
-    # 获取最近完成的任务
+    # 获取最近完成的任务，确保按completed_at倒序排列
     cursor.execute(
-        "SELECT * FROM tasks WHERE status IN ('completed', 'failed') ORDER BY completed_at DESC LIMIT 5"
+        """
+        SELECT * FROM tasks 
+        WHERE status IN ('completed', 'failed') 
+        ORDER BY 
+            CASE 
+                WHEN completed_at IS NULL THEN 1
+                ELSE 0
+            END,
+            completed_at DESC
+        LIMIT 5
+    """
     )
     recent_tasks = cursor.fetchall()
 
@@ -546,7 +556,8 @@ def get_queue_status():
     return jsonify(
         {
             "running_task": format_task(running_task),
-            "queue_size": pending_count,
+            "pending_tasks": [format_task(task) for task in pending_tasks],
+            "queue_size": len(pending_tasks),
             "recent_tasks": [format_task(task) for task in recent_tasks],
         }
     )
