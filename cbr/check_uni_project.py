@@ -6,7 +6,7 @@ from auto_assemble.create_env_file import EnvVarManager
 from cbr.parse_uni_manifest import parse_uni_manifest
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> str:
+def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[str, Dict[str, str] | None]:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -32,7 +32,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> str:
         git_config_path = os.path.join(project_root, ".git", "config")
         if not os.path.exists(git_config_path):
             logging.error(f"Git配置文件不存在: {git_config_path}")
-            return ""
+            return "", None
 
         project_url = ""
         in_origin_section = False
@@ -49,7 +49,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> str:
 
         if not project_url:
             logging.error("未能在git配置中找到origin远程仓库的URL")
-            return ""
+            return "", None
 
         # 2. 调用API获取项目配置
         import requests
@@ -62,12 +62,12 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> str:
         response = requests.get(api_url, params=params)
         if response.status_code != 200:
             logging.error(f"获取项目配置失败: {response.text}")
-            return ""
+            return "", None
 
         data = response.json()
         if "error" in data:
             logging.error(f"获取项目配置错误: {data['error']}")
-            return ""
+            return "", None
 
         project_config = data["project_config"]
 
@@ -87,11 +87,11 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> str:
         manager.write_env_file(env_file, env_vars)
 
         logging.info(f"成功写入环境变量文件: {env_file}")
-        return env_file
+        return env_file, env_vars
 
     except Exception as e:
         logging.error(f"扫描项目时发生错误: {str(e)}")
-        return ""
+        return "", None
 
 
 def check_uni_project() -> Tuple[bool, Dict[str, str], str]:

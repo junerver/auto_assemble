@@ -34,6 +34,7 @@ def create_build_req():
     创建构建请求
     """
     try:
+        setup_logging(True, "创建构建请求")
         parser = argparse.ArgumentParser(
             description="Load environment variables from a specified .env file and execute the program."
         )
@@ -66,14 +67,12 @@ def create_build_req():
             config.work_mode = "cli"
         else:
             config.work_mode = "ui"
-
-        # todo: 如果配置了 --uni 并且没有配置 --env，则校验本地项目，是否为uni项目，自动读取服务器的配置，下发配置
-        # todo: 并在 uni项目根目录下创建 .env 文件？？本地仓库可以通过 getcwd 获取
+        # 如果指定了UniApp项目目录（即--uni ${projectDir}），则通过查询后台配置来进行项目配置
         if args.uni and not args.env:
             # 校验通过，检查
-            env_file = scan_uni_project(args.uni, os.getcwd())
+            env_file, env_vars = scan_uni_project(args.uni, os.getcwd())
 
-        setup_logging(True, "创建构建请求")
+
         check_and_create_env(env_file, "4")
 
         # 加载指定的 .env 文件
@@ -233,6 +232,10 @@ def rolling_req_build_status():
                         toast(f"🔦构建结果:{status_text}", message, button="我知道了！")
 
                     break
+            elif response.status_code == 404:
+                logging.info("尚未查询到任务状态，请稍等...")
+                time.sleep(5)  # 等待5秒后继续轮询
+                continue
             else:
                 logging.error(f"获取任务状态失败: {response.status_code}")
                 break
