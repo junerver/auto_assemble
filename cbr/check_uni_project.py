@@ -2,7 +2,96 @@ import logging
 import os
 from typing import Dict, Tuple
 
+from auto_assemble.create_env_file import EnvVarManager
 from cbr.parse_uni_manifest import parse_uni_manifest
+
+
+def scan_uni_project(project_root: str, cbr_dir: str) -> str:
+    """
+    1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
+    2. 使用git地址作为查询条件找到在打包服务后台配置的项目
+        - DISTRIBUTION_PATH，分发仓库位置，即cbr_dir目录的父目录
+        - PROD_NAME，项目标识
+        - HBX_VERSION，hbuilderx 版本
+        - UNIAPP_ID，项目id
+        - UNIAPP_APPKEY，项目key
+        - UNIAPP_WORKSPACE，本地地址
+        - UNIAPP_IS_CLI，是否为cli项目
+    3. 写环境变量到.env.assemble.local
+    4. 返回最终创建的环境变量文件
+
+    Args:
+        project_root: 项目根目录
+        cbr_dir: cbr目录
+
+    Returns:
+        str: 环境变量文件路径
+    """
+    try:
+        # 1. 读取 .git/config 文件获取项目URL
+        git_config_path = os.path.join(project_root, ".git", "config")
+        if not os.path.exists(git_config_path):
+            logging.error(f"Git配置文件不存在: {git_config_path}")
+            return ""
+
+        project_url = ""
+        in_origin_section = False
+        with open(git_config_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line == '[remote "origin"]':
+                    in_origin_section = True
+                elif line.startswith("[") and line.endswith("]"):
+                    in_origin_section = False
+                elif in_origin_section and line.startswith("url ="):
+                    project_url = line.split("=")[1].strip()
+                    break
+
+        if not project_url:
+            logging.error("未能在git配置中找到origin远程仓库的URL")
+            return ""
+
+        # 2. 调用API获取项目配置
+        import requests
+        from auto_assemble.config import Config
+
+        config = Config()
+        api_url = f"{config.server_host_url}/api/config/project"
+        params = {"url": project_url}
+
+        response = requests.get(api_url, params=params)
+        if response.status_code != 200:
+            logging.error(f"获取项目配置失败: {response.text}")
+            return ""
+
+        data = response.json()
+        if "error" in data:
+            logging.error(f"获取项目配置错误: {data['error']}")
+            return ""
+
+        project_config = data["project_config"]
+
+        # 3. 构建环境变量字典
+        env_vars = {
+            "UNIAPP_WORKSPACE": project_root,
+            "DISTRIBUTION_PATH": os.path.dirname(cbr_dir),  # cbr_dir的父目录
+            "PROD_NAME": project_config["prod_name"],
+            "HBX_VERSION": project_config["hbx_version"],
+            "UNIAPP_ID": project_config["uniapp_id"],
+            "UNIAPP_APPKEY": project_config["uniapp_appkey"],
+            "UNIAPP_IS_CLI": "y" if project_config["uniapp_is_cli"] else "n",
+        }
+        # 4. 写入环境变量文件
+        env_file = os.path.join(project_root, ".env.assemble.local")
+        manager = EnvVarManager()
+        manager.write_env_file(env_file, env_vars)
+
+        logging.info(f"成功写入环境变量文件: {env_file}")
+        return env_file
+
+    except Exception as e:
+        logging.error(f"扫描项目时发生错误: {str(e)}")
+        return ""
 
 
 def check_uni_project() -> Tuple[bool, Dict[str, str], str]:

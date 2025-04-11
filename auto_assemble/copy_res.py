@@ -244,7 +244,7 @@ def check_apps_directory() -> bool:
         return False
 
 
-def get_project_name(distribution_path: str) -> Tuple[str, str]:
+def get_prod_name(distribution_path: str) -> Tuple[str, str]:
     """
     从分发仓库中获取最新的项目名称和最新时间戳目录
     Args:
@@ -365,7 +365,7 @@ def main(prod_name: str = None, task_dir: str = None):
                 else:
                     logging.error(f"获取提交信息失败: {response.status_code}")
             else:
-                config.PROD_NAME, config.cur_task_dir = get_project_name(config.DISTRIBUTION_PATH)
+                config.PROD_NAME, config.cur_task_dir = get_prod_name(config.DISTRIBUTION_PATH)
             logging.info(f"获取到项目名称: {config.PROD_NAME}")
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")

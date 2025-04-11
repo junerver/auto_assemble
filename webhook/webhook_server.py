@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from queue import PriorityQueue
@@ -48,11 +49,13 @@ def init_db():
     """初始化数据库"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+
+    # 创建原有的tasks表
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
-            project_name TEXT NOT NULL,
+            prod_name TEXT NOT NULL,
             task_name TEXT NOT NULL,
             author TEXT,
             commit_title TEXT,
@@ -68,6 +71,56 @@ def init_db():
         )
     """
     )
+
+    # 创建项目配置表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS project_config (
+            id TEXT PRIMARY KEY,
+            project_url TEXT NOT NULL UNIQUE,
+            prod_name TEXT NOT NULL,
+            hbx_version TEXT,
+            uniapp_id TEXT,
+            uniapp_appkey TEXT,
+            uniapp_is_cli BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """
+    )
+
+    # 创建第三方字典表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS third_party_dict (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider TEXT NOT NULL,
+            dict_key TEXT NOT NULL,
+            dict_value TEXT NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(provider, dict_key)
+        )
+    """
+    )
+
+    # 创建第三方配置表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS third_party_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL,
+            dict_key TEXT NOT NULL,
+            config_value TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (project_id) REFERENCES project_config(id),
+            FOREIGN KEY (dict_key) REFERENCES third_party_dict(dict_key),
+            UNIQUE(project_id, dict_key)
+        )
+    """
+    )
+
     conn.commit()
     conn.close()
 
@@ -183,8 +236,8 @@ queue_thread.start()
 class BuildTask:
     """构建任务类"""
 
-    def __init__(self, project_name, task_name, commit_info=None, priority=0, retries=0):
-        self.project_name = project_name
+    def __init__(self, prod_name, task_name, commit_info=None, priority=0, retries=0):
+        self.prod_name = prod_name
         self.task_name = task_name
         self.priority = priority
         self.retries = retries
@@ -216,13 +269,13 @@ class BuildTask:
 
     @property
     def task_id(self):
-        return f"{self.project_name},{self.task_name}"
+        return f"{self.prod_name},{self.task_name}"
 
     def to_dict(self):
         """转换为字典格式"""
         return {
             "id": self.task_id,
-            "project_name": self.project_name,
+            "prod_name": self.prod_name,
             "task_name": self.task_name,
             "author": self.author,
             "commit_title": self.commit_title,
@@ -241,13 +294,13 @@ def save_task(task):
     cursor.execute(
         """
         INSERT OR REPLACE INTO tasks 
-        (id, project_name, task_name, author, commit_title, commit_message, commit_url,
+        (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
          priority, retries, created_at, started_at, completed_at, status, error)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             task.task_id,
-            task.project_name,
+            task.prod_name,
             task.task_name,
             task.author,
             task.commit_title,
@@ -357,15 +410,15 @@ def parse_build_task(added_files):
     """解析构建任务信息"""
     file_path = added_files[0]
     parts = file_path.split("/")
-    project_name = parts[0]
+    prod_name = parts[0]
     task_name = parts[1]
-    return project_name, task_name
+    return prod_name, task_name
 
 
 def show_toast(task, success=True):
     """显示构建结果通知"""
     status = "✅成功" if success else "❌失败"
-    message = f"🗃️项目: {task.project_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}"
+    message = f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}"
     if not success and task.error:
         message += f"\n错误: {task.error}"
     toast(f"🎉构建通知:{status}", message)
@@ -402,15 +455,15 @@ def webhook():
 
         # 获取提交信息
         commit_info = commits[0]
-        project_name, task_name = parse_build_task(added_files)
+        prod_name, task_name = parse_build_task(added_files)
 
         # 显示收到构建请求的toast提示
         toast(
             "📜收到构建请求",
-            f"🗃️项目: {project_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
+            f"🗃️项目: {prod_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
         )
 
-        task = BuildTask(project_name, task_name, commit_info)
+        task = BuildTask(prod_name, task_name, commit_info)
 
         # 检查是否有正在运行的任务
         running_task = get_running_task()
@@ -489,7 +542,7 @@ def get_task_info(task_id):
     if task:
         task_dict = {
             "id": task[0],
-            "project_name": task[1],
+            "prod_name": task[1],
             "task_name": task[2],
             "author": task[3],
             "commit_title": task[4],
@@ -561,6 +614,233 @@ def get_queue_status():
             "recent_tasks": [format_task(task) for task in recent_tasks],
         }
     )
+
+
+@app.route("/api/config/project", methods=["POST"])
+def configure_project():
+    """配置项目信息"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+
+        # 生成UUID作为项目ID
+        project_id = str(uuid.uuid4())
+
+        # 提取项目基础配置
+        project_config = {
+            "id": project_id,
+            "project_url": data.get("project_url"),
+            "prod_name": data.get("prod_name"),
+            "hbx_version": data.get("hbx_version"),
+            "uniapp_id": data.get("uniapp_id"),
+            "uniapp_appkey": data.get("uniapp_appkey"),
+            "uniapp_is_cli": data.get("uniapp_is_cli", False),
+        }
+
+        # 提取第三方配置
+        third_party_configs = data.get("third_party_configs", [])
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        try:
+            # 插入项目配置
+            cursor.execute(
+                """
+                INSERT INTO project_config 
+                (id, project_url, prod_name, hbx_version, uniapp_id, uniapp_appkey, uniapp_is_cli)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project_config["id"],
+                    project_config["project_url"],
+                    project_config["prod_name"],
+                    project_config["hbx_version"],
+                    project_config["uniapp_id"],
+                    project_config["uniapp_appkey"],
+                    project_config["uniapp_is_cli"],
+                ),
+            )
+
+            # 插入第三方配置
+            for config in third_party_configs:
+                cursor.execute(
+                    """
+                    INSERT INTO third_party_config 
+                    (project_id, dict_key, config_value)
+                    VALUES (?, ?, ?)
+                    """,
+                    (project_id, config["key"], config["value"]),
+                )
+
+            conn.commit()
+            return (
+                jsonify({"message": "Project configured successfully", "project_id": project_id}),
+                200,
+            )
+
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            return jsonify({"error": f"Database integrity error: {str(e)}"}), 400
+        finally:
+            conn.close()
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/config/project", methods=["GET"])
+def get_project_config():
+    """获取项目配置信息"""
+    try:
+        # 获取查询参数
+        project_url = request.args.get("url")
+        prod_name = request.args.get("name")
+
+        if not project_url and not prod_name:
+            return jsonify({"error": "Must provide either url or name parameter"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        # 构建查询条件
+        query_conditions = []
+        query_params = []
+
+        if project_url:
+            query_conditions.append("project_url = ?")
+            query_params.append(project_url)
+        if prod_name:
+            query_conditions.append("prod_name = ?")
+            query_params.append(prod_name)
+
+        # 获取项目基础配置
+        query = f"""
+            SELECT * FROM project_config 
+            WHERE {' AND '.join(query_conditions)}
+        """
+        cursor.execute(query, query_params)
+        project_config = cursor.fetchone()
+
+        if not project_config:
+            return jsonify({"error": "Project not found"}), 404
+
+        # 获取项目ID
+        project_id = project_config[0]
+
+        # 获取第三方配置
+        cursor.execute(
+            """
+            SELECT tpc.dict_key, tpc.config_value, tpd.provider, tpd.description
+            FROM third_party_config tpc
+            JOIN third_party_dict tpd ON tpc.dict_key = tpd.dict_key
+            WHERE tpc.project_id = ?
+            """,
+            (project_id,),
+        )
+        third_party_configs = cursor.fetchall()
+
+        # 构建响应数据
+        response_data = {
+            "project_config": {
+                "id": project_config[0],
+                "project_url": project_config[1],
+                "prod_name": project_config[2],
+                "hbx_version": project_config[3],
+                "uniapp_id": project_config[4],
+                "uniapp_appkey": project_config[5],
+                "uniapp_is_cli": bool(project_config[6]),
+            },
+            "third_party_configs": [
+                {
+                    "key": config[0],
+                    "value": config[1],
+                    "provider": config[2],
+                    "description": config[3],
+                }
+                for config in third_party_configs
+            ],
+        }
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/config/project/<project_id>", methods=["PUT"])
+def update_project_config(project_id):
+    """更新项目配置信息"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        try:
+            # 检查项目是否存在
+            cursor.execute("SELECT id FROM project_config WHERE id = ?", (project_id,))
+            if not cursor.fetchone():
+                return jsonify({"error": "Project not found"}), 404
+
+            # 更新项目基础配置
+            update_fields = []
+            update_values = []
+
+            # 构建更新字段和值
+            for field in [
+                "project_url",
+                "prod_name",
+                "hbx_version",
+                "uniapp_id",
+                "uniapp_appkey",
+                "uniapp_is_cli",
+            ]:
+                if field in data:
+                    update_fields.append(f"{field} = ?")
+                    update_values.append(data[field])
+
+            if update_fields:
+                update_values.append(project_id)
+                update_query = f"""
+                    UPDATE project_config 
+                    SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """
+                cursor.execute(update_query, update_values)
+
+            # 处理第三方配置更新
+            if "third_party_configs" in data:
+                # 先删除现有的第三方配置
+                cursor.execute("DELETE FROM third_party_config WHERE project_id = ?", (project_id,))
+
+                # 插入新的第三方配置
+                for config in data["third_party_configs"]:
+                    cursor.execute(
+                        """
+                        INSERT INTO third_party_config 
+                        (project_id, dict_key, config_value)
+                        VALUES (?, ?, ?)
+                        """,
+                        (project_id, config["key"], config["value"]),
+                    )
+
+            conn.commit()
+            return jsonify({"message": "Project configuration updated successfully"}), 200
+
+        except sqlite3.IntegrityError as e:
+            conn.rollback()
+            return jsonify({"error": f"Database integrity error: {str(e)}"}), 400
+        finally:
+            conn.close()
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

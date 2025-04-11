@@ -207,7 +207,7 @@ def check_and_create_env(env_file: str, select_func: str):
             return 1
 
     if global_config.work_mode == "ui":
-        print("请确认下面的环境变量：")
+        print(f"请确认下面的环境变量：{env_file}")
         print(
             "\n".join(
                 f"# {var_config.description}\n{var_name}={existing_vars[var_name]}\n"

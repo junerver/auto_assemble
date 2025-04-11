@@ -25,7 +25,7 @@ from auto_assemble.git import (
 )
 from auto_assemble.log import setup_logging
 from auto_assemble.push import confirm_push, has_changes
-from cbr.check_uni_project import check_uni_project
+from cbr.check_uni_project import check_uni_project, scan_uni_project
 from cbr.create_readme_file import create_readme_file
 
 
@@ -67,11 +67,11 @@ def create_build_req():
         else:
             config.work_mode = "ui"
 
-        # todo: 如果配置了 --uni，则校验本地项目，是否为uni项目，自动读取服务器的配置，下发配置
-        # todo: 并在 uni项目根目录下创建 .env 文件？？如何设置本地仓库地址？？直接传递给我？?？
-        if args.uni:
+        # todo: 如果配置了 --uni 并且没有配置 --env，则校验本地项目，是否为uni项目，自动读取服务器的配置，下发配置
+        # todo: 并在 uni项目根目录下创建 .env 文件？？本地仓库可以通过 getcwd 获取
+        if args.uni and not args.env:
             # 校验通过，检查
-            pass
+            env_file = scan_uni_project(args.uni, os.getcwd())
 
         setup_logging(True, "创建构建请求")
         check_and_create_env(env_file, "4")
@@ -202,7 +202,7 @@ def rolling_req_build_status():
     dots = ""  # 用于存储进度点
     while True:
         try:
-            response = requests.get(f"http://192.168.172.110:5005/task/{config.cur_task_id}")
+            response = requests.get(f"{config.server_host_url}/task/{config.cur_task_id}")
             if response.status_code == 200:
                 task_info = response.json().get("task", {})
                 status = task_info.get("status")
@@ -219,7 +219,7 @@ def rolling_req_build_status():
                     logging.info("打包完毕，正在同步本地仓库....")
                     if success:
                         sync_repository(config.DISTRIBUTION_PATH)
-                    message = f"🗃️项目: {task_info.get('project_name', '')}\n🏗️任务: {task_info.get('task_name', '')}"
+                    message = f"🗃️项目: {task_info.get('prod_name', '')}\n🏗️任务: {task_info.get('task_name', '')}"
                     if success:
                         buttons = [
                             {
@@ -243,7 +243,4 @@ def rolling_req_build_status():
 
 if __name__ == "__main__":
     create_build_req()
-    time.sleep(5)  # 等待5秒后开始轮询
-    rolling_req_build_status()
-    if config.work_mode == "ui":
-        input("按回车键退出")
+    pass
