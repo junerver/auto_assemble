@@ -13,10 +13,11 @@ def build_exe():
 
     # PyInstaller参数
     params = [
-        "auto_assemble/create_build_req.py",  # 主脚本
+        "cbr/create_build_req.py",  # 主脚本
         "--name=create_build_req",  # 生成的exe名称
         "--onefile",  # 打包成单个文件
         "--add-data=auto_assemble;auto_assemble",  # 添加模块目录
+        "--add-data=cbr;cbr",  # 添加cbr模块目录
         "--add-data=.env;.",  # 添加.env文件
         "--clean",  # 清理临时文件
         "--noconfirm",  # 不确认覆盖

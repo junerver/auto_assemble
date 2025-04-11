@@ -6,14 +6,12 @@ import shutil
 import time
 import zipfile
 from datetime import datetime
-from textwrap import dedent
 
 import requests
 from dotenv import load_dotenv
 from win11toast import toast
 
 from auto_assemble.build import get_build_req_label
-from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
 from auto_assemble.git import (
@@ -27,84 +25,8 @@ from auto_assemble.git import (
 )
 from auto_assemble.log import setup_logging
 from auto_assemble.push import confirm_push, has_changes
-
-
-def create_readme_file(req_dir: str, manifest_info: dict):
-    """
-    创建readme.txt文件
-    Args:
-        req_dir: 请求目录路径
-        manifest_info: manifest.json解析信息
-    """
-    readme_file_path = os.path.join(req_dir, "README.md")
-    with open(readme_file_path, "w", encoding="utf-8") as f:
-        # 写入标题和基本要求
-        f.write(
-            dedent(
-                """\
-            # 打包要求
-
-            1. 打包使用的 HBuilderX 版本号，必须使用 4.45 以上
-
-               HBuilderX 版本：`{hbx_version}`
-
-            2. Uniapp 打包后的资源包
-
-            3. Uniapp App ID：`{uniapp_id}`
-
-            4. Uniapp App key：`{uniapp_key}`
-
-            5. AbiFilters：`{abi_filters}`
-
-            6. UrlSchemes：`{schemes}`
-
-            7. manifest.json 中配置的版本名称 versionName、版本号 versionCode
-
-               版本名称 versionName：`{version_name}`
-
-               版本号 versionCode：`{version_code}`
-
-            8. 提供 Android 基座需要添加、移除的权限列表，基座默认权限如下：
-
-            {permissions_content}
-        """
-            ).format(
-                hbx_version=manifest_info["hbx_version"],
-                uniapp_id=manifest_info["uniapp_id"],
-                uniapp_key=manifest_info["uniapp_key"],
-                abi_filters=manifest_info["abi_filters"],
-                schemes=manifest_info["schemes"],
-                version_name=manifest_info["version_name"],
-                version_code=manifest_info["version_code"],
-                permissions_content=manifest_info["permissions_content"],
-            )
-        )
-        # 写入模块信息
-        if manifest_info["modules"]:
-            f.write("9. 模块信息：\n\n")
-            for module in manifest_info["modules"]:
-                f.write(f"    > - {module}\n")
-
-        # 写入第三方配置
-        if manifest_info["third_party_config"]:
-            third_party_config_text = ""
-            for platform, config in manifest_info["third_party_config"].items():
-                third_party_config_text += f"               {platform}:\n"
-                for key, value in config.items():
-                    third_party_config_text += f"                 {key}: {value}\n"
-
-            f.write(
-                dedent(
-                    f"""
-               10. 第三方平台配置信息：
-
-               ```yml
-{third_party_config_text}               ```
-            """
-                )
-            )
-
-        logging.info(f"已创建README.md文件：{readme_file_path}")
+from cbr.check_uni_project import check_uni_project
+from cbr.create_readme_file import create_readme_file
 
 
 def create_build_req():
@@ -116,8 +38,12 @@ def create_build_req():
             description="Load environment variables from a specified .env file and execute the program."
         )
         # 指定.env文件路径
-        parser.add_argument("--env", type=str, help="Path to the .env file")
+        parser.add_argument("-e", "--env", type=str, help="Path to the .env file")
+        # 配置 UniApp 项目地址
+        parser.add_argument("-u", "--uni", type=str, help="Path to the uniapp project root")
+        # 提交消息参数，配置此参数时，通过cli模式运行，不需要用户确认
         parser.add_argument("-m", "--message", type=str, help="Commit message")
+        # 构建模式参数
         parser.add_argument("-d", "--dev", action="store_true", help="Dev mode")
         parser.add_argument("-t", "--test", action="store_true", help="Test mode")
         parser.add_argument("-r", "--release", action="store_true", help="Release mode")
@@ -140,6 +66,12 @@ def create_build_req():
             config.work_mode = "cli"
         else:
             config.work_mode = "ui"
+
+        # todo: 如果配置了 --uni，则校验本地项目，是否为uni项目，自动读取服务器的配置，下发配置
+        # todo: 并在 uni项目根目录下创建 .env 文件？？如何设置本地仓库地址？？直接传递给我？?？
+        if args.uni:
+            # 校验通过，检查
+            pass
 
         setup_logging(True, "创建构建请求")
         check_and_create_env(env_file, "4")
@@ -298,7 +230,7 @@ def rolling_req_build_status():
                         ]
                         toast(f"🎉构建结果:{status_text}", message, buttons=buttons)
                     else:
-                        toast(f"🎉构建结果:{status_text}", message, button="我知道了！")
+                        toast(f"🔦构建结果:{status_text}", message, button="我知道了！")
 
                     break
             else:

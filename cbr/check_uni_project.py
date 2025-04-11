@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Dict, Tuple
 
-from auto_assemble.parse_uni_manifest import parse_uni_manifest
+from cbr.parse_uni_manifest import parse_uni_manifest
 
 
 def check_uni_project() -> Tuple[bool, Dict[str, str], str]:

@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import datetime
 
-from auto_assemble.check_uni_project import check_uni_project
 from auto_assemble.config import config
 from auto_assemble.copy_res import check_apps_directory, clear_directory, extract_compressed_file
 from auto_assemble.git import check_git_branch
@@ -10,6 +9,7 @@ from auto_assemble.log import setup_logging
 from auto_assemble.update_android_manifest import update_android_manifest
 from auto_assemble.update_build_gradle import update_build_gradle
 from auto_assemble.update_control_file import update_control_file
+from cbr.check_uni_project import check_uni_project
 
 
 def local_copy_res(release):
