@@ -31,7 +31,7 @@ dev = [
 auto-assemble = "auto_assemble.__main__:main"
 
 [tool.setuptools]
-packages = ["auto_assemble"]
+packages = ["auto_assemble", "cbr"]
 
 [tool.black]
 line-length = 100
