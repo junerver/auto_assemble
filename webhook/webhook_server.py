@@ -33,7 +33,7 @@ DB_FILE = Path(__file__).parent / "webhook_server.db"
 # 检查间隔（秒）
 CHECK_INTERVAL = 1  # 减少检查间隔
 # 任务超时时间（秒）
-TASK_TIMEOUT = 1800  # 30分钟
+TASK_TIMEOUT = 600  # 10分钟
 # 最大重试次数
 MAX_RETRIES = 3
 
