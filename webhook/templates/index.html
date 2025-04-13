@@ -140,6 +140,29 @@
             font-size: 0.8em;
             color: #6c757d;
         }
+
+        .resource-links {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .resource-link {
+            display: inline-block;
+            margin-right: 15px;
+            color: #0d6efd;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .resource-link:hover {
+            color: #0b5ed7;
+            text-decoration: underline;
+        }
+
+        .resource-link i {
+            margin-right: 5px;
+        }
     </style>
 </head>
 
@@ -251,6 +274,8 @@
     }
 
     function createTaskItem(task, isRunning = false) {
+        // 分发仓库地址
+        const distributionUrl = "http://192.168.187.232:28088/rdcenter/app-distribution/"
         const duration = isRunning ?
             formatDuration(task.started_at, new Date()) :
             formatDuration(task.started_at, task.completed_at);
@@ -267,7 +292,30 @@
 
         // 为已完成的任务标题添加点击事件
         const titleClickHandler = !isRunning && task.status !== 'pending' ?
-            `onclick="window.open('http://192.168.187.232:28088/rdcenter/app-distribution/-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+        //获取资源文件地址
+        const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.project}/${task.task}/${file}`
+        // 打包请求说明
+        const reqReadme = rawUrl("README.md")
+        // 构建产物元数据
+        const releaseMetaData = rawUrl("release-metadata.md")
+        // 构建产物apk文件
+        const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
+
+        // 资源链接部分（仅对已完成的任务显示）
+        const resourceLinks = !isRunning && task.status === 'completed' ? `
+                <div class="resource-links">
+                    <a href="${reqReadme}" class="resource-link" target="_blank">
+                        <i class="bi bi-file-text"></i>打包请求说明
+                    </a>
+                    <a href="${releaseMetaData}" class="resource-link" target="_blank">
+                        <i class="bi bi-file-earmark-code"></i>产物元数据
+                    </a>
+                    <a href="${apkFile}" class="resource-link" target="_blank">
+                        <i class="bi bi-download"></i>产物APK
+                    </a>
+                </div>
+            ` : '';
 
         return `
             <div class="task-item">
@@ -279,6 +327,7 @@
                 ${completedTimeInfo}
                 <p class="mb-1">状态: ${statusBadge}</p>
                 ${task.error ? `<p class="mb-1 text-danger"><i class="bi bi-exclamation-triangle"></i> 错误: ${task.error}</p>` : ''}
+                ${resourceLinks}
             </div>
         `;
     }
