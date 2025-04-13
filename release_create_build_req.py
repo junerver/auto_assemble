@@ -13,12 +13,11 @@ def build_exe():
 
     # PyInstaller参数
     params = [
-        "cbr/create_build_req.py",  # 主脚本
+        "cbr/__main__.py",  # 主脚本
         "--name=create_build_req",  # 生成的exe名称
         "--onefile",  # 打包成单个文件
         "--add-data=auto_assemble;auto_assemble",  # 添加模块目录
         "--add-data=cbr;cbr",  # 添加cbr模块目录
-        "--add-data=.env;.",  # 添加.env文件
         "--clean",  # 清理临时文件
         "--noconfirm",  # 不确认覆盖
     ]
@@ -32,7 +31,7 @@ def build_exe():
 # 复制文件到 release 目录
 def copy_to_release(exe_name="create_build_req"):
     """将打包好的文件复制到 release 目录"""
-    release_dir = r"E:\temp"
+    release_dir = r"D:\dev\identify_field\app-distribution\.build_req"
     if not os.path.exists(release_dir):
         os.makedirs(release_dir)
         print(f"📁 创建 {release_dir} 目录")

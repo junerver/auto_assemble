@@ -342,11 +342,9 @@ def main(prod_name: str = None, task_dir: str = None):
             if task_dir and prod_name:
                 config.PROD_NAME = prod_name
                 config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
-                # 说明任务来自于webhook，需要更新任务ID
-                config.task_id = f"{prod_name},{task_dir}"
-                logging.info(f"本次构建任务ID: {config.task_id}")
+                logging.info(f"本次构建任务ID: {config.cur_task_id}")
                 # 请求webhook服务的/task/<task_id>接口，获取提交信息
-                response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.task_id}")
+                response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.cur_task_id}")
                 if response.status_code == 200:
                     task_info = response.json()["task"]
                     logging.info(f"获取到提交信息: {task_info}")
@@ -387,6 +385,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
         readme_path = os.path.join(config.cur_task_dir, "README.md")
+        # 解析readme文件拿到本次打包请求所需的内容
         readme_info = parse_readme(readme_path)
 
         # 更新UNI_APP_ID

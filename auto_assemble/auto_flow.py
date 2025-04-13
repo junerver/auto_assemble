@@ -30,6 +30,7 @@ def main(task_id: str = None):
         task_dir = None
         if task_id:
             prod_name, task_dir = task_id.split(",")
+            config.cur_task_id = task_id
         if copy_res_main(prod_name, task_dir) != 0:
             logging.warning("copy_res.py执行中断")
             return 1
