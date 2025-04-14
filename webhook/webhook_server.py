@@ -16,9 +16,9 @@ def create_app():
 
     # 注册蓝图
     app.register_blueprint(webhook_bp)
-    app.register_blueprint(project_bp)
+    app.register_blueprint(project_bp, url_prefix="/api/config")
     app.register_blueprint(task_bp)
-    app.register_blueprint(third_party_bp)
+    app.register_blueprint(third_party_bp, url_prefix="/api/config/third-party")
 
     # 打印所有注册的路由
     logging.info("已注册的路由:")

@@ -7,7 +7,7 @@ from . import project_bp
 from ..config import DB_FILE
 
 
-@project_bp.route("/api/config/project", methods=["POST"])
+@project_bp.route("/project", methods=["POST"])
 def configure_project():
     """配置项目信息"""
     try:
@@ -81,7 +81,7 @@ def configure_project():
         return jsonify({"error": str(e)}), 500
 
 
-@project_bp.route("/api/config/project", methods=["GET"])
+@project_bp.route("/project", methods=["GET"])
 def get_project_config():
     """获取项目配置信息"""
     try:
@@ -162,7 +162,7 @@ def get_project_config():
         conn.close()
 
 
-@project_bp.route("/api/config/project/<project_id>", methods=["PUT"])
+@project_bp.route("/project/<project_id>", methods=["PUT"])
 def update_project_config(project_id):
     """更新项目配置信息"""
     try:
@@ -275,7 +275,7 @@ def update_project_config(project_id):
         return jsonify({"error": str(e)}), 500
 
 
-@project_bp.route("/api/config/projects", methods=["GET"])
+@project_bp.route("/projects", methods=["GET"])
 def get_projects():
     """获取所有项目配置列表"""
     try:

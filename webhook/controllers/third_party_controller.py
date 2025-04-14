@@ -6,7 +6,7 @@ from . import third_party_bp
 from ..config import DB_FILE
 
 
-@third_party_bp.route("/api/config/third-party/dict", methods=["GET"])
+@third_party_bp.route("/dict", methods=["GET"])
 def get_third_party_dict():
     """获取所有第三方配置字典"""
     try:
@@ -44,7 +44,7 @@ def get_third_party_dict():
         conn.close()
 
 
-@third_party_bp.route("/api/config/third-party/dict", methods=["POST"])
+@third_party_bp.route("/dict", methods=["POST"])
 def add_third_party_dict():
     """添加新的第三方配置字典项"""
     try:
@@ -80,7 +80,7 @@ def add_third_party_dict():
         return jsonify({"error": str(e)}), 500
 
 
-@third_party_bp.route("/api/config/third-party/dict/<key>", methods=["GET"])
+@third_party_bp.route("/dict/<key>", methods=["GET"])
 def get_third_party_dict_item(key):
     """获取单个第三方配置字典项"""
     try:
@@ -117,7 +117,7 @@ def get_third_party_dict_item(key):
         conn.close()
 
 
-@third_party_bp.route("/api/config/third-party/dict/<key>", methods=["PUT"])
+@third_party_bp.route("/dict/<key>", methods=["PUT"])
 def update_third_party_dict_item(key):
     """更新第三方配置字典项"""
     try:
@@ -157,7 +157,7 @@ def update_third_party_dict_item(key):
         return jsonify({"error": str(e)}), 500
 
 
-@third_party_bp.route("/api/config/third-party/dict/<key>", methods=["DELETE"])
+@third_party_bp.route("/dict/<key>", methods=["DELETE"])
 def delete_third_party_dict_item(key):
     """删除第三方配置字典项"""
     try:
@@ -194,7 +194,7 @@ def delete_third_party_dict_item(key):
         conn.close()
 
 
-@third_party_bp.route("/api/config/third-party/dict/unconfigured", methods=["GET"])
+@third_party_bp.route("/dict/unconfigured", methods=["GET"])
 def get_unconfigured_dict_items():
     """获取项目未配置的字典项"""
     try:
