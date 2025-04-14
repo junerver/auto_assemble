@@ -8,8 +8,7 @@ cd /d %MODULE_DIR%
 :: 激活 venv
 call venv\Scripts\activate.bat
 
-
 :: 启动waitress服务器
-python -m waitress --port=5005 --host=0.0.0.0 webhook.webhook_server:app
+python -m waitress --port=5005 --host=0.0.0.0 webhook.__main__:app
 
 pause
