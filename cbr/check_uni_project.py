@@ -1,22 +1,17 @@
+import dataclasses
 import json
 import logging
 import os
 from typing import Dict, Tuple
 
+from cbr.env_vars import CbrEnvVars
 from cbr.parse_uni_manifest import parse_uni_manifest
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
+def scan_uni_project(project_root: str, cbr_dir: str) -> CbrEnvVars:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
-        - DISTRIBUTION_PATH，分发仓库位置，即cbr_dir目录的父目录
-        - PROD_NAME，项目标识
-        - HBX_VERSION，hbuilderx 版本
-        - UNIAPP_ID，项目id
-        - UNIAPP_APPKEY，项目key
-        - UNIAPP_WORKSPACE，本地地址
-        - UNIAPP_IS_CLI，是否为cli项目
     3. 将从服务端拉取的配置作为环境变量对象，替换过去对环境变量的使用
 
     Args:
@@ -24,14 +19,14 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
         cbr_dir: cbr目录，该目录指向了分发仓库的地址
 
     Returns:
-        Dict[str, str] | None: 环境变量文件对应的数据字典
+        CbrEnvVars: 环境变量文件对应的数据类
     """
     try:
         # 1. 读取 .git/config 文件获取项目URL
         git_config_path = os.path.join(project_root, ".git", "config")
         if not os.path.exists(git_config_path):
             logging.error(f"Git配置文件不存在: {git_config_path}")
-            return None
+            raise FileNotFoundError(f"Git配置文件不存在: {git_config_path}")
 
         project_url = ""
         in_origin_section = False
@@ -48,7 +43,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
 
         if not project_url:
             logging.error("未能在git配置中找到origin远程仓库的URL")
-            return None
+            raise ValueError("未能在git配置中找到origin远程仓库的URL")
 
         # 2. 调用API获取项目配置
         import requests
@@ -60,36 +55,36 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
         response = requests.get(api_url, params=params)
         if response.status_code != 200:
             logging.error(f"获取项目配置失败: {response.text}")
-            return None
+            raise ValueError(f"从服务器获取项目配置失败: {response.text}")
 
         data = response.json()
         if "error" in data:
             logging.error(f"获取项目配置错误: {data['error']}")
-            return None
+            raise ValueError(f"从服务器获取项目配置错误: {data['error']}")
 
         project_config = data["project_config"]
 
         # 3. 构建环境变量字典
-        env_vars = {
-            "UNIAPP_WORKSPACE": project_root,
-            "DISTRIBUTION_PATH": os.path.dirname(cbr_dir),  # cbr_dir的父目录
-            "PROD_NAME": project_config["prod_name"],
-            "HBX_VERSION": project_config["hbx_version"],
-            "UNIAPP_ID": project_config["uniapp_id"],
-            "UNIAPP_APPKEY": project_config["uniapp_appkey"],
-            "UNIAPP_IS_CLI": "y" if project_config["uniapp_is_cli"] else "n",
-        }
-        config._distribution_path = env_vars["DISTRIBUTION_PATH"]
-        config.PROD_NAME = env_vars["PROD_NAME"]
-        logging.info(f"读取到项目配置如下:\n {json.dumps(env_vars)}")
+        env_vars = CbrEnvVars(
+            UNIAPP_WORKSPACE=project_root,
+            DISTRIBUTION_PATH=os.path.dirname(cbr_dir),
+            PROD_NAME=project_config["prod_name"],
+            HBX_VERSION=project_config["hbx_version"],
+            UNIAPP_ID=project_config["uniapp_id"],
+            UNIAPP_APPKEY=project_config["uniapp_appkey"],
+            UNIAPP_IS_CLI="y" if project_config["uniapp_is_cli"] else "n",
+        )
+        config._distribution_path = env_vars.DISTRIBUTION_PATH
+        config.PROD_NAME = env_vars.PROD_NAME
+        logging.info(f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars))}")
         return env_vars
 
     except Exception as e:
         logging.error(f"扫描项目时发生错误: {str(e)}")
-        return None
+        raise e
 
 
-def check_uni_project(env_vars: Dict[str, str] | None = None) -> Tuple[bool, Dict[str, str], str]:
+def check_uni_project(env_vars: CbrEnvVars) -> Tuple[bool, Dict[str, str], str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -109,8 +104,8 @@ def check_uni_project(env_vars: Dict[str, str] | None = None) -> Tuple[bool, Dic
     """
     try:
 
-        workspace = env_vars["UNIAPP_WORKSPACE"]
-        is_cli = env_vars["UNIAPP_IS_CLI"].lower() == "y"
+        workspace = env_vars.UNIAPP_WORKSPACE
+        is_cli = env_vars.UNIAPP_IS_CLI.lower() == "y"
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")
