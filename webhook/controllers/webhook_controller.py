@@ -41,6 +41,7 @@ def execute_task(task: BuildTask):
             if process.returncode == 0:
                 task.status = "completed"
                 task.completed_at = datetime.now()
+                task.error = None
                 show_build_toast(task, True)
             else:
                 task.status = "failed"

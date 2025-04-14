@@ -332,38 +332,29 @@ def main(prod_name: str = None, task_dir: str = None):
         check_dependencies()
         check_paths()
 
-        # 同步仓库
-        if not sync_repository(config.DISTRIBUTION_PATH):
-            logging.error("Git仓库同步失败，终止执行")
-            return
-
         # 获取项目名称和最新目录
         try:
-            if task_dir and prod_name:
-                config.PROD_NAME = prod_name
-                config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
-                logging.info(f"本次构建任务ID: {config.cur_task_id}")
-                # 请求webhook服务的/task/<task_id>接口，获取提交信息
-                response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.cur_task_id}")
-                if response.status_code == 200:
-                    task_info = response.json()["task"]
-                    logging.info(f"获取到提交信息: {task_info}")
-                    config.build_mode, commit_message = parse_build_req_message(
-                        task_info["commit_message"]
-                    )
-                    config.last_commit_message = textwrap.dedent(
-                        f"""
-                        
-                        提交时间：{task_info["commit_date"]}
-                        提交人: {task_info["author"]}
-                        提交信息: {commit_message}
-                        """
-                    )
-
-                else:
-                    logging.error(f"获取提交信息失败: {response.status_code}")
+            config.PROD_NAME = prod_name
+            config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
+            logging.info(f"本次构建任务ID: {config.cur_task_id}")
+            # 请求webhook服务的/task/<task_id>接口，获取提交信息
+            response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.cur_task_id}")
+            if response.status_code == 200:
+                task_info = response.json()["task"]
+                logging.info(f"获取到提交信息: {task_info}")
+                config.build_mode, commit_message = parse_build_req_message(
+                    task_info["commit_message"]
+                )
+                config.last_commit_message = textwrap.dedent(
+                    f"""
+                    
+                    提交时间：{task_info["commit_date"]}
+                    提交人: {task_info["author"]}
+                    提交信息: {commit_message}
+                    """
+                )
             else:
-                config.PROD_NAME, config.cur_task_dir = get_prod_name(config.DISTRIBUTION_PATH)
+                logging.error(f"获取提交信息失败: {response.status_code}")
             logging.info(f"获取到项目名称: {config.PROD_NAME}")
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
@@ -373,6 +364,11 @@ def main(prod_name: str = None, task_dir: str = None):
             check_git_branch(config.DISTRIBUTION_PATH, "master")
         else:
             check_git_branch(config.DISTRIBUTION_PATH, config.build_mode)
+
+        # 同步仓库
+        if not sync_repository(config.DISTRIBUTION_PATH):
+            logging.error("Git仓库同步失败，终止执行")
+            return
 
         # 查找是否已存在对应的APK文件
         latest_dir_name = os.path.basename(config.cur_task_dir)
