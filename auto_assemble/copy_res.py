@@ -351,6 +351,7 @@ def main(prod_name: str = None, task_dir: str = None):
                     提交时间：{task_info["commit_date"]}
                     提交人: {task_info["author"]}
                     提交信息: {commit_message}
+                    提交哈希: {task_info["commit_hash"]}
                     """
                 )
             else:

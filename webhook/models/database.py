@@ -25,7 +25,8 @@ def init_db():
             started_at TIMESTAMP,
             completed_at TIMESTAMP,
             status TEXT NOT NULL,
-            error TEXT
+            error TEXT,
+            commit_hash TEXT
         )
     """
     )

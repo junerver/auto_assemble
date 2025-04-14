@@ -26,6 +26,7 @@ def get_task_info(task_id):
             "commit_message": task[5],
             "commit_date": task[9],
             "status": task[12],
+            "commit_hash": task[14],
         }
         logging.info(f"获取任务详细信息: {task_dict}")
         return jsonify({"task": task_dict}), 200

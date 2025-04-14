@@ -34,6 +34,7 @@ class BuildTask:
         self.commit_title = self.commit_info.get("title")
         self.commit_message = self.commit_info.get("message")
         self.commit_url = self.commit_info.get("url")
+        self.commit_hash = self.commit_info.get("id")
 
     def __lt__(self, other):
         # 优先级高的先执行
