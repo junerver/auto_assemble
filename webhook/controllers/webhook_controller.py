@@ -10,7 +10,7 @@ from flask import jsonify, request
 from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import BuildTask, save_task, get_running_task
-from ..utils.notifications import show_toast
+from ..utils.notifications import show_build_toast, show_toast
 from ..utils.validators import is_valid_build_task, parse_build_task
 
 # 任务队列（使用优先级队列）
@@ -22,7 +22,53 @@ queue_lock = Lock()
 logging.info("正在注册webhook路由...")
 
 
-@webhook_bp.route("/", methods=["POST"])
+def execute_task(task):
+    """执行构建任务"""
+    task.started_at = datetime.now()
+    task.status = "running"
+    save_task(task)
+
+    process = subprocess.Popen(
+        ["auto-assemble", "--fn", "1", "--task", task.task_id],
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        encoding="utf-8",
+        env=os.environ.copy(),  # 传递当前环境变量
+    )
+
+    def cleanup():
+        try:
+            process.wait(timeout=TASK_TIMEOUT)
+            if process.returncode == 0:
+                task.status = "completed"
+                task.completed_at = datetime.now()
+                show_build_toast(task, True)
+            else:
+                task.status = "failed"
+                task.error = f"Build failed with return code {process.returncode}"
+                task.completed_at = datetime.now()
+                show_build_toast(task, False)
+                if task.retries < MAX_RETRIES:
+                    task.retries += 1
+                    task.priority += 1
+                    with queue_lock:
+                        task_queue.put(task)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            task.status = "failed"
+            task.error = "Build process timeout"
+            task.completed_at = datetime.now()
+            show_build_toast(task, False)
+        finally:
+            save_task(task)
+            # 检查队列中是否有下一个任务
+            with queue_lock:
+                if not task_queue.empty():
+                    next_task = task_queue.get()
+                    Thread(target=execute_task, args=(next_task,), daemon=True).start()
+
+    Thread(target=cleanup, daemon=True).start()
+
+
 @webhook_bp.route("/webhook", methods=["POST"])
 def webhook():
     """处理Gitlab的webhook请求"""
@@ -79,45 +125,7 @@ def webhook():
             )
         else:
             # 直接执行构建
-            task.started_at = datetime.now()
-            task.status = "running"
-            save_task(task)
-
-            process = subprocess.Popen(
-                ["auto-assemble", "--fn", "1", "--task", task.task_id],
-                cwd=os.path.dirname(os.path.abspath(__file__)),
-                encoding="utf-8",
-                env=os.environ.copy(),  # 传递当前环境变量
-            )
-
-            def cleanup():
-                try:
-                    process.wait(timeout=TASK_TIMEOUT)
-                    if process.returncode == 0:
-                        task.status = "completed"
-                        task.completed_at = datetime.now()
-                        show_toast(task, True)
-                    else:
-                        task.status = "failed"
-                        task.error = f"Build failed with return code {process.returncode}"
-                        task.completed_at = datetime.now()
-                        show_toast(task, False)
-                        if task.retries < MAX_RETRIES:
-                            task.retries += 1
-                            task.priority += 1
-                            with queue_lock:
-                                task_queue.put(task)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    task.status = "failed"
-                    task.error = "Build process timeout"
-                    task.completed_at = datetime.now()
-                    show_toast(task, False)
-                finally:
-                    save_task(task)
-
-            Thread(target=cleanup, daemon=True).start()
-
+            Thread(target=execute_task, args=(task,), daemon=True).start()
             return jsonify({"message": "Build started successfully", "task": task.to_dict()}), 200
 
     except Exception as e:
