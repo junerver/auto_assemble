@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Assemble status</title>
+    <title>自动打包工具</title>
     <!-- 添加网页图标 -->
     <link rel="icon"
           href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
@@ -14,6 +14,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- 添加 clipboard.js -->
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
     <style>
         body {
             background-color: #f8f9fa;
@@ -31,6 +33,11 @@
             margin-bottom: 2rem;
             position: relative;
             display: inline-block;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
         .page-title::after {
@@ -163,12 +170,353 @@
         .resource-link i {
             margin-right: 5px;
         }
+
+        /* 修改工具提示样式 */
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1060;
+            /* 确保高于模态窗的z-index */
+            max-width: 500px;
+            word-break: break-all;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 优化可复制文本的样式 */
+        .truncate-url {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .truncate-url:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .copy-content {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            color: #0d6efd;
+        }
+
+        .copy-content:hover {
+            text-decoration: underline;
+        }
+
+        .copy-icon {
+            margin-left: 5px;
+            font-size: 0.8em;
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: #0d6efd;
+            cursor: pointer;
+        }
+
+        .truncate-url:hover .copy-icon {
+            opacity: 1;
+        }
+
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(25, 135, 84, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 1100;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .table th {
+            white-space: nowrap;
+            padding: 8px;
+        }
+
+        .table td {
+            padding: 8px;
+            vertical-align: middle;
+        }
+
+        /* 设置各列的宽度 */
+        .col-prod-name {
+            width: 15%;
+        }
+
+        .col-url {
+            width: 30%;
+        }
+
+        .col-hbx {
+            width: 10%;
+        }
+
+        .col-uniapp-id {
+            width: 15%;
+        }
+
+        .col-uniapp-key {
+            width: 20%;
+        }
+
+        .col-cli {
+            width: 5%;
+        }
+
+        .col-actions {
+            width: 5%;
+        }
+
+        .table-responsive {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 确保模态窗内容不会溢出 */
+        .modal-body {
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        .modal-xl {
+            max-width: 95%;
+        }
+
+        /* 添加表格悬停效果 */
+        .table-hover tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        /* 优化按钮样式 */
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 
 <body>
 <div class="container">
-    <h1 class="page-title text-center">Auto Assemble</h1>
+    <h1 class="page-title text-center" id="pageTitle">Auto Assemble</h1>
+
+    <!-- 项目列表模态窗口 -->
+    <div class="modal fade" id="projectsModal" tabindex="-1" aria-labelledby="projectsModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projectsModalLabel">项目列表</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary" onclick="showAddProject()">
+                            <i class="bi bi-plus"></i> 新增项目
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th class="col-prod-name">产品名称</th>
+                                <th class="col-url">项目URL</th>
+                                <th class="col-hbx">HBX版本</th>
+                                <th class="col-uniapp-id">UniApp ID</th>
+                                <th class="col-uniapp-key">UniApp AppKey</th>
+                                <th class="col-cli text-center">CLI模式</th>
+                                <th class="col-actions text-center">操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="projectsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增项目模态窗口 -->
+    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProjectModalLabel">新增项目</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProjectForm">
+                        <div class="mb-3">
+                            <label class="form-label">项目URL</label>
+                            <input type="text" class="form-control" id="newProjectUrl" name="project_url" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">产品名称</label>
+                            <input type="text" class="form-control" id="newProdName" name="prod_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">HBX版本</label>
+                            <input type="text" class="form-control" id="newHbxVersion" name="hbx_version">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">UniApp ID</label>
+                            <input type="text" class="form-control" id="newUniappId" name="uniapp_id">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">UniApp AppKey</label>
+                            <input type="text" class="form-control" id="newUniappAppkey" name="uniapp_appkey">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newUniappIsCli"
+                                       name="uniapp_is_cli">
+                                <label class="form-check-label" for="newUniappIsCli">UniApp CLI模式</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveNewProject">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 项目配置模态窗口 -->
+    <div class="modal fade" id="projectConfigModal" tabindex="-1" aria-labelledby="projectConfigModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projectConfigModalLabel">项目配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="projectConfigForm">
+                        <div class="mb-3">
+                            <label class="form-label">项目URL</label>
+                            <input type="text" class="form-control" id="projectUrl" name="project_url">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">产品名称</label>
+                            <input type="text" class="form-control" id="prodName" name="prod_name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">HBX版本</label>
+                            <input type="text" class="form-control" id="hbxVersion" name="hbx_version">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">UniApp ID</label>
+                            <input type="text" class="form-control" id="uniappId" name="uniapp_id">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">UniApp AppKey</label>
+                            <input type="text" class="form-control" id="uniappAppkey" name="uniapp_appkey">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="uniappIsCli"
+                                       name="uniapp_is_cli">
+                                <label class="form-check-label" for="uniappIsCli">UniApp CLI模式</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">第三方配置</h6>
+                                <button type="button" class="btn btn-sm btn-primary"
+                                        onclick="showAddThirdPartyConfig()">
+                                    <i class="bi bi-plus"></i> 添加配置
+                                </button>
+                            </div>
+                            <div id="thirdPartyConfigs"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="saveProjectConfig">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加第三方配置模态窗口 -->
+    <div class="modal fade" id="addThirdPartyConfigModal" tabindex="-1"
+         aria-labelledby="addThirdPartyConfigModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addThirdPartyConfigModalLabel">添加第三方配置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addThirdPartyConfigForm">
+                        <div class="mb-3">
+                            <label class="form-label">提供商</label>
+                            <input type="text" class="form-control" id="provider" name="provider" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">配置键</label>
+                            <input type="text" class="form-control" id="dictKey" name="dict_key" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">配置值</label>
+                            <input type="text" class="form-control" id="dictValue" name="dict_value" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">描述</label>
+                            <input type="text" class="form-control" id="description" name="description" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveThirdPartyConfig">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 当前运行任务 -->
     <div class="card status-card">
@@ -291,8 +639,12 @@
             `<p class="mb-1 time-info"><i class="bi bi-calendar-check"></i> 完成时间: ${formatDateTime(task.completed_at)}</p>` : '';
 
         // 为已完成的任务标题添加点击事件
-        const titleClickHandler = !isRunning && task.status !== 'pending' ?
-            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+        const taskClickHandler = !isRunning && task.status !== 'pending' ?
+            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task}', '_blank')" style="cursor: pointer;"` : '';
+
+        // 项目名称点击事件
+        const projectClickHandler = `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"`;
+
         //获取资源文件地址
         const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.project}/${task.task}/${file}`
         // 打包请求说明
@@ -319,7 +671,9 @@
 
         return `
             <div class="task-item">
-                <h6 class="task-title" ${titleClickHandler}>${task.project} - ${task.task}</h6>
+                <h6 class="task-title">
+                    <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
+                </h6>
                 <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
                 <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${getReqTypeBadge(task.commit_title)}${formatCommitTitle(task.commit_title)}</p>
                 <p class="mb-1 time-info"><i class="bi bi-clock"></i> ${isRunning ? '开始时间' : '提交时间'}: ${formatDateTime(isRunning ? task.started_at : task.created_at)}</p>
@@ -333,49 +687,72 @@
     }
 
     function updateStatus(data) {
-        // 更新当前运行任务
-        const runningTaskDiv = document.getElementById('running-task');
-        if (data.running_task) {
-            document.getElementById('no-running-task').style.display = 'none';
-            runningTaskDiv.innerHTML = createTaskItem(data.running_task, true);
-        } else {
-            document.getElementById('no-running-task').style.display = 'block';
-            runningTaskDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无运行中的任务</p></div>';
-        }
+        try {
+            // 更新当前运行任务
+            const runningTaskDiv = document.getElementById('running-task');
+            const noRunningTaskDiv = document.getElementById('no-running-task');
 
-        // 更新队列大小和等待中的任务
-        const queueListDiv = document.getElementById('queue-list');
-        document.getElementById('queue-size').textContent = data.queue_size;
+            if (!runningTaskDiv || !noRunningTaskDiv) {
+                console.error('找不到必要的DOM元素');
+                return;
+            }
 
-        if (data.pending_tasks && data.pending_tasks.length > 0) {
-            document.getElementById('empty-queue').style.display = 'none';
-            // 确保等待中的任务按创建时间正序排列
-            const sortedPendingTasks = [...data.pending_tasks].sort((a, b) => {
-                return new Date(a.created_at) - new Date(b.created_at);
-            });
-            queueListDiv.innerHTML = sortedPendingTasks.map(task => createTaskItem(task)).join('');
-        } else {
-            document.getElementById('empty-queue').style.display = 'block';
-            queueListDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>队列为空</p></div>';
-        }
+            if (data.running_task) {
+                noRunningTaskDiv.style.display = 'none';
+                runningTaskDiv.innerHTML = createTaskItem(data.running_task, true);
+            } else {
+                noRunningTaskDiv.style.display = 'block';
+                runningTaskDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无运行中的任务</p></div>';
+            }
 
-        // 更新最近任务
-        const recentTasksDiv = document.getElementById('recent-tasks');
-        if (data.recent_tasks && data.recent_tasks.length > 0) {
-            document.getElementById('no-recent-tasks').style.display = 'none';
-            // 确保按completed_at倒序排列
-            const sortedTasks = [...data.recent_tasks].sort((a, b) => {
-                const dateA = new Date(a.completed_at);
-                const dateB = new Date(b.completed_at);
-                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
-                    return 0;
-                }
-                return dateB - dateA;
-            });
-            recentTasksDiv.innerHTML = sortedTasks.map(task => createTaskItem(task)).join('');
-        } else {
-            document.getElementById('no-recent-tasks').style.display = 'block';
-            recentTasksDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无最近任务</p></div>';
+            // 更新队列大小和等待中的任务
+            const queueListDiv = document.getElementById('queue-list');
+            const emptyQueueDiv = document.getElementById('empty-queue');
+            const queueSizeElement = document.getElementById('queue-size');
+
+            if (!queueListDiv || !emptyQueueDiv || !queueSizeElement) {
+                console.error('找不到队列相关的DOM元素');
+                return;
+            }
+
+            queueSizeElement.textContent = data.queue_size || '0';
+
+            if (data.pending_tasks && data.pending_tasks.length > 0) {
+                emptyQueueDiv.style.display = 'none';
+                // 确保等待中的任务按创建时间正序排列
+                const sortedPendingTasks = [...data.pending_tasks].sort((a, b) => {
+                    return new Date(a.created_at) - new Date(b.created_at);
+                });
+                queueListDiv.innerHTML = sortedPendingTasks.map(task => createTaskItem(task)).join('');
+            } else {
+                emptyQueueDiv.style.display = 'block';
+                queueListDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>队列为空</p></div>';
+            }
+
+            // 更新最近任务
+            const recentTasksDiv = document.getElementById('recent-tasks');
+            const noRecentTasksDiv = document.getElementById('no-recent-tasks');
+
+            if (!recentTasksDiv || !noRecentTasksDiv) {
+                console.error('找不到最近任务相关的DOM元素');
+                return;
+            }
+
+            if (data.recent_tasks && data.recent_tasks.length > 0) {
+                noRecentTasksDiv.style.display = 'none';
+                // 确保按completed_at倒序排列
+                const sortedTasks = [...data.recent_tasks].sort((a, b) => {
+                    const dateA = new Date(a.completed_at || 0);
+                    const dateB = new Date(b.completed_at || 0);
+                    return dateB - dateA;
+                });
+                recentTasksDiv.innerHTML = sortedTasks.map(task => createTaskItem(task)).join('');
+            } else {
+                noRecentTasksDiv.style.display = 'block';
+                recentTasksDiv.innerHTML = '<div class="empty-state"><i class="bi bi-check-circle"></i><p>暂无最近任务</p></div>';
+            }
+        } catch (error) {
+            console.error('更新状态时发生错误:', error);
         }
     }
 
@@ -385,6 +762,399 @@
             .then(data => updateStatus(data))
             .catch(error => console.error('Error:', error));
     }
+
+    // 显示项目配置模态窗口
+    function showProjectConfig(projectName) {
+        // 获取项目配置
+        fetch(`/api/config/project?name=${encodeURIComponent(projectName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // 填充表单数据
+                document.getElementById('projectUrl').value = data.project_config.project_url;
+                document.getElementById('prodName').value = data.project_config.prod_name;
+                document.getElementById('hbxVersion').value = data.project_config.hbx_version;
+                document.getElementById('uniappId').value = data.project_config.uniapp_id;
+                document.getElementById('uniappAppkey').value = data.project_config.uniapp_appkey;
+                document.getElementById('uniappIsCli').checked = data.project_config.uniapp_is_cli;
+
+                // 获取第三方配置字典
+                fetch('/api/config/third-party/dict')
+                    .then(response => response.json())
+                    .then(dictData => {
+                        // 填充第三方配置
+                        const thirdPartyConfigsDiv = document.getElementById('thirdPartyConfigs');
+                        thirdPartyConfigsDiv.innerHTML = dictData.items.map(item => {
+                            const existingConfig = data.third_party_configs.find(config => config.key === item.key);
+                            return `
+                                    <div class="mb-2">
+                                        <label class="form-label">${item.provider} - ${item.description}</label>
+                                        <input type="text" class="form-control" name="third_party_configs" 
+                                               data-key="${item.key}" value="${existingConfig ? existingConfig.value : ''}">
+                                    </div>
+                                `;
+                        }).join('');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('获取第三方配置字典失败');
+                    });
+
+                // 显示模态窗口
+                const modal = new bootstrap.Modal(document.getElementById('projectConfigModal'));
+                modal.show();
+
+                // 保存按钮点击事件
+                document.getElementById('saveProjectConfig').onclick = function () {
+                    saveProjectConfig(data.project_config.id);
+                };
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('获取项目配置失败');
+            });
+    }
+
+    // 保存项目配置
+    function saveProjectConfig(projectId) {
+        const formData = {
+            project_url: document.getElementById('projectUrl').value,
+            prod_name: document.getElementById('prodName').value,
+            hbx_version: document.getElementById('hbxVersion').value,
+            uniapp_id: document.getElementById('uniappId').value,
+            uniapp_appkey: document.getElementById('uniappAppkey').value,
+            uniapp_is_cli: document.getElementById('uniappIsCli').checked,
+            third_party_configs: Array.from(document.querySelectorAll('input[name="third_party_configs"]')).map(input => ({
+                key: input.dataset.key,
+                value: input.value
+            }))
+        };
+
+        fetch(`/api/config/project/${projectId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('配置保存成功');
+                    bootstrap.Modal.getInstance(document.getElementById('projectConfigModal')).hide();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('保存配置失败');
+            });
+    }
+
+    // 显示添加第三方配置模态窗口
+    function showAddThirdPartyConfig() {
+        const modal = new bootstrap.Modal(document.getElementById('addThirdPartyConfigModal'));
+        modal.show();
+    }
+
+    // 保存第三方配置
+    function saveThirdPartyConfig() {
+        const formData = {
+            provider: document.getElementById('provider').value,
+            dict_key: document.getElementById('dictKey').value,
+            dict_value: document.getElementById('dictValue').value,
+            description: document.getElementById('description').value
+        };
+
+        fetch('/api/config/third-party/dict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('配置添加成功');
+                    bootstrap.Modal.getInstance(document.getElementById('addThirdPartyConfigModal')).hide();
+                    // 重新加载项目配置
+                    const projectName = document.getElementById('prodName').value;
+                    if (projectName) {
+                        showProjectConfig(projectName);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('添加配置失败');
+            });
+    }
+
+    // 添加保存第三方配置按钮的点击事件
+    document.getElementById('saveThirdPartyConfig').onclick = saveThirdPartyConfig;
+
+    // 添加标题点击计数器
+    let titleClickCount = 0;
+    document.getElementById('pageTitle').addEventListener('click', function () {
+        titleClickCount++;
+        if (titleClickCount >= 3) {
+            showProjects();
+            titleClickCount = 0;
+        }
+    });
+
+    // 显示项目列表
+    function showProjects() {
+        fetch('/api/config/projects')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                const tbody = document.getElementById('projectsTableBody');
+                tbody.innerHTML = data.projects.map(project => `
+                        <tr>
+                            <td class="col-prod-name">${project.prod_name}</td>
+                            <td class="col-url">
+                                <div class="truncate-url" data-tooltip="${project.project_url}">
+                                    <span class="copy-content" data-clipboard-text="${project.project_url}">${project.project_url}</span>
+                                    <i class="bi bi-clipboard copy-icon" data-clipboard-text="${project.project_url}"></i>
+                                </div>
+                            </td>
+                            <td class="col-hbx">${project.hbx_version || ''}</td>
+                            <td class="col-uniapp-id">
+                                <div class="truncate-url" data-tooltip="${project.uniapp_id || ''}">
+                                    <span class="copy-content" data-clipboard-text="${project.uniapp_id || ''}">${project.uniapp_id || ''}</span>
+                                    <i class="bi bi-clipboard copy-icon" data-clipboard-text="${project.uniapp_id || ''}"></i>
+                                </div>
+                            </td>
+                            <td class="col-uniapp-key">
+                                <div class="truncate-url" data-tooltip="${project.uniapp_appkey || ''}">
+                                    <span class="copy-content" data-clipboard-text="${project.uniapp_appkey || ''}">${project.uniapp_appkey || ''}</span>
+                                    <i class="bi bi-clipboard copy-icon" data-clipboard-text="${project.uniapp_appkey || ''}"></i>
+                                </div>
+                            </td>
+                            <td class="col-cli text-center">${project.uniapp_is_cli ? '是' : '否'}</td>
+                            <td class="col-actions text-center">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="showProjectConfig('${project.prod_name}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                const modal = new bootstrap.Modal(document.getElementById('projectsModal'));
+                modal.show();
+
+                // 初始化工具提示
+                initTooltips();
+                // 初始化剪贴板
+                initClipboard();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('获取项目列表失败');
+            });
+    }
+
+    // 修改工具提示初始化函数
+    function initTooltips() {
+        let tooltipTimeout;
+        let activeTooltip = null;
+
+        document.querySelectorAll('[data-tooltip]').forEach(element => {
+            element.addEventListener('mouseenter', e => {
+                // 清除之前的定时器
+                if (tooltipTimeout) {
+                    clearTimeout(tooltipTimeout);
+                }
+
+                // 移除之前的工具提示
+                if (activeTooltip) {
+                    activeTooltip.remove();
+                }
+
+                tooltipTimeout = setTimeout(() => {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip';
+                    tooltip.textContent = e.target.getAttribute('data-tooltip');
+                    document.body.appendChild(tooltip);
+                    activeTooltip = tooltip;
+
+                    // 计算位置
+                    const rect = e.target.getBoundingClientRect();
+                    const tooltipRect = tooltip.getBoundingClientRect();
+
+                    // 计算最佳位置
+                    let top = rect.bottom + 5;
+                    let left = rect.left;
+
+                    // 检查是否会超出右边界
+                    if (left + tooltipRect.width > window.innerWidth) {
+                        left = window.innerWidth - tooltipRect.width - 10;
+                    }
+
+                    // 检查是否会超出底部边界
+                    if (top + tooltipRect.height > window.innerHeight) {
+                        // 如果超出底部，就显示在元素上方
+                        top = rect.top - tooltipRect.height - 5;
+                    }
+
+                    // 确保不会超出左边界
+                    left = Math.max(10, left);
+
+                    tooltip.style.left = left + 'px';
+                    tooltip.style.top = top + 'px';
+
+                    // 显示工具提示
+                    requestAnimationFrame(() => {
+                        tooltip.classList.add('show');
+                    });
+                }, 500); // 500ms延迟显示
+            });
+
+            element.addEventListener('mouseleave', () => {
+                // 清除显示定时器
+                if (tooltipTimeout) {
+                    clearTimeout(tooltipTimeout);
+                }
+
+                // 移除工具提示
+                if (activeTooltip) {
+                    activeTooltip.classList.remove('show');
+                    setTimeout(() => {
+                        if (activeTooltip) {
+                            activeTooltip.remove();
+                            activeTooltip = null;
+                        }
+                    }, 300);
+                }
+            });
+        });
+    }
+
+    // 初始化剪贴板功能
+    function initClipboard() {
+        // 销毁之前的实例（如果存在）
+        if (window.clipboard) {
+            window.clipboard.destroy();
+        }
+
+        // 初始化新的剪贴板实例
+        window.clipboard = new ClipboardJS('.copy-content, .copy-icon');
+
+        // 复制成功事件
+        window.clipboard.on('success', function (e) {
+            console.log("实际复制的文本:", e.text);  // 确认这里是否有值
+            e.clearSelection();
+            showCopySuccess();
+        });
+
+        // 复制失败事件
+        window.clipboard.on('error', function (e) {
+            console.error('复制失败:', e);
+            // 使用备用复制方法
+            fallbackCopy(e.trigger.getAttribute('data-clipboard-text'));
+        });
+
+        // 为所有可复制元素添加点击事件
+        document.querySelectorAll('.copy-content, .copy-icon').forEach(element => {
+            element.addEventListener('click', function (e) {
+                console.log("手动添加的点击事件");
+
+                // e.stopPropagation();
+                // e.preventDefault();
+            });
+        });
+    }
+
+    // 备用复制方法
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+
+        try {
+            textarea.select();
+            document.execCommand('copy');
+            showCopySuccess();
+        } catch (err) {
+            console.error('复制失败:', err);
+            alert('复制失败，请手动复制');
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+
+    // 显示复制成功提示
+    function showCopySuccess() {
+        const notification = document.createElement('div');
+        notification.className = 'copy-success';
+        notification.textContent = '复制成功！';
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 2000);
+    }
+
+    // 显示新增项目模态窗口
+    function showAddProject() {
+        const modal = new bootstrap.Modal(document.getElementById('addProjectModal'));
+        modal.show();
+    }
+
+    // 保存新项目
+    function saveNewProject() {
+        const formData = {
+            project_url: document.getElementById('newProjectUrl').value,
+            prod_name: document.getElementById('newProdName').value,
+            hbx_version: document.getElementById('newHbxVersion').value,
+            uniapp_id: document.getElementById('newUniappId').value,
+            uniapp_appkey: document.getElementById('newUniappAppkey').value,
+            uniapp_is_cli: document.getElementById('newUniappIsCli').checked,
+            third_party_configs: []
+        };
+
+        fetch('/api/config/project', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('项目添加成功');
+                    bootstrap.Modal.getInstance(document.getElementById('addProjectModal')).hide();
+                    // 重新加载项目列表
+                    showProjects();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('添加项目失败');
+            });
+    }
+
+    // 添加保存新项目按钮的点击事件
+    document.getElementById('saveNewProject').onclick = saveNewProject;
 
     // 初始加载
     refreshStatus();

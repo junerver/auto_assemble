@@ -843,6 +843,139 @@ def update_project_config(project_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/config/third-party/dict", methods=["GET"])
+def get_third_party_dict():
+    """获取所有第三方配置字典"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT provider, dict_key, dict_value, description 
+            FROM third_party_dict 
+            ORDER BY provider, dict_key
+        """
+        )
+        dict_items = cursor.fetchall()
+
+        return (
+            jsonify(
+                {
+                    "items": [
+                        {
+                            "provider": item[0],
+                            "key": item[1],
+                            "value": item[2],
+                            "description": item[3],
+                        }
+                        for item in dict_items
+                    ]
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/config/third-party/dict", methods=["POST"])
+def add_third_party_dict():
+    """添加新的第三方配置字典项"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+
+        required_fields = ["provider", "dict_key", "dict_value", "description"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                """
+                INSERT INTO third_party_dict (provider, dict_key, dict_value, description)
+                VALUES (?, ?, ?, ?)
+            """,
+                (data["provider"], data["dict_key"], data["dict_value"], data["description"]),
+            )
+
+            conn.commit()
+            return jsonify({"message": "Third party dictionary item added successfully"}), 201
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            return jsonify({"error": "Dictionary key already exists"}), 400
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/config/projects", methods=["GET"])
+def get_projects():
+    """获取所有项目配置列表"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        # 获取所有项目基础配置
+        cursor.execute(
+            """
+            SELECT id, project_url, prod_name, hbx_version, uniapp_id, uniapp_appkey, uniapp_is_cli
+            FROM project_config 
+            ORDER BY prod_name
+        """
+        )
+        projects = cursor.fetchall()
+
+        # 获取每个项目的第三方配置
+        projects_list = []
+        for project in projects:
+            cursor.execute(
+                """
+                SELECT tpc.dict_key, tpc.config_value, tpd.provider, tpd.description
+                FROM third_party_config tpc
+                JOIN third_party_dict tpd ON tpc.dict_key = tpd.dict_key
+                WHERE tpc.project_id = ?
+            """,
+                (project[0],),
+            )
+            third_party_configs = cursor.fetchall()
+
+            projects_list.append(
+                {
+                    "id": project[0],
+                    "project_url": project[1],
+                    "prod_name": project[2],
+                    "hbx_version": project[3],
+                    "uniapp_id": project[4],
+                    "uniapp_appkey": project[5],
+                    "uniapp_is_cli": bool(project[6]),
+                    "third_party_configs": [
+                        {
+                            "key": config[0],
+                            "value": config[1],
+                            "provider": config[2],
+                            "description": config[3],
+                        }
+                        for config in third_party_configs
+                    ],
+                }
+            )
+
+        return jsonify({"projects": projects_list}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     # 从环境变量获取端口和调试模式
     port = int(os.getenv("PORT", 5005))
