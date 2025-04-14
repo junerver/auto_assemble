@@ -49,7 +49,7 @@ class Config:
         # 当前任务id，即 prod_name,req_date
         self.cur_task_id = ""
         # 打包机主机地址
-        self.server_host_url = "http://192.168.172.110:5005"
+        self.SERVER_HOST_URL = "http://192.168.172.110:5005"
 
     @property
     def DISTRIBUTION_PATH(self):

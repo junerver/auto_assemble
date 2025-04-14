@@ -193,7 +193,7 @@ def rolling_req_build_status():
     dots = ""  # 用于存储进度点
     while True:
         try:
-            response = requests.get(f"{config.server_host_url}/task/{config.cur_task_id}")
+            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
             if response.status_code == 200:
                 task_info = response.json().get("task", {})
                 status = task_info.get("status")

@@ -17,12 +17,11 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
         - UNIAPP_APPKEY，项目key
         - UNIAPP_WORKSPACE，本地地址
         - UNIAPP_IS_CLI，是否为cli项目
-    3. 写环境变量到.env.assemble.local
-    4. 返回最终创建的环境变量文件
+    3. 将从服务端拉取的配置作为环境变量对象，替换过去对环境变量的使用
 
     Args:
         project_root: 项目根目录
-        cbr_dir: cbr目录
+        cbr_dir: cbr目录，该目录指向了分发仓库的地址
 
     Returns:
         Dict[str, str] | None: 环境变量文件对应的数据字典
@@ -55,7 +54,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Dict[str, str] | None:
         import requests
         from auto_assemble.config import config
 
-        api_url = f"{config.server_host_url}/api/config/project"
+        api_url = f"{config.SERVER_HOST_URL}/api/config/project"
         params = {"url": project_url}
 
         response = requests.get(api_url, params=params)
