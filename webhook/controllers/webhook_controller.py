@@ -22,7 +22,7 @@ queue_lock = Lock()
 logging.info("正在注册webhook路由...")
 
 
-def execute_task(task):
+def execute_task(task: BuildTask):
     """执行构建任务"""
     task.started_at = datetime.now()
     task.status = "running"
@@ -94,7 +94,7 @@ def webhook():
             logging.info("不是有效的构建任务")
             return jsonify({"message": "Not a valid build task"}), 200
 
-        # 获取提交信息
+        # 获取提交信息，从添加文件中获取项目名和任务名
         commit_info = commits[0]
         prod_name, task_name = parse_build_task(added_files)
 

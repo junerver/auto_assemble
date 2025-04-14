@@ -59,7 +59,7 @@ class BuildTask:
         }
 
 
-def save_task(task):
+def save_task(task: BuildTask):
     """保存任务到数据库"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()

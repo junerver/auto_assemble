@@ -3,6 +3,8 @@ import threading
 
 from win11toast import toast
 
+from webhook.services.task_service import BuildTask
+
 
 def show_toast(title, message):
     """显示Windows通知"""
@@ -23,7 +25,7 @@ def show_toast(title, message):
         logging.error(f"显示通知时发生错误: {str(e)}")
 
 
-def show_build_toast(task, success=True):
+def show_build_toast(task: BuildTask, success=True):
     """显示构建结果通知"""
     status = "✅成功" if success else "❌失败"
     message = f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}"
