@@ -1,9 +1,11 @@
+import sys
 import time
 
 from auto_assemble.config import config
 from cbr.create_build_req import create_build_req, rolling_req_build_status
 
-if __name__ == "__main__":
+
+def main():
     # 构建打包请求
     if create_build_req() != 0:
         print("构建打包请求失败")
@@ -14,3 +16,7 @@ if __name__ == "__main__":
     rolling_req_build_status()
     if config.work_mode == "ui":
         input("按回车键退出")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
