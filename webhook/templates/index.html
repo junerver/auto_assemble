@@ -349,6 +349,9 @@
                 </div>
                 <div class="modal-body">
                     <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary me-2" onclick="showThirdPartyDict()">
+                            <i class="bi bi-gear"></i> 第三方字典维护
+                        </button>
                         <button type="button" class="btn btn-primary" onclick="showAddProject()">
                             <i class="bi bi-plus"></i> 新增项目
                         </button>
@@ -493,8 +496,73 @@
                 <div class="modal-body">
                     <form id="addThirdPartyConfigForm">
                         <div class="mb-3">
+                            <label class="form-label">选择配置项</label>
+                            <select class="form-select" id="dictItemSelect">
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">配置值</label>
+                            <input type="text" class="form-control" id="configValue" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveThirdPartyConfig">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第三方字典维护模态窗口 -->
+    <div class="modal fade" id="thirdPartyDictModal" tabindex="-1" aria-labelledby="thirdPartyDictModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="thirdPartyDictModalLabel">第三方字典维护</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn btn-primary" onclick="showAddDictItem()">
+                            <i class="bi bi-plus"></i> 添加字典项
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>提供商</th>
+                                <th>配置键</th>
+                                <th>配置值</th>
+                                <th>描述</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="dictTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑字典项模态窗口 -->
+    <div class="modal fade" id="dictItemModal" tabindex="-1" aria-labelledby="dictItemModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="dictItemModalLabel">添加字典项</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="dictItemForm">
+                        <div class="mb-3">
                             <label class="form-label">提供商</label>
-                            <input type="text" class="form-control" id="provider" name="provider" required>
+                            <input type="text" class="form-control" id="dictProvider" name="provider" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">配置键</label>
@@ -506,13 +574,14 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">描述</label>
-                            <input type="text" class="form-control" id="description" name="description" required>
+                            <input type="text" class="form-control" id="dictDescription" name="description"
+                                   required>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="saveThirdPartyConfig">保存</button>
+                    <button type="button" class="btn btn-primary" id="saveDictItem">保存</button>
                 </div>
             </div>
         </div>
@@ -569,7 +638,17 @@
             if (isNaN(date.getTime())) {
                 return '未知';
             }
-            return date.toLocaleString('zh-CN');
+            // 使用 toLocaleString 时指定完整的配置，包括时区
+            return date.toLocaleString('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
         } catch (e) {
             return '未知';
         }
@@ -583,7 +662,8 @@
             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
                 return '未知';
             }
-            const duration = Math.floor((end - start) / 1000);
+            // 确保时间差计算正确，不受时区影响
+            const duration = Math.floor((end.getTime() - start.getTime()) / 1000);
             const minutes = Math.floor(duration / 60);
             const seconds = duration % 60;
             return `${minutes}分${seconds}秒`;
@@ -781,28 +861,25 @@
                 document.getElementById('uniappId').value = data.project_config.uniapp_id;
                 document.getElementById('uniappAppkey').value = data.project_config.uniapp_appkey;
                 document.getElementById('uniappIsCli').checked = data.project_config.uniapp_is_cli;
+                document.getElementById('projectConfigForm').dataset.projectId = data.project_config.id;
 
-                // 获取第三方配置字典
-                fetch('/api/config/third-party/dict')
-                    .then(response => response.json())
-                    .then(dictData => {
-                        // 填充第三方配置
-                        const thirdPartyConfigsDiv = document.getElementById('thirdPartyConfigs');
-                        thirdPartyConfigsDiv.innerHTML = dictData.items.map(item => {
-                            const existingConfig = data.third_party_configs.find(config => config.key === item.key);
-                            return `
-                                    <div class="mb-2">
-                                        <label class="form-label">${item.provider} - ${item.description}</label>
-                                        <input type="text" class="form-control" name="third_party_configs" 
-                                               data-key="${item.key}" value="${existingConfig ? existingConfig.value : ''}">
-                                    </div>
-                                `;
-                        }).join('');
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('获取第三方配置字典失败');
-                    });
+                // 填充第三方配置
+                const thirdPartyConfigsDiv = document.getElementById('thirdPartyConfigs');
+                thirdPartyConfigsDiv.innerHTML = data.third_party_configs.map(config => `
+                        <div class="mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <label class="form-label">${config.provider} - ${config.description}</label>
+                                    <input type="text" class="form-control" name="third_party_configs" 
+                                           data-key="${config.key}" value="${config.value}">
+                                </div>
+                                <button type="button" class="btn btn-sm btn-danger ms-2" style="height: fit-content; margin-top: 28px;"
+                                        onclick="deleteThirdPartyConfig('${config.key}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
 
                 // 显示模态窗口
                 const modal = new bootstrap.Modal(document.getElementById('projectConfigModal'));
@@ -858,48 +935,126 @@
 
     // 显示添加第三方配置模态窗口
     function showAddThirdPartyConfig() {
-        const modal = new bootstrap.Modal(document.getElementById('addThirdPartyConfigModal'));
-        modal.show();
-    }
+        const projectId = document.getElementById('projectConfigForm').dataset.projectId;
+        if (!projectId) {
+            alert('无法获取项目ID');
+            return;
+        }
 
-    // 保存第三方配置
-    function saveThirdPartyConfig() {
-        const formData = {
-            provider: document.getElementById('provider').value,
-            dict_key: document.getElementById('dictKey').value,
-            dict_value: document.getElementById('dictValue').value,
-            description: document.getElementById('description').value
-        };
-
-        fetch('/api/config/third-party/dict', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData)
-        })
+        fetch(`/api/config/third-party/dict/unconfigured?project_id=${projectId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
                     alert(data.error);
-                } else {
-                    alert('配置添加成功');
-                    bootstrap.Modal.getInstance(document.getElementById('addThirdPartyConfigModal')).hide();
-                    // 重新加载项目配置
-                    const projectName = document.getElementById('prodName').value;
-                    if (projectName) {
-                        showProjectConfig(projectName);
-                    }
+                    return;
                 }
+
+                if (data.items.length === 0) {
+                    alert('没有可添加的配置项');
+                    return;
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('addThirdPartyConfigModal'));
+                const form = document.getElementById('addThirdPartyConfigForm');
+                form.innerHTML = '';
+
+                // 创建选择框
+                const selectDiv = document.createElement('div');
+                selectDiv.className = 'mb-3';
+                selectDiv.innerHTML = `
+                        <label class="form-label">选择配置项</label>
+                        <select class="form-select" id="dictItemSelect">
+                            ${data.items.map(item => `
+                                <option value="${item.key}" data-provider="${item.provider}" 
+                                        data-description="${item.description}">
+                                    ${item.provider} - ${item.description}
+                                </option>
+                            `).join('')}
+                        </select>
+                    `;
+                form.appendChild(selectDiv);
+
+                // 创建配置值输入框
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'mb-3';
+                valueDiv.innerHTML = `
+                        <label class="form-label">配置值</label>
+                        <input type="text" class="form-control" id="configValue" required>
+                    `;
+                form.appendChild(valueDiv);
+
+                // 更新保存按钮事件
+                document.getElementById('saveThirdPartyConfig').onclick = function () {
+                    const select = document.getElementById('dictItemSelect');
+                    const selectedOption = select.options[select.selectedIndex];
+                    const configValue = document.getElementById('configValue').value;
+
+                    if (!configValue) {
+                        alert('请输入配置值');
+                        return;
+                    }
+
+                    const newConfig = {
+                        key: selectedOption.value,
+                        value: configValue
+                    };
+
+                    // 获取当前所有配置
+                    const currentConfigs = Array.from(document.querySelectorAll('input[name="third_party_configs"]')).map(input => ({
+                        key: input.dataset.key,
+                        value: input.value
+                    }));
+
+                    // 添加新配置
+                    currentConfigs.push(newConfig);
+
+                    // 更新表单数据
+                    const projectConfigForm = document.getElementById('projectConfigForm');
+                    const projectId = projectConfigForm.dataset.projectId;
+                    const updateData = {
+                        project_url: document.getElementById('projectUrl').value,
+                        prod_name: document.getElementById('prodName').value,
+                        hbx_version: document.getElementById('hbxVersion').value,
+                        uniapp_id: document.getElementById('uniappId').value,
+                        uniapp_appkey: document.getElementById('uniappAppkey').value,
+                        uniapp_is_cli: document.getElementById('uniappIsCli').checked,
+                        third_party_configs: currentConfigs
+                    };
+
+                    fetch(`/api/config/project/${projectId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updateData)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert(data.error);
+                            } else {
+                                alert('配置添加成功');
+                                bootstrap.Modal.getInstance(document.getElementById('addThirdPartyConfigModal')).hide();
+                                // 重新加载项目配置
+                                const projectName = document.getElementById('prodName').value;
+                                if (projectName) {
+                                    showProjectConfig(projectName);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('添加配置失败');
+                        });
+                };
+
+                modal.show();
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('添加配置失败');
+                alert('获取未配置项失败');
             });
     }
-
-    // 添加保存第三方配置按钮的点击事件
-    document.getElementById('saveThirdPartyConfig').onclick = saveThirdPartyConfig;
 
     // 添加标题点击计数器
     let titleClickCount = 0;
@@ -1155,6 +1310,222 @@
 
     // 添加保存新项目按钮的点击事件
     document.getElementById('saveNewProject').onclick = saveNewProject;
+
+    // 显示第三方字典维护
+    function showThirdPartyDict() {
+        fetch('/api/config/third-party/dict')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                const tbody = document.getElementById('dictTableBody');
+                tbody.innerHTML = data.items.map(item => `
+                    <tr>
+                        <td>${item.provider}</td>
+                        <td>${item.key}</td>
+                        <td>${item.value}</td>
+                        <td>${item.description}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary me-1" onclick="editDictItem('${item.key}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteDictItem('${item.key}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                const modal = new bootstrap.Modal(document.getElementById('thirdPartyDictModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('获取字典列表失败');
+            });
+    }
+
+    // 显示添加字典项
+    function showAddDictItem() {
+        document.getElementById('dictItemModalLabel').textContent = '添加字典项';
+        document.getElementById('dictItemForm').reset();
+        document.getElementById('saveDictItem').onclick = saveDictItem;
+        const modal = new bootstrap.Modal(document.getElementById('dictItemModal'));
+        modal.show();
+    }
+
+    // 显示编辑字典项
+    function editDictItem(key) {
+        fetch(`/api/config/third-party/dict/${key}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                document.getElementById('dictItemModalLabel').textContent = '编辑字典项';
+                document.getElementById('dictProvider').value = data.provider;
+                document.getElementById('dictKey').value = data.key;
+                document.getElementById('dictValue').value = data.value;
+                document.getElementById('dictDescription').value = data.description;
+                document.getElementById('saveDictItem').onclick = () => updateDictItem(key);
+                const modal = new bootstrap.Modal(document.getElementById('dictItemModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('获取字典项失败');
+            });
+    }
+
+    // 保存字典项
+    function saveDictItem() {
+        const formData = {
+            provider: document.getElementById('dictProvider').value,
+            dict_key: document.getElementById('dictKey').value,
+            dict_value: document.getElementById('dictValue').value,
+            description: document.getElementById('dictDescription').value
+        };
+
+        fetch('/api/config/third-party/dict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('字典项添加成功');
+                    bootstrap.Modal.getInstance(document.getElementById('dictItemModal')).hide();
+                    showThirdPartyDict();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('添加字典项失败');
+            });
+    }
+
+    // 更新字典项
+    function updateDictItem(key) {
+        const formData = {
+            provider: document.getElementById('dictProvider').value,
+            dict_key: document.getElementById('dictKey').value,
+            dict_value: document.getElementById('dictValue').value,
+            description: document.getElementById('dictDescription').value
+        };
+
+        fetch(`/api/config/third-party/dict/${key}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('字典项更新成功');
+                    bootstrap.Modal.getInstance(document.getElementById('dictItemModal')).hide();
+                    showThirdPartyDict();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('更新字典项失败');
+            });
+    }
+
+    // 删除字典项
+    function deleteDictItem(key) {
+        if (!confirm('确定要删除这个字典项吗？')) {
+            return;
+        }
+
+        fetch(`/api/config/third-party/dict/${key}`, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('字典项删除成功');
+                    showThirdPartyDict();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除字典项失败');
+            });
+    }
+
+    // 删除第三方配置项
+    function deleteThirdPartyConfig(key) {
+        if (!confirm('确定要删除这个配置项吗？')) {
+            return;
+        }
+
+        const projectId = document.getElementById('projectConfigForm').dataset.projectId;
+        if (!projectId) {
+            alert('无法获取项目ID');
+            return;
+        }
+
+        // 获取当前所有配置
+        const currentConfigs = Array.from(document.querySelectorAll('input[name="third_party_configs"]'))
+            .map(input => ({
+                key: input.dataset.key,
+                value: input.value
+            }))
+            .filter(config => config.key !== key); // 移除要删除的配置项
+
+        // 更新项目配置
+        const updateData = {
+            project_url: document.getElementById('projectUrl').value,
+            prod_name: document.getElementById('prodName').value,
+            hbx_version: document.getElementById('hbxVersion').value,
+            uniapp_id: document.getElementById('uniappId').value,
+            uniapp_appkey: document.getElementById('uniappAppkey').value,
+            uniapp_is_cli: document.getElementById('uniappIsCli').checked,
+            third_party_configs: currentConfigs
+        };
+
+        fetch(`/api/config/project/${projectId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updateData)
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('配置项删除成功');
+                    // 重新加载项目配置
+                    const projectName = document.getElementById('prodName').value;
+                    if (projectName) {
+                        showProjectConfig(projectName);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除配置项失败');
+            });
+    }
 
     // 初始加载
     refreshStatus();

@@ -83,8 +83,8 @@ def init_db():
             uniapp_id TEXT,
             uniapp_appkey TEXT,
             uniapp_is_cli BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
         )
     """
     )
@@ -98,7 +98,7 @@ def init_db():
             dict_key TEXT NOT NULL,
             dict_value TEXT NOT NULL,
             description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
             UNIQUE(provider, dict_key)
         )
     """
@@ -112,8 +112,8 @@ def init_db():
             project_id TEXT NOT NULL,
             dict_key TEXT NOT NULL,
             config_value TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
             FOREIGN KEY (project_id) REFERENCES project_config(id),
             FOREIGN KEY (dict_key) REFERENCES third_party_dict(dict_key),
             UNIQUE(project_id, dict_key)
@@ -251,8 +251,10 @@ class BuildTask:
             # 创建时间依据push的timestamp，其格式是文本字符串，例如timestamp: "2025-04-07T09:06:56+08:00"
             timestamp = self.commit_info.get("timestamp")
             if timestamp:
+                # 保持原始时区信息
                 self.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
             else:
+                # 使用本地时间
                 self.created_at = datetime.now()
         except (ValueError, TypeError) as e:
             logging.warning(f"解析时间戳失败: {str(e)}，使用当前时间")
@@ -323,25 +325,24 @@ def update_task_status(task_id, status, error=None):
     """更新任务状态"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    now = datetime.now()
 
     if status == "running":
         cursor.execute(
             """
             UPDATE tasks 
-            SET status = ?, started_at = ?, error = ?
+            SET status = ?, started_at = datetime('now', 'localtime'), error = ?
             WHERE id = ?
         """,
-            (status, now, error, task_id),
+            (status, error, task_id),
         )
     elif status in ["completed", "failed"]:
         cursor.execute(
             """
             UPDATE tasks 
-            SET status = ?, completed_at = ?, error = ?
+            SET status = ?, completed_at = datetime('now', 'localtime'), error = ?
             WHERE id = ?
         """,
-            (status, now, error, task_id),
+            (status, error, task_id),
         )
     else:
         cursor.execute(
@@ -783,52 +784,93 @@ def update_project_config(project_id):
         cursor = conn.cursor()
 
         try:
-            # 检查项目是否存在
-            cursor.execute("SELECT id FROM project_config WHERE id = ?", (project_id,))
-            if not cursor.fetchone():
-                return jsonify({"error": "Project not found"}), 404
-
             # 更新项目基础配置
             update_fields = []
             update_values = []
-
-            # 构建更新字段和值
-            for field in [
-                "project_url",
-                "prod_name",
-                "hbx_version",
-                "uniapp_id",
-                "uniapp_appkey",
-                "uniapp_is_cli",
-            ]:
-                if field in data:
-                    update_fields.append(f"{field} = ?")
-                    update_values.append(data[field])
+            if "project_url" in data:
+                update_fields.append("project_url = ?")
+                update_values.append(data["project_url"])
+            if "prod_name" in data:
+                update_fields.append("prod_name = ?")
+                update_values.append(data["prod_name"])
+            if "hbx_version" in data:
+                update_fields.append("hbx_version = ?")
+                update_values.append(data["hbx_version"])
+            if "uniapp_id" in data:
+                update_fields.append("uniapp_id = ?")
+                update_values.append(data["uniapp_id"])
+            if "uniapp_appkey" in data:
+                update_fields.append("uniapp_appkey = ?")
+                update_values.append(data["uniapp_appkey"])
+            if "uniapp_is_cli" in data:
+                update_fields.append("uniapp_is_cli = ?")
+                update_values.append(data["uniapp_is_cli"])
 
             if update_fields:
+                update_fields.append("updated_at = datetime('now', 'localtime')")
                 update_values.append(project_id)
-                update_query = f"""
+                cursor.execute(
+                    f"""
                     UPDATE project_config 
-                    SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+                    SET {', '.join(update_fields)}
                     WHERE id = ?
-                """
-                cursor.execute(update_query, update_values)
+                    """,
+                    update_values,
+                )
 
             # 处理第三方配置更新
             if "third_party_configs" in data:
-                # 先删除现有的第三方配置
-                cursor.execute("DELETE FROM third_party_config WHERE project_id = ?", (project_id,))
+                # 获取现有配置
+                cursor.execute(
+                    """
+                    SELECT dict_key, config_value FROM third_party_config 
+                    WHERE project_id = ?
+                    """,
+                    (project_id,),
+                )
+                existing_configs = {row[0]: row[1] for row in cursor.fetchall()}
 
-                # 插入新的第三方配置
-                for config in data["third_party_configs"]:
+                # 新的配置
+                new_configs = {
+                    config["key"]: config["value"] for config in data["third_party_configs"]
+                }
+
+                # 要删除的配置
+                to_delete = set(existing_configs.keys()) - set(new_configs.keys())
+                if to_delete:
                     cursor.execute(
                         """
-                        INSERT INTO third_party_config 
-                        (project_id, dict_key, config_value)
-                        VALUES (?, ?, ?)
-                        """,
-                        (project_id, config["key"], config["value"]),
+                        DELETE FROM third_party_config 
+                        WHERE project_id = ? AND dict_key IN ({})
+                        """.format(
+                            ",".join("?" * len(to_delete))
+                        ),
+                        (project_id,) + tuple(to_delete),
                     )
+
+                # 更新或插入配置
+                for key, value in new_configs.items():
+                    if key in existing_configs:
+                        if existing_configs[key] != value:
+                            # 更新现有配置
+                            cursor.execute(
+                                """
+                                UPDATE third_party_config 
+                                SET config_value = ?, updated_at = datetime('now', 'localtime')
+                                WHERE project_id = ? AND dict_key = ?
+                                """,
+                                (value, project_id, key),
+                            )
+                    else:
+                        # 插入新配置
+                        cursor.execute(
+                            """
+                            INSERT INTO third_party_config 
+                            (project_id, dict_key, config_value, created_at, updated_at)
+                            VALUES (?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+                            """,
+                            (project_id, key, value),
+                        )
 
             conn.commit()
             return jsonify({"message": "Project configuration updated successfully"}), 200
@@ -974,6 +1016,197 @@ def get_projects():
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
+
+
+@app.route("/api/config/third-party/dict/<key>", methods=["GET"])
+def get_third_party_dict_item(key):
+    """获取单个第三方配置字典项"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT provider, dict_key, dict_value, description 
+            FROM third_party_dict 
+            WHERE dict_key = ?
+        """,
+            (key,),
+        )
+        item = cursor.fetchone()
+
+        if not item:
+            return jsonify({"error": "Dictionary item not found"}), 404
+
+        return (
+            jsonify(
+                {
+                    "provider": item[0],
+                    "key": item[1],
+                    "value": item[2],
+                    "description": item[3],
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/config/third-party/dict/<key>", methods=["PUT"])
+def update_third_party_dict_item(key):
+    """更新第三方配置字典项"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+
+        required_fields = ["provider", "dict_key", "dict_value", "description"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
+                """
+                UPDATE third_party_dict 
+                SET provider = ?, dict_key = ?, dict_value = ?, description = ?
+                WHERE dict_key = ?
+            """,
+                (data["provider"], data["dict_key"], data["dict_value"], data["description"], key),
+            )
+
+            if cursor.rowcount == 0:
+                return jsonify({"error": "Dictionary item not found"}), 404
+
+            conn.commit()
+            return jsonify({"message": "Third party dictionary item updated successfully"}), 200
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            return jsonify({"error": "Dictionary key already exists"}), 400
+        finally:
+            conn.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/config/third-party/dict/<key>", methods=["DELETE"])
+def delete_third_party_dict_item(key):
+    """删除第三方配置字典项"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        # 检查是否有项目正在使用这个字典项
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM third_party_config 
+            WHERE dict_key = ?
+        """,
+            (key,),
+        )
+        if cursor.fetchone()[0] > 0:
+            return jsonify({"error": "Cannot delete dictionary item that is in use"}), 400
+
+        cursor.execute(
+            """
+            DELETE FROM third_party_dict 
+            WHERE dict_key = ?
+        """,
+            (key,),
+        )
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Dictionary item not found"}), 404
+
+        conn.commit()
+        return jsonify({"message": "Third party dictionary item deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/config/third-party/dict/unconfigured", methods=["GET"])
+def get_unconfigured_dict_items():
+    """获取项目未配置的字典项"""
+    try:
+        project_id = request.args.get("project_id")
+        if not project_id:
+            return jsonify({"error": "Project ID is required"}), 400
+
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        # 获取项目已配置的字典项
+        cursor.execute(
+            """
+            SELECT dict_key FROM third_party_config 
+            WHERE project_id = ?
+        """,
+            (project_id,),
+        )
+        configured_keys = {row[0] for row in cursor.fetchall()}
+
+        # 获取所有字典项
+        cursor.execute(
+            """
+            SELECT provider, dict_key, dict_value, description 
+            FROM third_party_dict 
+            ORDER BY provider, dict_key
+        """
+        )
+        all_items = cursor.fetchall()
+
+        # 过滤出未配置的字典项
+        unconfigured_items = [
+            {
+                "provider": item[0],
+                "key": item[1],
+                "value": item[2],
+                "description": item[3],
+            }
+            for item in all_items
+            if item[1] not in configured_keys
+        ]
+
+        return jsonify({"items": unconfigured_items}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+def create_task(commit_info):
+    """创建新任务"""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO tasks (
+            commit_id, commit_message, author, branch, 
+            created_at, status, error
+        ) VALUES (?, ?, ?, datetime('now', 'localtime'), ?, ?)
+        """,
+        (
+            commit_info.get("id"),
+            commit_info.get("message"),
+            commit_info.get("author"),
+            commit_info.get("branch"),
+            "pending",
+            None,
+        ),
+    )
+    task_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return task_id
 
 
 if __name__ == "__main__":
