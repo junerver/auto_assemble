@@ -230,7 +230,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         # 执行gradle构建
         if not execute_gradle_build(release):
             logging.error("Gradle构建失败，终止执行")
-            return 1
+            return 20001
 
         # 获取从release目录读取构建产物名称
         apk_name = get_build_output_name(release)
@@ -242,7 +242,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         success, apk_name = copy_build_outputs(apk_name, target_dir, release)
         if not success:
             logging.error("复制构建产物失败，终止执行")
-            return 1
+            return 20002
 
         # 更新git信息，执行git add和git commit
         if is_distribution:
@@ -256,7 +256,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
 
         if not update_git_info(commit_message):
             logging.error("更新git信息失败，终止执行")
-            return 1
+            return 12008
 
         logging.info("所有操作执行成功")
         return 0

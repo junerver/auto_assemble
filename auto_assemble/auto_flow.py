@@ -31,26 +31,28 @@ def main(task_id: str = None):
         if task_id:
             prod_name, task_dir = task_id.split(",")
             config.cur_task_id = task_id
-        if copy_res_main(prod_name, task_dir) != 0:
+
+        # 执行copy_res.py，拷贝资源，解析请求文件，对基座项目进行写覆盖操作
+        if (copy_res_code := copy_res_main(prod_name, task_dir)) != 0:
             logging.warning("copy_res.py执行中断")
-            return 1
+            return copy_res_code
 
         # 执行build.py，只有dev模式时才打debug包，其他时候打release包，在copy_res_main执行完毕后cur_task_dir被赋值，可以使用
         if (
-                build_main(
+                (build_code := build_main(
                     target_dir=config.cur_task_dir,
                     release=False if config.build_mode == "dev" else True,
                     is_distribution=True,
-                )
+                ))
                 != 0
         ):
             logging.warning("build.py执行中断")
-            return 1
+            return build_code
 
         # 执行push.py
-        if push_main() != 0:
+        if (push_code := push_main()) != 0:
             logging.warning("push.py执行中断")
-            return 1
+            return push_code
 
         return 0
     except Exception as e:

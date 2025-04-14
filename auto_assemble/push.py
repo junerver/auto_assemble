@@ -150,12 +150,12 @@ def main():
         # 检查目录是否存在
         if not os.path.exists(config.DISTRIBUTION_PATH):
             logging.error(f"目录不存在: {config.DISTRIBUTION_PATH}")
-            return 1
+            return 11001
 
         # 检查是否有任何修改
         if not has_changes():
             logging.info("没有需要提交的修改")
-            return 1
+            return 11006
 
         # 获取未跟踪的文件
         untracked_files = get_untracked_files(config.DISTRIBUTION_PATH)
@@ -164,24 +164,24 @@ def main():
             # 验证文件
             is_valid, timestamp = validate_files(untracked_files)
             if not is_valid:
-                return 1
+                return 11007
         else:
             logging.info("没有未跟踪的文件，继续检查已修改的文件")
             # 获取已修改的apk文件
             timestamp = get_modified_apk()
             if not timestamp:
                 logging.error("未找到符合格式的已修改apk文件")
-                return 1
+                return 11008
 
         # 执行git add
         if not git_add(repo_path=config.DISTRIBUTION_PATH):
-            return 1
+            return 11009
 
         # 获取已暂存的文件并验证
         staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
         if not staged_files:
             logging.error("没有待提交的文件")
-            return 1
+            return 11010
 
         logging.info("待提交的文件列表:")
         for file in staged_files:
@@ -190,23 +190,23 @@ def main():
         is_valid, _ = validate_files(staged_files)
         if not is_valid:
             logging.error("待提交的文件不符合要求")
-            return 1
+            return 11011
 
         # todo 执行git commit，提交消息需要完善
         from auto_assemble.build import get_build_resp_message
 
         commit_message = get_build_resp_message(f"{timestamp} 打包")
         if not git_commit(commit_message, config.DISTRIBUTION_PATH):
-            return 1
+            return 11012
 
         # 确认是否推送
         if not confirm_push(staged_files, commit_message):
             logging.info("用户取消推送")
-            return 1
+            return 11013
 
         # 执行git push
         if not git_push(repo_path=config.DISTRIBUTION_PATH):
-            return 1
+            return 11014
 
         logging.info("所有操作执行成功")
         return 0

@@ -7,6 +7,7 @@ from threading import Thread, Lock
 
 from flask import jsonify, request
 
+from auto_assemble.err_code import format_error
 from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import BuildTask, save_task, get_running_task
@@ -45,7 +46,8 @@ def execute_task(task: BuildTask):
                 show_build_toast(task, True)
             else:
                 task.status = "failed"
-                task.error = f"Build failed with return code {process.returncode}"
+                # 使用错误码映射格式化错误信息
+                task.error = format_error(process.returncode)
                 task.completed_at = datetime.now()
                 show_build_toast(task, False)
                 if task.retries < MAX_RETRIES:
@@ -56,7 +58,7 @@ def execute_task(task: BuildTask):
         except subprocess.TimeoutExpired:
             process.kill()
             task.status = "failed"
-            task.error = "Build process timeout"
+            task.error = format_error(10002)  # 使用超时错误码
             task.completed_at = datetime.now()
             show_build_toast(task, False)
         finally:

@@ -358,7 +358,7 @@ def main(prod_name: str = None, task_dir: str = None):
             logging.info(f"获取到项目名称: {config.PROD_NAME}")
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
-            return 1
+            return 10001
 
         if config.build_mode == "dev":
             check_git_branch(config.DISTRIBUTION_PATH, "master")
@@ -368,7 +368,7 @@ def main(prod_name: str = None, task_dir: str = None):
         # 同步仓库
         if not sync_repository(config.DISTRIBUTION_PATH):
             logging.error("Git仓库同步失败，终止执行")
-            return
+            return 11002
 
         # 查找是否已存在对应的APK文件
         latest_dir_name = os.path.basename(config.cur_task_dir)
@@ -377,7 +377,7 @@ def main(prod_name: str = None, task_dir: str = None):
         # 如果存在产物，则无需执行打包
         if os.path.exists(apk_file):
             logging.info(f"已经存在产物 {apk_file} 无需执行打包")
-            return 1
+            return 11003
 
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
         readme_path = os.path.join(config.cur_task_dir, "README.md")
@@ -390,33 +390,33 @@ def main(prod_name: str = None, task_dir: str = None):
         compressed_file = find_compressed_file(config.cur_task_dir)
         if not compressed_file:
             logging.error("未找到压缩文件，终止执行")
-            return 1
+            return 11004
 
         # 检查压缩文件内容
         check_result, temp_dir = check_compressed_file_content(compressed_file)
         if not check_result:
             logging.error("压缩文件内容检查失败，终止执行")
-            return 1
+            return 11005
 
         # 检查Git分支
         if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
             logging.error("Git分支检查失败，终止执行")
-            return 1
+            return 12001
 
         # 检查APPS_DIRECTORY目录结构
         if not check_apps_directory():
             logging.error("APPS_DIRECTORY目录结构检查失败，终止执行")
-            return 1
+            return 12002
 
         # 清空目标目录
         if not clear_directory(config.APPS_DIRECTORY):
             logging.error("清空目标目录失败，终止执行")
-            return 1
+            return 12003
 
         # 解压文件
         if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY, temp_dir):
             logging.error("解压文件失败，终止执行")
-            return 1
+            return 12004
 
         # 更新build.gradle
         if not update_build_gradle(
@@ -425,19 +425,19 @@ def main(prod_name: str = None, task_dir: str = None):
             readme_info,
         ):
             logging.error("更新build.gradle失败，终止执行")
-            return 1
+            return 12005
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
                 config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
-            return 1
+            return 12006
 
         # 跟新 AndroidManifest.xml 文件，更新权限
         if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info):
             logging.error("更新 AndroidManifest.xml 文件失败，终止执行")
-            return 1
+            return 12007
 
         logging.info("所有操作执行成功")
         return 0
