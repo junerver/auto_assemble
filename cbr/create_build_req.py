@@ -68,7 +68,11 @@ def create_build_req():
             return 1
 
         # 校验通过，检查
-        env_vars, third_party_configs = scan_uni_project(args.uni, os.getcwd())
+        try:
+            env_vars, third_party_configs = scan_uni_project(args.uni, os.getcwd())
+        except Exception as e:
+            logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
+            return 1
 
         is_ready, manifest_info, resources_dir = check_uni_project(env_vars, third_party_configs)
         # 美观的打印manifest_info，但排除permissions字段
