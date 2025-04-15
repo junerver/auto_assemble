@@ -20,7 +20,6 @@ def get_task_info(task_id):
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
     """获取队列状态"""
-    logging.info("获取队列状态")
     queue_status = TaskService.get_queue_status()
 
     # 修正返回的数据格式
