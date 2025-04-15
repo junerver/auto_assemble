@@ -72,7 +72,7 @@ def create_build_req():
 
         is_ready, manifest_info, resources_dir = check_uni_project(env_vars)
         if not is_ready:
-            logging.error("本地资源文件校验失败")
+            logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
             return 1
         # 美观的打印manifest_info，但排除permissions字段
         manifest_info_without_permissions = manifest_info.copy()

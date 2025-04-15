@@ -1,6 +1,6 @@
 from flask import Blueprint
 
-# 创建所有蓝图
+# 创建蓝图
 webhook_bp = Blueprint("webhook", __name__)
 project_bp = Blueprint("project", __name__)
 task_bp = Blueprint("task", __name__)

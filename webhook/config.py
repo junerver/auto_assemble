@@ -1,6 +1,16 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# 加载环境变量
+env_path = Path(os.path.dirname(os.path.abspath(__file__))) / ".env"
+if not env_path.exists():
+    print(f"环境变量文件 '{env_path}' 不存在")
+else:
+    load_dotenv(env_path)
+    print(f"已加载环境变量文件: {env_path}")
+
 # 数据库配置
 DB_FILE = Path(__file__).parent / "webhook_server.db"
 

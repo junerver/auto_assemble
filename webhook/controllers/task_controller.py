@@ -1,94 +1,56 @@
 import logging
-import sqlite3
 
 from flask import jsonify
 
 from . import task_bp
-from ..config import DB_FILE
+from ..services.task_service import TaskService
 
 
 @task_bp.route("/task/<task_id>", methods=["GET"])
 def get_task_info(task_id):
     """获取任务详细信息"""
     logging.info(f"获取任务详细信息: {task_id}")
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
-    task = cursor.fetchone()
-    conn.close()
+    task = TaskService.get_task(task_id)
     if task:
-        task_dict = {
-            "id": task[0],
-            "prod_name": task[1],
-            "task_name": task[2],
-            "author": task[3],
-            "commit_title": task[4],
-            "commit_message": task[5],
-            "commit_date": task[9],
-            "status": task[12],
-            "commit_hash": task[14],
-        }
-        logging.info(f"获取任务详细信息: {task_dict}")
-        return jsonify({"task": task_dict}), 200
-    else:
-        return jsonify({"error": "Task not found"}), 404
+        logging.info(f"获取任务详细信息: {task.to_dict()}")
+        return jsonify({"task": task.to_dict()}), 200
+    return jsonify({"error": "Task not found"}), 404
 
 
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
     """获取队列状态"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
+    logging.info("获取队列状态")
+    queue_status = TaskService.get_queue_status()
 
-    # 获取正在运行的任务
-    cursor.execute("SELECT * FROM tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1")
-    running_task = cursor.fetchone()
+    # 修正返回的数据格式
+    formatted_status = {
+        "running_task": (
+            format_task_info(queue_status["running_task"]) if queue_status["running_task"] else None
+        ),
+        "pending_tasks": [format_task_info(task) for task in queue_status["pending_tasks"]],
+        "queue_size": queue_status["queue_size"],
+        "recent_tasks": [format_task_info(task) for task in queue_status["recent_tasks"]],
+    }
 
-    # 获取等待中的任务
-    cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
-    pending_tasks = cursor.fetchall()
+    return jsonify(formatted_status), 200
 
-    # 获取最近完成的任务
-    cursor.execute(
-        """
-        SELECT * FROM tasks 
-        WHERE status IN ('completed', 'failed') 
-        ORDER BY 
-            CASE 
-                WHEN completed_at IS NULL THEN 1
-                ELSE 0
-            END,
-            completed_at DESC
-        LIMIT 5
-    """
-    )
-    recent_tasks = cursor.fetchall()
 
-    conn.close()
-
-    def format_task(task):
-        if not task:
-            return None
-        return {
-            "id": task[0],
-            "project": task[1],
-            "task": task[2],
-            "author": task[3],
-            "commit_title": task[4],
-            "commit_message": task[5],
-            "commit_url": task[6],
-            "created_at": task[9],
-            "started_at": task[10],
-            "completed_at": task[11],
-            "status": task[12],
-            "error": task[13],
-        }
-
-    return jsonify(
-        {
-            "running_task": format_task(running_task),
-            "pending_tasks": [format_task(task) for task in pending_tasks],
-            "queue_size": len(pending_tasks),
-            "recent_tasks": [format_task(task) for task in recent_tasks],
-        }
-    )
+def format_task_info(task_dict):
+    """格式化任务信息，确保返回正确的字段名称"""
+    if not task_dict:
+        return None
+    return {
+        "id": task_dict["id"],
+        "project": task_dict["prod_name"],  # 修改字段名以匹配前端期望
+        "task": task_dict["task_name"],  # 修改字段名以匹配前端期望
+        "author": task_dict["author"],
+        "commit_title": task_dict["commit_title"],
+        "commit_message": task_dict["commit_message"],
+        "commit_url": task_dict["commit_url"],
+        "created_at": task_dict["created_at"],
+        "started_at": task_dict["started_at"],
+        "completed_at": task_dict["completed_at"],
+        "status": task_dict["status"],
+        "error": task_dict["error"],
+    }

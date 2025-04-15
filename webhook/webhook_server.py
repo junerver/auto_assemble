@@ -2,17 +2,24 @@ import logging
 
 from flask import Flask, render_template
 
-from webhook.config import PORT, DEBUG
-from webhook.controllers import webhook_bp, project_bp, task_bp, third_party_bp
-from webhook.models.database import init_db
+from .config import PORT, DEBUG, DB_FILE
+from .controllers import webhook_bp, project_bp, task_bp, third_party_bp
+from .extensions.context import init_app
+from .models.database import init_db
 
 
 def create_app():
     """创建Flask应用"""
     app = Flask(__name__, template_folder="templates")
 
+    # 配置数据库文件路径
+    app.config["DB_FILE"] = DB_FILE
+
     # 初始化数据库
     init_db()
+
+    # 初始化数据库连接管理
+    init_app(app)
 
     # 注册蓝图
     app.register_blueprint(webhook_bp)
@@ -40,8 +47,5 @@ def create_app():
 if __name__ == "__main__":
     # 创建应用
     app = create_app()
-    # 配置热更新
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     # 运行应用
     app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)

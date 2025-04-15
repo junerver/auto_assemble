@@ -10,9 +10,8 @@ from flask import jsonify, request
 from auto_assemble.err_code import format_error
 from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
-from ..services.task_service import BuildTask, save_task, get_running_task
-from ..utils.notifications import show_build_toast, show_toast
-from ..utils.validators import is_valid_build_task, parse_build_task
+from ..services.task_service import TaskService
+from ..utils.notifications import show_build_toast
 
 # 任务队列（使用优先级队列）
 task_queue = PriorityQueue()
@@ -23,14 +22,14 @@ queue_lock = Lock()
 logging.info("正在注册webhook路由...")
 
 
-def execute_task(task: BuildTask):
+def execute_task(task):
     """执行构建任务"""
     task.started_at = datetime.now()
     task.status = "running"
-    save_task(task)
+    task.save()
 
     process = subprocess.Popen(
-        ["auto-assemble", "--fn", "1", "--task", task.task_id],
+        ["auto-assemble", "--fn", "1", "--task", task.id],
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         encoding="utf-8",
         env=os.environ.copy(),  # 传递当前环境变量
@@ -62,7 +61,7 @@ def execute_task(task: BuildTask):
             task.completed_at = datetime.now()
             show_build_toast(task, False)
         finally:
-            save_task(task)
+            task.save()
             # 检查队列中是否有下一个任务
             with queue_lock:
                 if not task_queue.empty():
@@ -87,35 +86,17 @@ def webhook():
             logging.info(f"忽略非push事件: {event_type}")
             return jsonify({"message": f"Ignored non-push event: {event_type}"}), 200
 
-        commits = data.get("commits", [])
-        if not commits:
-            logging.warning("提交中没有文件变更")
-            return jsonify({"message": "No file changes in commit"}), 200
-
-        added_files = commits[0].get("added", [])
-        if not is_valid_build_task(added_files):
-            logging.info("不是有效的构建任务")
-            return jsonify({"message": "Not a valid build task"}), 200
-
-        # 获取提交信息，从添加文件中获取项目名和任务名
-        commit_info = commits[0]
-        prod_name, task_name = parse_build_task(added_files)
-
-        # 显示收到构建请求的toast提示
-        show_toast(
-            "📜收到构建请求",
-            f"🗃️项目: {prod_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
-        )
-
-        task = BuildTask(prod_name, task_name, commit_info)
+        # 处理webhook请求
+        task, message, status_code = TaskService.handle_webhook_request(data)
+        if not task:
+            return jsonify({"message": message}), status_code
 
         # 检查是否有正在运行的任务
-        running_task = get_running_task()
+        running_task = TaskService.get_running_task()
         if running_task:
             logging.info("检测到正在进行的构建，将任务加入队列")
             with queue_lock:
                 task_queue.put(task)
-                save_task(task)
             return (
                 jsonify(
                     {

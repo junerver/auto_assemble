@@ -1,9 +1,5 @@
 import logging
-import os
 import sys
-from pathlib import Path
-
-from dotenv import load_dotenv
 
 from webhook.config import PORT, DEBUG
 from webhook.webhook_server import create_app
@@ -17,14 +13,6 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ],
 )
-
-# 加载环境变量
-env_path = Path(os.path.dirname(os.path.abspath(__file__))) / ".env"
-if not env_path.exists():
-    logging.error(f"环境变量文件 '{env_path}' 不存在")
-else:
-    load_dotenv(env_path)
-    logging.info(f"已加载环境变量文件: {env_path}")
 
 # 创建应用实例
 app = create_app()

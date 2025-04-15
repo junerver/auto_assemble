@@ -1,152 +1,121 @@
-import sqlite3
 from datetime import datetime
 
-from ..config import DB_FILE
+from ..models.task import Task
+from ..utils.notifications import show_toast
+from ..utils.validators import is_valid_build_task, parse_build_task
 
 
-class BuildTask:
-    """构建任务类"""
+class TaskService:
+    @staticmethod
+    def handle_webhook_request(data):
+        """处理webhook请求并创建任务
 
-    def __init__(self, prod_name, task_name, commit_info=None, priority=0, retries=0):
-        self.prod_name = prod_name
-        self.task_name = task_name
-        self.priority = priority
-        self.retries = retries
-        self.started_at = None
-        self.completed_at = None
-        self.status = "pending"  # pending, running, completed, failed
-        self.error = None
-        # 确保 commit_info 是字典类型
-        self.commit_info = commit_info if isinstance(commit_info, dict) else {}
-        try:
-            # 创建时间依据push的timestamp，其格式是文本字符串，例如timestamp: "2025-04-07T09:06:56+08:00"
-            timestamp = self.commit_info.get("timestamp")
-            if timestamp:
-                # 保持原始时区信息
-                self.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
-            else:
-                # 使用本地时间
-                self.created_at = datetime.now()
-        except (ValueError, TypeError) as e:
-            self.created_at = datetime.now()
+        Args:
+            data: webhook请求数据
 
-        self.author = self.commit_info.get("author", {}).get("name")
-        self.commit_title = self.commit_info.get("title")
-        self.commit_message = self.commit_info.get("message")
-        self.commit_url = self.commit_info.get("url")
-        self.commit_hash = self.commit_info.get("id")
-
-    def __lt__(self, other):
-        # 优先级高的先执行
-        return self.priority > other.priority
-
-    @property
-    def task_id(self):
-        return f"{self.prod_name},{self.task_name}"
-
-    def to_dict(self):
-        """转换为字典格式"""
-        return {
-            "id": self.task_id,
-            "prod_name": self.prod_name,
-            "task_name": self.task_name,
-            "author": self.author,
-            "commit_title": self.commit_title,
-            "status": self.status,
-            "error": self.error,
-            "created_at": self.created_at,
-            "started_at": self.started_at,
-            "completed_at": self.completed_at,
-        }
-
-
-def save_task(task: BuildTask):
-    """保存任务到数据库"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
+        Returns:
+            tuple: (task, message, status_code)
+            - task: 创建的任务对象，如果没有创建则为None
+            - message: 处理结果消息
+            - status_code: HTTP状态码
         """
-        INSERT OR REPLACE INTO tasks 
-        (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
-         priority, retries, created_at, started_at, completed_at, status, error)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
-        (
-            task.task_id,
-            task.prod_name,
-            task.task_name,
-            task.author,
-            task.commit_title,
-            task.commit_message,
-            task.commit_url,
-            task.priority,
-            task.retries,
-            task.created_at,
-            task.started_at,
-            task.completed_at,
-            task.status,
-            task.error,
-        ),
-    )
-    conn.commit()
-    conn.close()
+        # 验证提交信息
+        commits = data.get("commits", [])
+        if not commits:
+            return None, "No file changes in commit", 200
 
+        added_files = commits[0].get("added", [])
+        if not is_valid_build_task(added_files):
+            return None, "Not a valid build task", 200
 
-def update_task_status(task_id, status, error=None):
-    """更新任务状态"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
+        # 解析任务信息
+        commit_info = commits[0]
+        prod_name, task_name = parse_build_task(added_files)
 
-    if status == "running":
-        cursor.execute(
-            """
-            UPDATE tasks 
-            SET status = ?, started_at = datetime('now', 'localtime'), error = ?
-            WHERE id = ?
-        """,
-            (status, error, task_id),
-        )
-    elif status in ["completed", "failed"]:
-        cursor.execute(
-            """
-            UPDATE tasks 
-            SET status = ?, completed_at = datetime('now', 'localtime'), error = ?
-            WHERE id = ?
-        """,
-            (status, error, task_id),
-        )
-    else:
-        cursor.execute(
-            """
-            UPDATE tasks 
-            SET status = ?, error = ?
-            WHERE id = ?
-        """,
-            (status, error, task_id),
+        # 显示收到构建请求的toast提示
+        show_toast(
+            "📜收到构建请求",
+            f"🗃️项目: {prod_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
         )
 
-    conn.commit()
-    conn.close()
+        # 创建任务
+        task = TaskService.create_task(
+            prod_name=prod_name, task_name=task_name, commit_info=commit_info, priority=0
+        )
 
+        return task, "Task created successfully", 200
 
-def get_running_task():
-    """获取正在运行的任务"""
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT * FROM tasks 
-        WHERE status = 'running' 
-        ORDER BY started_at DESC 
-        LIMIT 1
-    """
-    )
-    row = cursor.fetchone()
-    conn.close()
+    @staticmethod
+    def create_task(prod_name, task_name, commit_info=None, priority=0, retries=0):
+        """创建任务"""
+        task = Task(
+            id=f"{prod_name},{task_name}",
+            prod_name=prod_name,
+            task_name=task_name,
+            priority=priority,
+            retries=retries,
+            status="pending",
+            created_at=datetime.now(),
+        )
 
-    if row:
-        task = BuildTask(row[1], row[2], row[3], row[4], row[5])
-        task.started_at = row[6]
-        task.status = row[8]
+        if commit_info:
+            task.author = commit_info.get("author", {}).get("name")
+            task.commit_title = commit_info.get("title")
+            task.commit_message = commit_info.get("message")
+            task.commit_url = commit_info.get("url")
+            task.commit_hash = commit_info.get("id")
+
+            try:
+                timestamp = commit_info.get("timestamp")
+                if timestamp:
+                    task.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+            except (ValueError, TypeError):
+                pass
+
+        task.save()
         return task
-    return None
+
+    @staticmethod
+    def get_task(task_id):
+        """通过任务id获取任务详情"""
+        return Task.get_by_id(task_id)
+
+    @staticmethod
+    def get_running_task():
+        """获取正在执行的任务"""
+        return Task.get_running_task()
+
+    @staticmethod
+    def get_pending_tasks():
+        """获取待执行任务"""
+        return Task.get_pending_tasks()
+
+    @staticmethod
+    def get_recent_tasks(limit=5):
+        """获取最近任务"""
+        return Task.get_recent_tasks(limit)
+
+    @staticmethod
+    def update_task_status(task_id, status, error=None):
+        """更新任务状态"""
+        task = Task.get_by_id(task_id)
+        if task:
+            task.update_status(status, error)
+            return task
+        return None
+
+    @staticmethod
+    def get_queue_status():
+        """
+        获取队列状态
+        """
+        running_task = Task.get_running_task()
+        pending_tasks = Task.get_pending_tasks()
+        recent_tasks = Task.get_recent_tasks(5)
+
+        return {
+            "running_task": running_task.to_dict() if running_task else None,
+            "pending_tasks": [task.to_dict() for task in pending_tasks],
+            "queue_size": len(pending_tasks),
+            "recent_tasks": [task.to_dict() for task in recent_tasks],
+        }
