@@ -137,6 +137,7 @@ class ThirdPartyConfig:
     id: Optional[int] = None
     provider: Optional[str] = None
     description: Optional[str] = None
+    dict_value: Optional[str] = None
 
     @classmethod
     def get_by_project(cls, project_id: str) -> List["ThirdPartyConfig"]:
@@ -146,7 +147,7 @@ class ThirdPartyConfig:
         cursor.execute(
             """
             SELECT tpc.id, tpc.project_id, tpc.dict_key, tpc.config_value, 
-                   tpd.provider, tpd.description
+                   tpd.provider, tpd.description, tpd.dict_value
             FROM third_party_config tpc
             JOIN third_party_dict tpd ON tpc.dict_key = tpd.dict_key
             WHERE tpc.project_id = ?
@@ -249,8 +250,9 @@ class ThirdPartyConfig:
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
-            "key": self.dict_key,
-            "value": self.config_value,
             "provider": self.provider,
             "description": self.description,
+            "dict_key": self.dict_key,
+            "dict_value": self.dict_value,
+            "config_value": self.config_value,
         }

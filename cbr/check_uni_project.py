@@ -2,13 +2,13 @@ import dataclasses
 import json
 import logging
 import os
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from cbr.env_vars import CbrEnvVars
 from cbr.parse_uni_manifest import parse_uni_manifest
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> CbrEnvVars:
+def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[CbrEnvVars, List[Dict[str, str]]]:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -20,6 +20,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> CbrEnvVars:
 
     Returns:
         CbrEnvVars: 环境变量文件对应的数据类
+        third_party_configs: 第三方配置文件对应的数据类列表
     """
     try:
         # 1. 读取 .git/config 文件获取项目URL
@@ -63,6 +64,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> CbrEnvVars:
             raise ValueError(f"从服务器获取项目配置错误: {data['error']}")
 
         project_config = data["project_config"]
+        third_party_configs = data["third_party_configs"]
 
         # 3. 构建环境变量字典
         env_vars = CbrEnvVars(
@@ -77,14 +79,16 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> CbrEnvVars:
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
         logging.info(f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars))}")
-        return env_vars
+        return env_vars, third_party_configs
 
     except Exception as e:
         logging.error(f"扫描项目时发生错误: {str(e)}")
         raise e
 
 
-def check_uni_project(env_vars: CbrEnvVars) -> Tuple[bool, Dict[str, str], str]:
+def check_uni_project(
+        env_vars: CbrEnvVars, third_party_configs: List[Dict[str, str]]
+) -> Tuple[bool, Dict[str, str], str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -98,6 +102,7 @@ def check_uni_project(env_vars: CbrEnvVars) -> Tuple[bool, Dict[str, str], str]:
 
     Args:
         - env_vars: 用来代替环境变量的参数值传递
+        - third_party_configs: 第三方配置文件对应的数据类列表
 
     Returns:
         Tuple[bool, Dict[str, str], str]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
@@ -123,7 +128,7 @@ def check_uni_project(env_vars: CbrEnvVars) -> Tuple[bool, Dict[str, str], str]:
             return False, {}, ""
 
         # 解析 manifest.json 文件
-        manifest_info = parse_uni_manifest(manifest_path, env_vars)
+        manifest_info = parse_uni_manifest(manifest_path, env_vars, third_party_configs)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
             return False, manifest_info, ""

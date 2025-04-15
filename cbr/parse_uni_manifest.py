@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict
+from typing import Dict, List
 
 import json5
 
@@ -44,7 +44,11 @@ modules_map = {
 }
 
 
-def parse_uni_manifest(manifest_path: str, env_vars: CbrEnvVars | None = None) -> Dict[str, str]:
+def parse_uni_manifest(
+        manifest_path: str,
+        env_vars: CbrEnvVars | None = None,
+        third_party_configs: List[Dict[str, str]] | None = None,
+) -> Dict[str, str]:
     """
     解析uniapp的manifest.json文件
     Args:
@@ -76,55 +80,18 @@ def parse_uni_manifest(manifest_path: str, env_vars: CbrEnvVars | None = None) -
 
         # 提取第三方配置
         third_party_config = {}
-        if "app-plus" in manifest_data:
-            app_plus = manifest_data["app-plus"]
-            if "distribute" in app_plus:
-                distribute = app_plus["distribute"]
-                if "sdkConfigs" in distribute:
-                    sdk_configs = distribute["sdkConfigs"]
+        if third_party_configs:
+            # 按provider分组配置
+            provider_configs = {}
+            for config in third_party_configs:
+                provider = config["provider"]
+                if provider not in provider_configs:
+                    provider_configs[provider] = {}
+                provider_configs[provider][config["dict_value"]] = config["config_value"]
 
-                    # 提取微信配置 - 从oauth、payment和share三个位置提取appid
-                    wechat_appid = None
-
-                    # 从oauth中提取
-                    if "oauth" in sdk_configs and "weixin" in sdk_configs["oauth"]:
-                        oauth_appid = sdk_configs["oauth"]["weixin"].get("appid", "")
-                        if oauth_appid:
-                            wechat_appid = oauth_appid
-
-                    # 从payment中提取
-                    if "payment" in sdk_configs and "weixin" in sdk_configs["payment"]:
-                        payment_appid = sdk_configs["payment"]["weixin"].get("appid", "")
-                        if payment_appid:
-                            if wechat_appid is None:
-                                wechat_appid = payment_appid
-                            elif wechat_appid != payment_appid:
-                                logging.error(
-                                    f"微信appid不一致: oauth={wechat_appid}, payment={payment_appid}"
-                                )
-
-                    # 从share中提取
-                    if "share" in sdk_configs and "weixin" in sdk_configs["share"]:
-                        share_appid = sdk_configs["share"]["weixin"].get("appid", "")
-                        if share_appid:
-                            if wechat_appid is None:
-                                wechat_appid = share_appid
-                            elif wechat_appid != share_appid:
-                                logging.error(
-                                    f"微信appid不一致: 已存在={wechat_appid}, share={share_appid}"
-                                )
-
-                    # 如果找到了微信appid，添加到配置中
-                    if wechat_appid:
-                        third_party_config["wechat"] = {
-                            "appid": wechat_appid,
-                        }
-
-                    # 提取高德地图配置
-                    if "maps" in sdk_configs and "amap" in sdk_configs["maps"]:
-                        third_party_config["amap"] = {
-                            "appkey": sdk_configs["maps"]["amap"].get("appkey_android", "")
-                        }
+            # 将分组后的配置添加到third_party_config
+            for provider, config in provider_configs.items():
+                third_party_config[provider] = config
 
         # 构建权限处理的内容
         permissions_content = DEFAULT_PERMISSIONS + "\n\n"
@@ -200,13 +167,7 @@ def parse_uni_manifest(manifest_path: str, env_vars: CbrEnvVars | None = None) -
             "schemes": schemes,
         }
 
-        if all(result.values()):
-            logging.info(
-                f"成功解析manifest.json信息 - versionName: {result['version_name']}, "
-                f"versionCode: {result['version_code']}, "
-                f"uniapp_id: {result['uniapp_id']}"
-            )
-        else:
+        if not all(result.values()):
             logging.warning(f"未能完整解析manifest.json信息，解析结果：{result}")
 
         return result
