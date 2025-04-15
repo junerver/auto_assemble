@@ -16,4 +16,4 @@ class CbrEnvVars:
     # 本地地址
     UNIAPP_WORKSPACE: str
     # 是否为cli项目
-    UNIAPP_IS_CLI: str
+    UNIAPP_IS_CLI: bool

@@ -74,7 +74,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[CbrEnvVars, List[
             HBX_VERSION=project_config["hbx_version"],
             UNIAPP_ID=project_config["uniapp_id"],
             UNIAPP_APPKEY=project_config["uniapp_appkey"],
-            UNIAPP_IS_CLI="y" if project_config["uniapp_is_cli"] else "n",
+            UNIAPP_IS_CLI=project_config["uniapp_is_cli"],
         )
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
@@ -110,7 +110,7 @@ def check_uni_project(
     try:
 
         workspace = env_vars.UNIAPP_WORKSPACE
-        is_cli = env_vars.UNIAPP_IS_CLI.lower() == "y"
+        is_cli = env_vars.UNIAPP_IS_CLI
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")

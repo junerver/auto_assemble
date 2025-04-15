@@ -2,13 +2,13 @@
 
 1. 打包使用的 HBuilderX 版本号，必须使用 4.45 以上
 
-   HBuilderX 版本：`4.45`
+   ~~HBuilderX 版本：`4.45`~~
 
 2. Uniapp 打包后的资源包
 
-3. Uniapp App ID：`__UNI__882CCF1`
+3. ~~Uniapp App ID：`__UNI__882CCF1`~~
 
-4. Uniapp App key：`2b78b3e878310b084550b0efd28ab762`
+4. ~~Uniapp App key：`2b78b3e878310b084550b0efd28ab762`~~
 
 5. AbiFilters：`"armeabi-v7a"`
 
@@ -73,12 +73,11 @@
    > - Camera
    > - VideoPlayer
 
-10. 第三方平台配置信息：
+10. ~~第三方平台配置信息：~~
 
 ```yaml
-
 wechat:
 appid: wxfdc91fa8da31c36f
 amap:
 appkey: 0cce8770e83236802f5fd1babf5685f1
-   ```
+```

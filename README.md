@@ -44,30 +44,6 @@ DISTRIBUTION_PATH=D:\dev\identify_field\app-distribution
 
 # Android 基座工程所在目录
 ANDROID_UNI_BASE_PATH=E:\dev\uni\uni-base
-
-# 要构建的项目标识（即分发仓库中项目目录名）
-PROD_NAME=identify_field
-
-# UniApp SDK 版本
-HBX_VERSION=4.45
-
-# 该项目的 UniApp APPID
-UNIAPP_ID=__UNI__882CCF1
-
-# 该项目的 UniApp AppKey
-UNIAPP_APPKEY=2b78b3e878310b084550b0efd28ab762
-
-# 本地UniApp项目所在目录
-UNIAPP_WORKSPACE=E:\dev\uni\identify-field-mall-uniapp
-
-# 该 UniApp 项目是否为CLI创建（y/n）
-UNIAPP_IS_CLI=y
-
-# 最终 APK 产物输出目录
-APK_OUTPUT_DIR=E:\dev\uni\identify-field-mall-uniapp
-
-# 指定基座工程的构建分支，不指定使用f"prod_{PROD_NAME}"
-TARGET_BRANCH=
 ```
 
 ### 支持的功能
