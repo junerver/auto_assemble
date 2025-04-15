@@ -79,6 +79,15 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
+        .task-item.warning {
+            border-left: 4px solid #ffc107;
+            margin-bottom: 10px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
         .refresh-btn {
             position: fixed;
             bottom: 20px;
@@ -720,19 +729,19 @@
 
         // 为已完成的任务标题添加点击事件
         const taskClickHandler = !isRunning && task.status !== 'pending' ?
-            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.prod_name}/${task.task_name}', '_blank')" style="cursor: pointer;"` : '';
+            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
 
         // 项目名称点击事件
-        const projectClickHandler = `onclick="showProjectConfig('${task.prod_name}')" style="cursor: pointer;"`;
+        const projectClickHandler = `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"`;
 
         //获取资源文件地址
-        const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.prod_name}/${task.task_name}/${file}`
+        const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.project}/${task.task}/${file}`
         // 打包请求说明
         const reqReadme = rawUrl("README.md")
         // 构建产物元数据
         const releaseMetaData = rawUrl("release-metadata.md")
         // 构建产物apk文件
-        const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task_name}_debug.apk` : `${task.task_name}.apk`)
+        const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
 
         // 资源链接部分（仅对已完成的任务显示）
         const resourceLinks = !isRunning && task.status === 'completed' ? `
@@ -750,7 +759,7 @@
                 ` : '';
 
         return `
-                <div class="task-item">
+                <div class="task-item ${task.error ? 'warning' : ''}">
                     <h6 class="task-title">
                         <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
                     </h6>
