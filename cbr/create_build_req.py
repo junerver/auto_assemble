@@ -160,7 +160,13 @@ def create_build_req():
             logging.info(f"  - {file}")
         # 执行git commit
         if config.work_mode == "ui":
-            commit_message = input("请输入提交信息：")
+            # 如果通过ui模式运行，则需要用户输入提交信息，必须输入内容
+            while True:
+                commit_message = input("请输入提交信息：")
+                if commit_message:
+                    break
+                else:
+                    logging.error("提交信息不能为空")
 
         commit_message = get_build_req_label(req_mode) + commit_message
         logging.info(f"提交信息：{commit_message}")
