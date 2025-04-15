@@ -17,6 +17,12 @@
     <!-- 添加 clipboard.js -->
     <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
     <style>
+        .container {
+            max-width: 516px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
         body {
             background-color: #f8f9fa;
             padding: 20px;
@@ -56,6 +62,7 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border: none;
             border-radius: 10px;
+            width: 100%;
         }
 
         .card-header {
@@ -640,6 +647,59 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // 添加IP校验状态变量
+    let isAuthorizedIP = false;
+
+    // 检查IP授权状态
+    function checkIPAuthorization() {
+        fetch('/check-ip')
+            .then(response => response.json())
+            .then(data => {
+                isAuthorizedIP = data.authorized;
+                // 更新UI状态
+                updateUIAuthorization();
+            })
+            .catch(error => {
+                console.error('Error checking IP authorization:', error);
+                isAuthorizedIP = false;
+                updateUIAuthorization();
+            });
+    }
+
+    // 更新UI授权状态
+    function updateUIAuthorization() {
+        // 更新项目配置表单
+        const formInputs = document.querySelectorAll('#projectConfigForm input, #projectConfigForm select');
+        formInputs.forEach(input => {
+            input.readOnly = !isAuthorizedIP;
+            input.disabled = !isAuthorizedIP;
+        });
+
+        // 更新保存按钮
+        const saveButton = document.getElementById('saveProjectConfig');
+        if (saveButton) {
+            saveButton.style.display = isAuthorizedIP ? 'block' : 'none';
+        }
+
+        // 更新添加第三方配置按钮
+        const addConfigButton = document.querySelector('#projectConfigForm button[onclick="showAddThirdPartyConfig()"]');
+        if (addConfigButton) {
+            addConfigButton.style.display = isAuthorizedIP ? 'block' : 'none';
+        }
+
+        // 更新删除配置按钮
+        const deleteButtons = document.querySelectorAll('#projectConfigForm button[onclick^="deleteThirdPartyConfig"]');
+        deleteButtons.forEach(button => {
+            button.style.display = isAuthorizedIP ? 'block' : 'none';
+        });
+    }
+
+    // 在页面加载时检查IP授权
+    document.addEventListener('DOMContentLoaded', function () {
+        checkIPAuthorization();
+        startPolling();
+    });
+
     function formatDateTime(dateString) {
         if (!dateString) return '未知';
         try {
@@ -729,7 +789,7 @@
 
         // 为已完成的任务标题添加点击事件
         const taskClickHandler = !isRunning && task.status !== 'pending' ?
-            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+            `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task}', '_blank')" style="cursor: pointer;"` : '';
 
         // 项目名称点击事件
         const projectClickHandler = `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"`;
@@ -970,7 +1030,7 @@
         }
     });
 
-    // 显示项目配置模态窗口
+    // 修改显示项目配置函数
     function showProjectConfig(projectName) {
         // 获取项目配置
         fetch(`/api/config/project?name=${encodeURIComponent(projectName)}`)
@@ -982,13 +1042,19 @@
                 }
 
                 // 填充表单数据
+                const form = document.getElementById('projectConfigForm');
+                form.querySelectorAll('input, select').forEach(input => {
+                    input.readOnly = !isAuthorizedIP;
+                    input.disabled = !isAuthorizedIP;
+                });
+
                 document.getElementById('projectUrl').value = data.project_config.project_url;
                 document.getElementById('prodName').value = data.project_config.prod_name;
                 document.getElementById('hbxVersion').value = data.project_config.hbx_version;
                 document.getElementById('uniappId').value = data.project_config.uniapp_id;
                 document.getElementById('uniappAppkey').value = data.project_config.uniapp_appkey;
                 document.getElementById('uniappIsCli').checked = data.project_config.uniapp_is_cli;
-                document.getElementById('projectConfigForm').dataset.projectId = data.project_config.id;
+                form.dataset.projectId = data.project_config.id;
 
                 // 填充第三方配置
                 const thirdPartyConfigsDiv = document.getElementById('thirdPartyConfigs');
@@ -998,9 +1064,11 @@
                                 <div class="flex-grow-1">
                                     <label class="form-label">${config.provider} - ${config.description}</label>
                                     <input type="text" class="form-control" name="third_party_configs" 
-                                           data-key="${config.key}" value="${config.value}">
+                                           data-key="${config.key}" value="${config.value}"
+                                           ${!isAuthorizedIP ? 'readonly disabled' : ''}>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger ms-2" style="height: fit-content; margin-top: 28px;"
+                                <button type="button" class="btn btn-sm btn-danger ms-2" 
+                                        style="height: fit-content; margin-top: 28px; ${!isAuthorizedIP ? 'display: none;' : ''}"
                                         onclick="deleteThirdPartyConfig('${config.key}')">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -1012,10 +1080,11 @@
                 const modal = new bootstrap.Modal(document.getElementById('projectConfigModal'));
                 modal.show();
 
-                // 保存按钮点击事件
-                document.getElementById('saveProjectConfig').onclick = function () {
-                    saveProjectConfig(data.project_config.id);
-                };
+                // 更新保存按钮显示状态
+                const saveButton = document.getElementById('saveProjectConfig');
+                if (saveButton) {
+                    saveButton.style.display = isAuthorizedIP ? 'block' : 'none';
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -1185,13 +1254,17 @@
 
     // 添加标题点击计数器
     let titleClickCount = 0;
+
     document.getElementById('pageTitle').addEventListener('click', function () {
-        titleClickCount++;
-        if (titleClickCount >= 3) {
-            showProjects();
-            titleClickCount = 0;
+        if (isAuthorizedIP) {
+            titleClickCount++;
+            if (titleClickCount >= 3) {
+                showProjects();
+                titleClickCount = 0;
+            }
         }
     });
+
 
     // 显示项目列表
     function showProjects() {

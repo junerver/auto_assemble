@@ -3,7 +3,7 @@ import logging
 from flask import Flask, render_template
 
 from .config import PORT, DEBUG, DB_FILE
-from .controllers import webhook_bp, project_bp, task_bp, third_party_bp
+from .controllers import webhook_bp, project_bp, task_bp, third_party_bp, auth_bp
 from .extensions.context import init_app
 from .models.database import init_db
 
@@ -26,6 +26,7 @@ def create_app():
     app.register_blueprint(project_bp, url_prefix="/api/config")
     app.register_blueprint(task_bp)
     app.register_blueprint(third_party_bp, url_prefix="/api/config/third-party")
+    app.register_blueprint(auth_bp)
 
     # 打印所有注册的路由
     logging.info("已注册的路由:")
