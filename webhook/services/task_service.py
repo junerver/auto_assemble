@@ -105,13 +105,13 @@ class TaskService:
         return None
 
     @staticmethod
-    def get_queue_status():
+    def get_queue_status(limit: int = 5):
         """
         获取队列状态
         """
         running_task = Task.get_running_task()
         pending_tasks = Task.get_pending_tasks()
-        recent_tasks = Task.get_recent_tasks(5)
+        recent_tasks = Task.get_recent_tasks(limit=limit)
 
         return {
             "running_task": running_task.to_dict() if running_task else None,

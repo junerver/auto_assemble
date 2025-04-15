@@ -8,9 +8,11 @@ from threading import Thread, Lock
 from flask import jsonify, request, current_app
 
 from auto_assemble.err_code import format_error
+from webhook.models.task import Task
 from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
+from ..services.webhook_request_service import WebhookRequestService
 from ..utils.notifications import show_build_toast
 
 # 任务队列（使用优先级队列）
@@ -22,7 +24,7 @@ queue_lock = Lock()
 logging.info("正在注册webhook路由...")
 
 
-def execute_task(task, app):
+def execute_task(task: Task, app):
     """
     执行构建任务
     这里由于通过Flask管理的数据库上下文给、app_context，所以直接将task传递到外部时将
@@ -49,6 +51,8 @@ def execute_task(task, app):
                         task.completed_at = datetime.now()
                         task.error = None
                         show_build_toast(task, True)
+                        # 删除成功的webhook请求记录
+                        WebhookRequestService.delete_webhook_request(task.id)
                     else:
                         task.status = "failed"
                         # 使用错误码映射格式化错误信息
@@ -96,6 +100,9 @@ def webhook():
         task, message, status_code = TaskService.handle_webhook_request(data)
         if not task:
             return jsonify({"message": message}), status_code
+
+        # 保存webhook请求记录
+        WebhookRequestService.save_webhook_request(task.id, data, dict(request.headers))
 
         # 检查是否有正在运行的任务
         running_task = TaskService.get_running_task()

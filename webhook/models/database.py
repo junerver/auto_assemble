@@ -80,5 +80,19 @@ def init_db():
     """
     )
 
+    # 创建webhook请求记录表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS webhook_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id TEXT NOT NULL,
+            request_body TEXT NOT NULL,
+            headers TEXT,
+            created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (task_id) REFERENCES tasks(id)
+        )
+    """
+    )
+
     conn.commit()
     conn.close()

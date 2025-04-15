@@ -1,9 +1,11 @@
 import logging
 
-from flask import jsonify
+import requests
+from flask import jsonify, current_app
 
 from . import task_bp
 from ..services.task_service import TaskService
+from ..services.webhook_request_service import WebhookRequestService
 
 
 @task_bp.route("/task/<task_id>", methods=["GET"])
@@ -20,7 +22,7 @@ def get_task_info(task_id):
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
     """获取队列状态"""
-    queue_status = TaskService.get_queue_status()
+    queue_status = TaskService.get_queue_status(20)
 
     # 修正返回的数据格式
     formatted_status = {
@@ -53,3 +55,39 @@ def format_task_info(task_dict):
         "status": task_dict["status"],
         "error": task_dict["error"],
     }
+
+
+@task_bp.route("/task/<task_id>/replay", methods=["POST"])
+def replay_webhook(task_id):
+    """重放webhook请求"""
+    logging.info(f"重放webhook请求: {task_id}")
+
+    # 获取原始请求数据
+    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(task_id)
+    if not request_data:
+        return jsonify({"error": headers}), status_code
+
+    try:
+        # 获取webhook接口的URL
+        webhook_url = f"http://localhost:{current_app.config['PORT']}/webhook"
+
+        # 发送请求到webhook接口
+        response = requests.post(webhook_url, json=request_data, headers=headers, timeout=30)
+
+        if response.status_code == 200:
+            return jsonify({"message": "Webhook请求重放成功", "response": response.json()}), 200
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": "Webhook请求重放失败",
+                        "status_code": response.status_code,
+                        "response": response.json(),
+                    }
+                ),
+                response.status_code,
+            )
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"重放webhook请求时发生错误: {str(e)}")
+        return jsonify({"error": f"请求发送失败: {str(e)}"}), 500

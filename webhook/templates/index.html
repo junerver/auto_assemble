@@ -762,6 +762,9 @@
                 <div class="task-item ${task.error ? 'warning' : ''}">
                     <h6 class="task-title">
                         <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
+                        ${task.error ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
+                            <i class="bi bi-arrow-repeat"></i> 重播
+                        </button>` : ''}
                     </h6>
                     <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
                     <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${getReqTypeBadge(task.commit_title)}${formatCommitTitle(task.commit_title)}</p>
@@ -1650,6 +1653,35 @@
                 alert('删除配置项失败');
             });
     }
+
+    // 添加重播功能
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.replay-btn')) {
+            const taskId = e.target.closest('.replay-btn').getAttribute('data-task-id');
+            if (!taskId) return;
+
+            if (!confirm('确定要重播这个任务吗？')) {
+                return;
+            }
+
+            fetch(`/task/${taskId}/replay`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        alert('任务重播成功');
+                        refreshStatus(); // 刷新状态
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('重播任务失败');
+                });
+        }
+    });
 </script>
 </body>
 
