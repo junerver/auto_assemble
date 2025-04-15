@@ -28,6 +28,7 @@ ERROR_CODES = {
     12006: "更新基座工程 dcloud_control.xml 文件失败",
     12007: "更新 AndroidManifest.xml 文件失败",
     12008: "基座工程git更新失败（add、commit）",
+    12009: "基座解析依赖失败，请检查依赖配置",
     # 基座工程构建错误 (200xx)
     20001: "执行 Gradle 构建失败",
     20002: "复制构建产物失败",

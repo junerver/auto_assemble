@@ -186,9 +186,15 @@ def update_build_gradle(
             modules.remove("Maps : amap")
             modules.remove("Geolocation : amap")
             modules.append("Maps : amap & Geolocation : amap")
-        # 最终模块映射的依赖
-        deps = [dep for m in modules if (dep := MODULE_DEPENDENCY_MAP.get(m)) is not None]
-
+        # 最终模块映射的依赖，如果MODULE_DEPENDENCY_MAP中找不到对应的key，则抛出异常
+        deps = []
+        for m in modules:
+            if m not in MODULE_DEPENDENCY_MAP:
+                raise KeyError(f"Module '{m}' not found in MODULE_DEPENDENCY_MAP")  # [[4]]
+            dep = MODULE_DEPENDENCY_MAP[m]
+            if dep is not None:
+                deps.append(dep)
+        
         # 记录更新日志
         logging.info(
             f"成功更新build.gradle文件，reqDate从 {old_artifact_name} 更新为 {artifact_name}"
@@ -238,4 +244,7 @@ def update_build_gradle(
         return True
     except Exception as e:
         logging.error(f"更新build.gradle文件时发生错误: {e}")
+        if isinstance(e, KeyError):
+            logging.error(f"模块 '{e.args[0]}' 未找到在MODULE_DEPENDENCY_MAP中")
+            raise e
         return False

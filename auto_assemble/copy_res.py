@@ -424,13 +424,17 @@ def main(prod_name: str = None, task_dir: str = None):
             return 12004
 
         # 更新build.gradle
-        if not update_build_gradle(
-            config.BUILD_GRADLE_PATH,
-            latest_dir_name,
-            readme_info,
-        ):
-            logging.error("更新build.gradle失败，终止执行")
-            return 12005
+        try:
+            if not update_build_gradle(
+                    config.BUILD_GRADLE_PATH,
+                    latest_dir_name,
+                    readme_info,
+            ):
+                logging.error("更新build.gradle失败，终止执行")
+                return 12005
+        except KeyError as e:
+            logging.error(f"更新build.gradle失败: {e}")
+            return 12009
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
