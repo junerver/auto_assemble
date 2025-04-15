@@ -34,7 +34,7 @@ def parse_build_req_message(message: str):
     Returns:
         tuple: 构建模式，构建请求类型
     """
-    pattern = r"#(\w+)_req# (.*)"
+    pattern = r"#(\w+)_req#\s*(.*)"
     match = re.search(pattern, message)
     if match:
         return match.group(1), match.group(2)

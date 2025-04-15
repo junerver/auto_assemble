@@ -843,6 +843,39 @@
             .catch(error => console.error('Error:', error));
     }
 
+    // 添加轮询间隔
+    const POLL_INTERVAL = 5000; // 5秒
+    let pollTimer = null;
+
+    // 开始轮询
+    function startPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+        }
+        refreshStatus(); // 立即执行一次
+        pollTimer = setInterval(refreshStatus, POLL_INTERVAL);
+    }
+
+    // 停止轮询
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    // 页面加载完成后开始轮询
+    document.addEventListener('DOMContentLoaded', startPolling);
+
+    // 页面隐藏时停止轮询，显示时重新开始
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            startPolling();
+        }
+    });
+
     // 显示项目配置模态窗口
     function showProjectConfig(projectName) {
         // 获取项目配置
@@ -1526,11 +1559,6 @@
                 alert('删除配置项失败');
             });
     }
-
-    // 初始加载
-    refreshStatus();
-    // 每5秒自动刷新
-    setInterval(refreshStatus, 5000);
 </script>
 </body>
 

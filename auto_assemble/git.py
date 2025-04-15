@@ -491,19 +491,86 @@ def git_commit(commit_message, repo_path):
 
 
 def git_push(repo_path: str):
-    """执行git push操作"""
+    """
+    执行git push操作
+    当远程分支领先于本地分支时,自动执行rebase操作
+    """
     try:
+        # 首先尝试push
         result = subprocess.run(
             ["git", "push"],
             capture_output=True,
             text=True,
             cwd=repo_path,
         )
-        if result.returncode != 0:
+
+        if result.returncode == 0:
+            logging.info("git push 执行成功")
+            return True
+
+        # 检查是否是因为远程分支领先导致的失败
+        if "git pull" in result.stderr or "rejected" in result.stderr:
+            logging.info("检测到远程分支领先,尝试执行rebase操作")
+
+            # 获取当前分支名
+            branch_result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=repo_path,
+            )
+            if branch_result.returncode != 0:
+                logging.error(f"获取当前分支名失败: {branch_result.stderr}")
+                return False
+
+            current_branch = branch_result.stdout.strip()
+
+            # 执行fetch
+            fetch_result = subprocess.run(
+                ["git", "fetch", "origin", current_branch],
+                capture_output=True,
+                text=True,
+                cwd=repo_path,
+            )
+            if fetch_result.returncode != 0:
+                logging.error(f"git fetch 失败: {fetch_result.stderr}")
+                return False
+
+            # 执行rebase
+            rebase_result = subprocess.run(
+                ["git", "rebase", f"origin/{current_branch}"],
+                capture_output=True,
+                text=True,
+                cwd=repo_path,
+            )
+            if rebase_result.returncode != 0:
+                logging.error(f"git rebase 失败,可能存在冲突: {rebase_result.stderr}")
+                # 中止rebase
+                subprocess.run(
+                    ["git", "rebase", "--abort"],
+                    capture_output=True,
+                    text=True,
+                    cwd=repo_path,
+                )
+                return False
+
+            # rebase成功后重新push
+            push_result = subprocess.run(
+                ["git", "push"],
+                capture_output=True,
+                text=True,
+                cwd=repo_path,
+            )
+            if push_result.returncode != 0:
+                logging.error(f"rebase后push仍然失败: {push_result.stderr}")
+                return False
+
+            logging.info("rebase并push成功")
+            return True
+        else:
             logging.error(f"git push 执行失败: {result.stderr}")
             return False
-        logging.info("git push 执行成功")
-        return True
+
     except Exception as e:
         logging.error(f"git push 执行时发生错误: {str(e)}")
         return False

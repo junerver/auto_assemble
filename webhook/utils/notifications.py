@@ -1,26 +1,32 @@
 import logging
 import sys
+import threading
 
 from ..models.task import Task
 
 
 def show_toast(title, message):
-    """显示toast通知"""
+    """显示Windows通知"""
     try:
         if sys.platform == "win32":
-            from win10toast import ToastNotifier
+            from win11toast import toast
 
-            toaster = ToastNotifier()
-            toaster.show_toast(
-                title,
-                message,
-                duration=5,
-                threaded=True,
-            )
+            # 创建一个新的事件循环
+            def run_toast():
+                import asyncio
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                toast(title, message)
+                loop.close()
+
+            # 在新线程中运行toast
+            thread = threading.Thread(target=run_toast)
+            thread.start()
         else:
             logging.info(f"Toast notification: {title} - {message}")
     except Exception as e:
-        logging.error(f"显示toast通知时发生错误: {str(e)}")
+        logging.error(f"显示通知时发生错误: {str(e)}")
 
 
 def show_build_toast(task: Task, success: bool):

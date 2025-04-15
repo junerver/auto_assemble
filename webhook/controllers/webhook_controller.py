@@ -5,7 +5,7 @@ from datetime import datetime
 from queue import PriorityQueue
 from threading import Thread, Lock
 
-from flask import jsonify, request
+from flask import jsonify, request, current_app
 
 from auto_assemble.err_code import format_error
 from . import webhook_bp
@@ -22,53 +22,59 @@ queue_lock = Lock()
 logging.info("正在注册webhook路由...")
 
 
-def execute_task(task):
-    """执行构建任务"""
-    task.started_at = datetime.now()
-    task.status = "running"
-    task.save()
+def execute_task(task, app):
+    """
+    执行构建任务
+    这里由于通过Flask管理的数据库上下文给、app_context，所以直接将task传递到外部时将
+    无法正确的更新数据，必须通过下面的方式才能正确执行
+    """
+    with app.app_context():
+        task.started_at = datetime.now()
+        task.status = "running"
+        task.save()
 
-    process = subprocess.Popen(
-        ["auto-assemble", "--fn", "1", "--task", task.id],
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        encoding="utf-8",
-        env=os.environ.copy(),  # 传递当前环境变量
-    )
+        process = subprocess.Popen(
+            ["auto-assemble", "--fn", "1", "--task", task.id],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            encoding="utf-8",
+            env=os.environ.copy(),  # 传递当前环境变量
+        )
 
-    def cleanup():
-        try:
-            process.wait(timeout=TASK_TIMEOUT)
-            if process.returncode == 0:
-                task.status = "completed"
-                task.completed_at = datetime.now()
-                task.error = None
-                show_build_toast(task, True)
-            else:
-                task.status = "failed"
-                # 使用错误码映射格式化错误信息
-                task.error = format_error(process.returncode)
-                task.completed_at = datetime.now()
-                show_build_toast(task, False)
-                if task.retries < MAX_RETRIES:
-                    task.retries += 1
-                    task.priority += 1
+        def cleanup():
+            with app.app_context():
+                try:
+                    process.wait(timeout=TASK_TIMEOUT)
+                    if process.returncode == 0:
+                        task.status = "completed"
+                        task.completed_at = datetime.now()
+                        task.error = None
+                        show_build_toast(task, True)
+                    else:
+                        task.status = "failed"
+                        # 使用错误码映射格式化错误信息
+                        task.error = format_error(process.returncode)
+                        task.completed_at = datetime.now()
+                        show_build_toast(task, False)
+                        if task.retries < MAX_RETRIES:
+                            task.retries += 1
+                            task.priority += 1
+                            with queue_lock:
+                                task_queue.put(task)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    task.status = "failed"
+                    task.error = format_error(10002)  # 使用超时错误码
+                    task.completed_at = datetime.now()
+                    show_build_toast(task, False)
+                finally:
+                    task.save()
+                    # 检查队列中是否有下一个任务
                     with queue_lock:
-                        task_queue.put(task)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            task.status = "failed"
-            task.error = format_error(10002)  # 使用超时错误码
-            task.completed_at = datetime.now()
-            show_build_toast(task, False)
-        finally:
-            task.save()
-            # 检查队列中是否有下一个任务
-            with queue_lock:
-                if not task_queue.empty():
-                    next_task = task_queue.get()
-                    Thread(target=execute_task, args=(next_task,), daemon=True).start()
+                        if not task_queue.empty():
+                            next_task = task_queue.get()
+                            Thread(target=execute_task, args=(next_task, app), daemon=True).start()
 
-    Thread(target=cleanup, daemon=True).start()
+        Thread(target=cleanup, daemon=True).start()
 
 
 @webhook_bp.route("/webhook", methods=["POST"])
@@ -109,7 +115,9 @@ def webhook():
             )
         else:
             # 直接执行构建
-            Thread(target=execute_task, args=(task,), daemon=True).start()
+            Thread(
+                target=execute_task, args=(task, current_app._get_current_object()), daemon=True
+            ).start()
             return jsonify({"message": "Build started successfully", "task": task.to_dict()}), 200
 
     except Exception as e:

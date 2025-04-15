@@ -348,7 +348,7 @@ def main(prod_name: str = None, task_dir: str = None):
                 config.last_commit_message = textwrap.dedent(
                     f"""
                     
-                    提交时间：{task_info["commit_date"]}
+                    提交时间：{task_info["created_at"]}
                     提交人: {task_info["author"]}
                     提交信息: {commit_message}
                     提交哈希: {task_info["commit_hash"]}
@@ -360,6 +360,10 @@ def main(prod_name: str = None, task_dir: str = None):
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
             return 10001
+
+        if not config.build_mode in ["dev", "test", "release"]:
+            logging.error(f"构建模式错误: {config.build_mode}")
+            return 11015
 
         if config.build_mode == "dev":
             check_git_branch(config.DISTRIBUTION_PATH, "master")

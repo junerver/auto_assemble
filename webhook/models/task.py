@@ -25,6 +25,14 @@ class Task:
     error: Optional[str] = None
     commit_hash: Optional[str] = None
 
+    def __lt__(self, other):
+        """比较两个任务的优先级
+        优先级高的任务先执行，优先级相同时，创建时间早的任务先执行
+        """
+        if self.priority != other.priority:
+            return self.priority > other.priority
+        return self.created_at < other.created_at
+
     @classmethod
     def get_by_id(cls, task_id: str) -> Optional["Task"]:
         """根据ID获取任务"""
