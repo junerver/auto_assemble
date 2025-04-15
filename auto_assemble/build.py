@@ -262,6 +262,8 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         return 0
     except Exception as e:
         logging.error(f"执行过程中发生错误: {e}")
+        if isinstance(e, FileNotFoundError):
+            return 12010
         return 1
 
 

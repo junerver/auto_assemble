@@ -190,7 +190,7 @@ def update_build_gradle(
         deps = []
         for m in modules:
             if m not in MODULE_DEPENDENCY_MAP:
-                raise KeyError(f"Module '{m}' not found in MODULE_DEPENDENCY_MAP")  # [[4]]
+                raise KeyError(f"Module '{m}' not found in MODULE_DEPENDENCY_MAP")
             dep = MODULE_DEPENDENCY_MAP[m]
             if dep is not None:
                 deps.append(dep)
