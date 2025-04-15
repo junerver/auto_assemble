@@ -27,16 +27,7 @@ class ThirdPartyDict:
             ORDER BY provider, dict_key
             """
         )
-        return [
-            cls(
-                id=row[0],
-                provider=row[1],
-                dict_key=row[2],
-                dict_value=row[3],
-                description=row[4],
-            )
-            for row in cursor.fetchall()
-        ]
+        return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
     def get_by_key(cls, dict_key: str) -> Optional["ThirdPartyDict"]:
@@ -53,13 +44,7 @@ class ThirdPartyDict:
         )
         row = cursor.fetchone()
         if row:
-            return cls(
-                id=row[0],
-                provider=row[1],
-                dict_key=row[2],
-                dict_value=row[3],
-                description=row[4],
-            )
+            return cls(**dict(row))
         return None
 
     def save(self) -> bool:
@@ -168,17 +153,7 @@ class ThirdPartyConfig:
             """,
             (project_id,),
         )
-        return [
-            cls(
-                id=row[0],
-                project_id=row[1],
-                dict_key=row[2],
-                config_value=row[3],
-                provider=row[4],
-                description=row[5],
-            )
-            for row in cursor.fetchall()
-        ]
+        return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
     def get_unconfigured_dict_items(cls, project_id: str) -> List[ThirdPartyDict]:
@@ -204,15 +179,9 @@ class ThirdPartyConfig:
             """
         )
         return [
-            ThirdPartyDict(
-                id=row[0],
-                provider=row[1],
-                dict_key=row[2],
-                dict_value=row[3],
-                description=row[4],
-            )
+            ThirdPartyDict(**dict(row))
             for row in cursor.fetchall()
-            if row[2] not in configured_keys
+            if row["dict_key"] not in configured_keys
         ]
 
     def save(self) -> bool:
