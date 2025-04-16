@@ -142,6 +142,7 @@ WEBHOOK_URL=http://localhost:5005
 
 ## Changelog
 
+- `v0.2.4` 添加错误重播功能，后门鉴权，最近任务筛选
 - `v0.2.3` bugfix
 - `v0.2.2` 服务端分层拆分
 - `v0.2.1` 完善错误提示
