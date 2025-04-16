@@ -105,13 +105,17 @@ class TaskService:
         return None
 
     @staticmethod
-    def get_queue_status(limit: int = 5):
+    def get_queue_status(limit: int = 5, build_mode: str | None = None):
         """
         获取队列状态
+
+        Args:
+            limit: 返回的任务数量限制
+            build_mode: 构建模式，可选值为 dev/test/release，为 None 时不进行筛选
         """
         running_task = Task.get_running_task()
         pending_tasks = Task.get_pending_tasks()
-        recent_tasks = Task.get_recent_tasks(limit=limit)
+        recent_tasks = Task.get_recent_tasks(limit=limit, build_mode=build_mode)
 
         return {
             "running_task": running_task.to_dict() if running_task else None,

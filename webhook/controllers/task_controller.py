@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from flask import jsonify, current_app
+from flask import jsonify, current_app, request
 
 from . import task_bp
 from ..services.task_service import TaskService
@@ -22,7 +22,10 @@ def get_task_info(task_id):
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
     """获取队列状态"""
-    queue_status = TaskService.get_queue_status(20)
+    build_mode = request.args.get("build_mode", "all")
+    if build_mode == "all":
+        build_mode = None
+    queue_status = TaskService.get_queue_status(20, build_mode=build_mode)
 
     # 修正返回的数据格式
     formatted_status = {

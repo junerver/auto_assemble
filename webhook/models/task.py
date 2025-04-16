@@ -66,14 +66,35 @@ class Task:
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_recent_tasks(cls, limit: int = 5) -> List["Task"]:
-        """获取最近的任务"""
+    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> List["Task"]:
+        """获取最近的任务
+
+        Args:
+            limit: 返回的任务数量限制
+            build_mode: 构建模式，可选值为 dev/test/release，为 None 时不进行筛选
+        """
         db = get_db()
         cursor = db.cursor()
-        cursor.execute(
-            """
+
+        if build_mode and build_mode not in ["dev", "test", "release"]:
+            raise ValueError("build_mode must be one of: dev, test, release")
+
+        base_query = """
             SELECT * FROM tasks 
-            WHERE status IN ('completed', 'failed') 
+            WHERE status IN ('completed', 'failed')
+        """
+
+        if build_mode:
+            base_query += """
+                AND commit_title LIKE ? || '%'
+            """
+            params = (f"#{build_mode}_req#", limit)
+        else:
+            params = (limit,)
+
+        query = (
+                base_query
+                + """
             ORDER BY 
                 CASE 
                     WHEN completed_at IS NULL THEN 1
@@ -81,9 +102,10 @@ class Task:
                 END,
                 completed_at DESC
             LIMIT ?
-        """,
-            (limit,),
+        """
         )
+
+        cursor.execute(query, params)
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     def save(self) -> None:
