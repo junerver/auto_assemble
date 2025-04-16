@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -164,6 +165,15 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
             # 在目标目录下创建md5作为文件名的空白文件
             open(os.path.join(target_dir, md5), "w").close()
             logging.info("成功复制metadata文件")
+
+            # todo: 解析metadata文件，调用接口，记录任务对应的元数据
+            # 解析metadata文件
+            with open(target_metadata, "r", encoding="utf-8") as f:
+                metadata_text = f.read()
+            # 解析metadata文件
+            metadata = parse_metadata(metadata_text)
+            logging.info(f"解析metadata文件结果: {json.dumps(metadata)}")
+
         else:
             logging.error(f"源metadata文件不存在: {source_metadata}")
             return False, ""
@@ -172,6 +182,44 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
     except Exception as e:
         logging.error(f"复制构建产物时发生错误: {e}")
         return False, ""
+
+
+def parse_metadata(metadata_text: str):
+    """
+    解析metadata文件
+    """
+    # 原始 key 到 Python 风格 key 的映射表
+    key_mapping = {
+        "Package Name": "package_name",
+        "Version Name": "version_name",
+        "Version Code": "version_code",
+        "Build Type": "build_type",
+        "Flavor": "flavor",
+        "Build Date": "build_date",
+        "File Size": "file_size",
+        "MD5": "md5",
+        # "打包请求" intentionally omitted
+    }
+
+    # 转换为 dict 并跳过不需要的字段
+    metadata = {}
+    for line in metadata_text.strip().splitlines():
+        if not line.strip():
+            continue
+        if ":" in line:
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if key in key_mapping:
+                mapped_key = key_mapping[key]
+                if mapped_key == "file_size":
+                    # 提取开头的纯数字部分（字节数）
+                    match = re.search(r"^\d+", value)
+                    metadata[mapped_key] = int(match.group()) if match else 0
+                else:
+                    metadata[mapped_key] = value
+
+    return metadata
 
 
 def update_git_info(commit_message):
