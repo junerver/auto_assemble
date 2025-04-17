@@ -14,6 +14,7 @@ def create_app():
 
     # 配置数据库文件路径
     app.config["DB_FILE"] = DB_FILE
+    app.config["PORT"] = PORT
 
     # 初始化数据库
     init_db()
