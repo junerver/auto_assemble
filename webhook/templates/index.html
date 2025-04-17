@@ -636,13 +636,13 @@
                 <h5 class="mb-0"><i class="bi bi-clock-history"></i> 最近任务</h5>
                 <div class="task-filter-tags">
                     <span class="badge bg-primary-subtle text-primary-emphasis me-1 cursor-pointer"
-                          data-build-mode="all">all</span>
+                        data-build-mode="all">all</span>
                     <span class="badge bg-info-subtle text-info-emphasis me-1 cursor-pointer"
-                          data-build-mode="dev">dev</span>
+                        data-build-mode="dev">dev</span>
                     <span class="badge bg-warning-subtle text-warning-emphasis me-1 cursor-pointer"
-                          data-build-mode="test">test</span>
+                        data-build-mode="test">test</span>
                     <span class="badge bg-success-subtle text-success-emphasis cursor-pointer"
-                          data-build-mode="release">release</span>
+                        data-build-mode="release">release</span>
                 </div>
             </div>
             <div class="card-body" id="recent-tasks">
@@ -1756,7 +1756,7 @@
                             alert(data.error);
                         } else {
                             alert('任务重播成功');
-                            refreshStatus(); // 刷新状态
+                            updateQueueStatus(); // 刷新状态
                         }
                     })
                     .catch(error => {

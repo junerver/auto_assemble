@@ -101,8 +101,13 @@ def webhook():
         if not task:
             return jsonify({"message": message}), status_code
 
-        # 保存webhook请求记录
-        WebhookRequestService.save_webhook_request(task.id, data, dict(request.headers))
+        # 保存webhook请求记录，如果请求头中包含X-Webhook-Request-Cache，则表示这是一个缓存的请求，
+        # 则不保存
+        if not request.headers.get("X-Webhook-Request-Cache"):
+            WebhookRequestService.save_webhook_request(task.id, data, dict(request.headers))
+        else:
+            # 记录缓存请求 replay_count+1
+            WebhookRequestService.update_replay_count(task.id)
 
         # 检查是否有正在运行的任务
         running_task = TaskService.get_running_task()

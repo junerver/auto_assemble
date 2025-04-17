@@ -12,6 +12,9 @@ class WebhookRequestService:
             request_body = (
                 json.dumps(request_data) if isinstance(request_data, dict) else request_data
             )
+            # 向header中插入自定义标头，表示这是一个缓存的请求
+            headers["X-Webhook-Request-Cache"] = "true"
+
             headers_str = json.dumps(headers) if headers else None
 
             webhook_request = WebhookRequest(task_id, request_body, headers_str)
@@ -61,3 +64,12 @@ class WebhookRequestService:
         except Exception as e:
             logging.error(f"重放webhook请求失败: {str(e)}")
             return None, str(e), 500
+
+    @staticmethod
+    def update_replay_count(task_id):
+        """更新webhook请求记录的replay_count"""
+        try:
+            WebhookRequest.update_replay_count(task_id)
+        except Exception as e:
+            logging.error(f"更新webhook请求记录的replay_count失败: {str(e)}")
+            return False

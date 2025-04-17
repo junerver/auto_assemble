@@ -8,11 +8,20 @@ from ..config import DB_FILE
 
 @dataclass
 class WebhookRequest:
+    """webhook请求记录"""
+
+    # 主键
     id: Optional[int] = None
+    # 任务id
     task_id: Optional[str] = None
+    # 请求体
     request_body: Optional[str] = None
+    # 请求头
     headers: Optional[dict] = None
+    # 创建时间
     created_at: Optional[datetime] = None
+    # 重放次数
+    replay_count: Optional[int] = None
 
     def __init__(self, task_id, request_body, headers=None):
         self.id = None
@@ -20,6 +29,7 @@ class WebhookRequest:
         self.request_body = request_body
         self.headers = headers
         self.created_at = datetime.now()
+        self.replay_count = 0
 
     def save(self):
         """保存webhook请求记录"""
@@ -27,10 +37,10 @@ class WebhookRequest:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO webhook_requests (task_id, request_body, headers, created_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO webhook_requests (task_id, request_body, headers, created_at, replay_count)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (self.task_id, self.request_body, self.headers, self.created_at),
+            (self.task_id, self.request_body, self.headers, self.created_at, self.replay_count),
         )
         self.id = cursor.lastrowid
         conn.commit()
@@ -67,6 +77,20 @@ class WebhookRequest:
             """
             DELETE FROM webhook_requests
             WHERE task_id = ?
+            """,
+            (task_id,),
+        )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def update_replay_count(task_id):
+        """更新webhook请求记录的replay_count"""
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE webhook_requests SET replay_count = replay_count + 1 WHERE task_id = ?
             """,
             (task_id,),
         )
