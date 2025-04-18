@@ -1074,12 +1074,12 @@
                                 <div class="flex-grow-1">
                                     <label class="form-label">${config.provider} - ${config.description}</label>
                                     <input type="text" class="form-control" name="third_party_configs" 
-                                           data-key="${config.key}" value="${config.value}"
+                                           data-key="${config.dict_key}" value="${config.config_value}"
                                            ${!isAuthorizedIP ? 'readonly disabled' : ''}>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-danger ms-2" 
                                         style="height: fit-content; margin-top: 28px; ${!isAuthorizedIP ? 'display: none;' : ''}"
-                                        onclick="deleteThirdPartyConfig('${config.key}')">
+                                        onclick="deleteThirdPartyConfig('${config.dict_key}')">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
