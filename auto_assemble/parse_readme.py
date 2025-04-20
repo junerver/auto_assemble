@@ -3,10 +3,12 @@ import os
 import re
 from typing import Dict, List
 
+import requests
 import yaml
 
 from auto_assemble.config import config
 from auto_assemble.parse_permissions import parse_and_merge_permissions
+from auto_assemble.parse_third_party_configs import parse_third_party_configs
 
 
 def parse_uni_modules(content: str) -> List[str]:
@@ -143,14 +145,25 @@ def parse_readme(readme_path: str) -> Dict[str, str]:
         schemes_match = re.search(r"UrlSchemes：`([^`]+)`", content)
 
         # 解析第三方配置
-        third_party_config = parse_yaml_block(content)
-        if config.PROD_NAME == "identify_field":
-            logging.info("识田间项目使用正式微信配置")
-            third_party_config.pop("wechat", None)
-            third_party_config["wechat"] = {
-                "appid": "wx4d4456070d11a01a",
-                "secret": "b8ad75cd1cd6715de7d27b350e1814a5",
-            }
+        # todo: 重构第三方配置读取，修改为从服务器接口读取，不再解析yaml代码块
+        response = requests.get(
+            f"{os.getenv('WEBHOOK_URL')}/api/config/project?name={config.PROD_NAME}"
+        )
+        if response.status_code == 200:
+            data = response.json()
+            third_party_configs = data["third_party_configs"]
+            third_party_config = parse_third_party_configs(third_party_configs)
+        else:
+            # 如果从服务器接口读取失败，则使用本地解析
+            third_party_config = parse_yaml_block(content)
+            if config.PROD_NAME == "identify_field":
+                logging.info("识田间项目使用正式微信配置")
+                third_party_config.pop("wechat", None)
+                third_party_config["wechat"] = {
+                    "appid": "wx4d4456070d11a01a",
+                    "secret": "b8ad75cd1cd6715de7d27b350e1814a5",
+                }
+
         # 普通项目正常读取
         abi_filters = (
             abi_filters_match.group(1) if abi_filters_match else '"armeabi-v7a", "arm64-v8a"'

@@ -168,7 +168,10 @@ def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
 
 
 def extract_compressed_file(
-    compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+        compressed_file: str,
+        extract_to: str,
+        temp_dir: str,
+        rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件

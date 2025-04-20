@@ -5,6 +5,7 @@ from typing import Dict, List
 import json5
 
 from auto_assemble.parse_permissions import parse_and_merge_permissions
+from auto_assemble.parse_third_party_configs import parse_third_party_configs
 from cbr.env_vars import CbrEnvVars
 
 # 默认权限列表
@@ -79,19 +80,7 @@ def parse_uni_manifest(
         uniapp_id = manifest_data.get("appid", "")
 
         # 提取第三方配置
-        third_party_config = {}
-        if third_party_configs:
-            # 按provider分组配置
-            provider_configs = {}
-            for config in third_party_configs:
-                provider = config["provider"]
-                if provider not in provider_configs:
-                    provider_configs[provider] = {}
-                provider_configs[provider][config["dict_value"]] = config["config_value"]
-
-            # 将分组后的配置添加到third_party_config
-            for provider, config in provider_configs.items():
-                third_party_config[provider] = config
+        third_party_config = parse_third_party_configs(third_party_configs)
 
         # 构建权限处理的内容
         permissions_content = DEFAULT_PERMISSIONS + "\n\n"
