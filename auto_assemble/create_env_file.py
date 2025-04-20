@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, Optional, Set
+from typing import Optional
 
 from auto_assemble.config import config as global_config
 
@@ -18,7 +18,7 @@ class EnvVarManager:
     """环境变量管理器"""
 
     def __init__(self):
-        self.var_configs: Dict[str, EnvVarConfig] = {
+        self.var_configs: dict[str, EnvVarConfig] = {
             "DISTRIBUTION_PATH": EnvVarConfig("分发仓库的本地目录", self._validate_directory),
             "ANDROID_UNI_BASE_PATH": EnvVarConfig(
                 "Android 基座工程所在目录", self._validate_directory
@@ -37,7 +37,7 @@ class EnvVarManager:
         }
 
         # 定义不同功能需要的环境变量
-        self.function_vars: Dict[str, Set[str]] = {
+        self.function_vars: dict[str, set[str]] = {
             "1": {
                 "DISTRIBUTION_PATH",
                 "ANDROID_UNI_BASE_PATH",
@@ -84,13 +84,13 @@ class EnvVarManager:
         """验证yes/no输入是否有效"""
         return value.lower() in ["y", "n"]
 
-    def get_required_vars(self, select_func: Optional[str] = None) -> Set[str]:
+    def get_required_vars(self, select_func: Optional[str] = None) -> set[str]:
         """获取指定功能所需的环境变量"""
         if not select_func:
             return set(self.var_configs.keys())
         return self.function_vars.get(select_func, set())
 
-    def read_env_file(self, env_file: str) -> Dict[str, str]:
+    def read_env_file(self, env_file: str) -> dict[str, str]:
         """读取环境变量文件"""
         existing_vars = {}
         if os.path.exists(env_file):
@@ -105,7 +105,7 @@ class EnvVarManager:
                 print(f"读取现有环境变量文件时发生错误: {e}")
         return existing_vars
 
-    def write_env_file(self, env_file: str, env_vars: Dict[str, str]) -> bool:
+    def write_env_file(self, env_file: str, env_vars: dict[str, str]) -> bool:
         """写入环境变量文件"""
         try:
             with open(env_file, "w", encoding="utf-8") as f:

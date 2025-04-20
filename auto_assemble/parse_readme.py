@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-from typing import Dict, List
 
 import requests
 import yaml
@@ -11,13 +10,13 @@ from auto_assemble.parse_permissions import parse_and_merge_permissions
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
 
 
-def parse_uni_modules(content: str) -> List[str]:
+def parse_uni_modules(content: str) -> list[str]:
     """
     从README.md内容中解析模块信息
     Args:
         content: README.md文件内容
     Returns:
-        List[str]: 解析出的模块列表，每个元素为模块名称
+        list[str]: 解析出的模块列表，每个元素为模块名称
     """
     try:
         # 使用正则表达式匹配模块信息部分
@@ -40,13 +39,13 @@ def parse_uni_modules(content: str) -> List[str]:
         return []
 
 
-def parse_yaml_block(content: str) -> Dict[str, Dict[str, str]]:
+def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
     """
     从内容中解析 YAML 代码块
     Args:
         content: 文件内容
     Returns:
-        Dict[str, Dict[str, str]]: 解析后的 YAML 配置信息
+        dict[str, dict[str, str]]: 解析后的 YAML 配置信息
     """
     try:
         # 使用更宽松的匹配模式
@@ -100,13 +99,13 @@ def parse_yaml_block(content: str) -> Dict[str, Dict[str, str]]:
         return {}
 
 
-def parse_readme(readme_path: str) -> Dict[str, str]:
+def parse_readme(readme_path: str) -> dict[str, str]:
     """
     从 README.md 文件中解析版本信息
     Args:
         readme_path: README.md 文件路径
     Returns:
-        Dict[str, str]: 包含版本信息的字典，包括以下键：
+        dict[str, str]: 包含版本信息的字典，包括以下键：
             - hbx_version: HBuilderX 版本
             - version_name: 版本名称
             - version_code: 版本号

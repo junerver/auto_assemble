@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 from ..extensions.context import get_db
 
@@ -58,7 +58,7 @@ class Task:
         return None
 
     @classmethod
-    def get_pending_tasks(cls) -> List["Task"]:
+    def get_pending_tasks(cls) -> list["Task"]:
         """获取待处理的任务"""
         db = get_db()
         cursor = db.cursor()
@@ -66,7 +66,7 @@ class Task:
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> List["Task"]:
+    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
         """获取最近的任务
 
         Args:

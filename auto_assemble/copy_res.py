@@ -3,7 +3,7 @@ import os
 import shutil
 import textwrap
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
 
 import patoolib
 import requests
@@ -120,7 +120,7 @@ def clear_directory(directory: str) -> bool:
         return False
 
 
-def check_compressed_file_content(compressed_file: str) -> Tuple[bool, str]:
+def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
     """
     检查压缩文件中的目录结构是否符合要求
     Args:
@@ -247,7 +247,7 @@ def check_apps_directory() -> bool:
         return False
 
 
-def get_prod_name(distribution_path: str) -> Tuple[str, str]:
+def get_prod_name(distribution_path: str) -> tuple[str, str]:
     """
     从分发仓库中获取最新的项目名称和最新时间戳目录
     Args:

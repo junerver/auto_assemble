@@ -1,6 +1,6 @@
 import sqlite3
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from ..extensions.context import get_db
 
@@ -16,7 +16,7 @@ class ThirdPartyDict:
     id: Optional[int] = None
 
     @classmethod
-    def get_all(cls) -> List["ThirdPartyDict"]:
+    def get_all(cls) -> list["ThirdPartyDict"]:
         """获取所有第三方配置字典项"""
         db = get_db()
         cursor = db.cursor()
@@ -140,7 +140,7 @@ class ThirdPartyConfig:
     dict_value: Optional[str] = None
 
     @classmethod
-    def get_by_project(cls, project_id: str) -> List["ThirdPartyConfig"]:
+    def get_by_project(cls, project_id: str) -> list["ThirdPartyConfig"]:
         """获取项目的所有第三方配置"""
         db = get_db()
         cursor = db.cursor()
@@ -157,7 +157,7 @@ class ThirdPartyConfig:
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_unconfigured_dict_items(cls, project_id: str) -> List[ThirdPartyDict]:
+    def get_unconfigured_dict_items(cls, project_id: str) -> list[ThirdPartyDict]:
         """获取项目未配置的字典项"""
         db = get_db()
         cursor = db.cursor()

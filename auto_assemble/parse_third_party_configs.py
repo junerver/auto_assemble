@@ -1,7 +1,4 @@
-from typing import Dict, List
-
-
-def parse_third_party_configs(third_party_configs: List[Dict[str, str]]) -> Dict[str, str]:
+def parse_third_party_configs(third_party_configs: list[dict[str, str]]) -> dict[str, dict]:
     """
     将从服务器获取的第三方配置列表解析为字典对象
     Args:

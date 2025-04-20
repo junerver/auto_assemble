@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Dict, List
 
 import json5
 
@@ -48,14 +47,16 @@ modules_map = {
 def parse_uni_manifest(
         manifest_path: str,
         env_vars: CbrEnvVars | None = None,
-        third_party_configs: List[Dict[str, str]] | None = None,
-) -> Dict[str, str]:
+        third_party_configs: list[dict[str, str]] | None = None,
+) -> dict[str, str]:
     """
     解析uniapp的manifest.json文件
     Args:
         manifest_path: manifest.json文件路径
+        env_vars:
+        third_party_configs:
     Returns:
-        Dict[str, str]: 包含版本信息的字典，包括以下键：
+        dict[str, str]: 包含版本信息的字典，包括以下键：
             - hbx_version: HBuilderX 版本
             - version_name: 版本名称
             - version_code: 版本号

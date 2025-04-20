@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from ..models.third_party import ThirdPartyDict, ThirdPartyConfig
 
@@ -7,7 +7,7 @@ class ThirdPartyService:
     """第三方配置服务"""
 
     @staticmethod
-    def get_all_dict_items() -> List[ThirdPartyDict]:
+    def get_all_dict_items() -> list[ThirdPartyDict]:
         """获取所有第三方配置字典项"""
         return ThirdPartyDict.get_all()
 
@@ -32,11 +32,11 @@ class ThirdPartyService:
         return ThirdPartyDict.delete(dict_key)
 
     @staticmethod
-    def get_project_configs(project_id: str) -> List[ThirdPartyConfig]:
+    def get_project_configs(project_id: str) -> list[ThirdPartyConfig]:
         """获取项目的所有第三方配置"""
         return ThirdPartyConfig.get_by_project(project_id)
 
     @staticmethod
-    def get_unconfigured_dict_items(project_id: str) -> List[ThirdPartyDict]:
+    def get_unconfigured_dict_items(project_id: str) -> list[ThirdPartyDict]:
         """获取项目未配置的字典项"""
         return ThirdPartyConfig.get_unconfigured_dict_items(project_id)

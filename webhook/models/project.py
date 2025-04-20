@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional
 
 from ..extensions.context import get_db
 
@@ -52,7 +52,7 @@ class Project:
         return None
 
     @classmethod
-    def get_all(cls) -> List["Project"]:
+    def get_all(cls) -> list["Project"]:
         """获取所有项目"""
         db = get_db()
         cursor = db.cursor()

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Any
 
 from auto_assemble.config import config
 
@@ -27,7 +27,7 @@ THIRD_PARTY_END = "//---------------third party dependencies end---------------"
 def _process_line(
         line: str,
         artifact_name: str,
-        version_info: Dict[str, Any],
+        version_info: dict[str, Any],
 ) -> str:
     """
     处理单行内容，根据不同的行类型返回处理后的内容
@@ -113,10 +113,11 @@ def _process_line(
         case _:
             return line
 
+
 def update_build_gradle(
-    build_gradle_path: str,
-    artifact_name: str,
-    version_info: dict,
+        build_gradle_path: str,
+        artifact_name: str,
+        version_info: dict,
 ) -> bool:
     """
     更新build.gradle文件中的reqDate变量和版本信息，
@@ -167,7 +168,7 @@ def update_build_gradle(
         for line in lines:
             if line.strip().startswith("def reqDate ="):
                 quote_char = '"' if '"' in line else "'"
-                old_artifact_name = line[line.index(quote_char) + 1 : line.rindex(quote_char)]
+                old_artifact_name = line[line.index(quote_char) + 1: line.rindex(quote_char)]
                 logging.info(f"当前reqDate值: {old_artifact_name}")
                 break
         # 处理每一行并写入新文件
@@ -194,7 +195,7 @@ def update_build_gradle(
             dep = MODULE_DEPENDENCY_MAP[m]
             if dep is not None:
                 deps.append(dep)
-        
+
         # 记录更新日志
         logging.info(
             f"成功更新build.gradle文件，reqDate从 {old_artifact_name} 更新为 {artifact_name}"

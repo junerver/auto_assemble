@@ -2,13 +2,12 @@ import dataclasses
 import json
 import logging
 import os
-from typing import Dict, List, Tuple
 
 from cbr.env_vars import CbrEnvVars
 from cbr.parse_uni_manifest import parse_uni_manifest
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[CbrEnvVars, List[Dict[str, str]]]:
+def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[dict[str, str]]]:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -87,8 +86,8 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> Tuple[CbrEnvVars, List[
 
 
 def check_uni_project(
-        env_vars: CbrEnvVars, third_party_configs: List[Dict[str, str]]
-) -> Tuple[bool, Dict[str, str], str]:
+        env_vars: CbrEnvVars, third_party_configs: list[dict[str, str]]
+) -> tuple[bool, dict[str, str], str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -105,7 +104,7 @@ def check_uni_project(
         - third_party_configs: 第三方配置文件对应的数据类列表
 
     Returns:
-        Tuple[bool, Dict[str, str], str]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
+        tuple[bool, dict[str, str], str]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
     """
     try:
 
