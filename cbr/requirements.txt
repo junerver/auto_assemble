@@ -1,4 +1,9 @@
-python-dotenv==1.0.0
+pyyaml>=6.0.2
+patool>=4.0.0
+rarfile>=4.2
+python-dotenv>=1.0.1
+json5>=0.10.0
+
 win11toast==0.35
 requests==2.31.0 
 sseclient-py==1.8.0
