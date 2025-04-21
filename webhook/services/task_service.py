@@ -1,3 +1,5 @@
+import json
+import logging
 from datetime import datetime
 
 from ..models.task import Task
@@ -26,6 +28,7 @@ class TaskService:
 
         added_files = commits[0].get("added", [])
         if not is_valid_build_task(added_files):
+            logging.warning(f"收到无效的构建请求:\n {json.dumps(commits, ensure_ascii=False, indent=2)}")
             return None, "Not a valid build task", 200
 
         # 解析任务信息
