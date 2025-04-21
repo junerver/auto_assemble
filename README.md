@@ -98,7 +98,93 @@ PORT=5005
 WEBHOOK_URL=http://localhost:5005
 ```
 
+## Docker部署说明
 
+### 环境要求
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### 部署步骤
+
+1. 准备数据库文件：
+   ```bash
+   # 备份现有数据库
+   cp webhook/webhook_server.db webhook/webhook_server.db.bak
+   ```
+
+2. 配置环境变量：
+   ```bash
+   # 复制环境变量模板
+   cp webhook/.env.template webhook/.env.docker
+   # 编辑环境变量文件，修改必要的配置
+   ```
+
+3. 构建和启动容器：
+   ```bash
+   # 构建镜像
+   docker-compose build
+   
+   # 启动服务
+   docker-compose up -d
+   ```
+
+4. 查看服务状态：
+   ```bash
+   # 查看容器日志
+   docker-compose logs -f
+   
+   # 查看容器状态
+   docker-compose ps
+   ```
+
+### 数据持久化
+
+- 数据库文件保存在Docker卷中：`auto_assemble_webhook_data`
+- 日志文件保存在容器内的`/app/webhook`目录
+
+### 维护操作
+
+1. 停止服务：
+   ```bash
+   docker-compose down
+   ```
+
+2. 重启服务：
+   ```bash
+   docker-compose restart
+   ```
+
+3. 更新服务：
+   ```bash
+   # 拉取最新代码
+   git pull
+   
+   # 重新构建并启动
+   docker-compose up -d --build
+   ```
+
+4. 查看日志：
+   ```bash
+   docker-compose logs -f webhook
+   ```
+
+### 故障排除
+
+1. 容器无法启动：
+   - 检查端口是否被占用
+   - 检查环境变量配置
+   - 查看容器日志
+
+2. 数据库问题：
+   - 检查数据库文件权限
+   - 验证数据库文件完整性
+   - 必要时从备份恢复
+
+3. 服务不可用：
+   - 检查容器健康状态
+   - 验证网络连接
+   - 检查日志输出
 
 ## 错误码说明
 
@@ -137,8 +223,6 @@ WEBHOOK_URL=http://localhost:5005
 | 12008 | 基座工程git更新失败（add、commit）        |
 | 20001 | 执行 Gradle 构建失败                 |
 | 20002 | 复制构建产物失败                       |
-
-
 
 ## Changelog
 

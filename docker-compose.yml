@@ -1,0 +1,24 @@
+services:
+  webhook:
+    build: .
+    container_name: auto_assemble_webhook
+    restart: unless-stopped
+    ports:
+      - "5005:5005"
+    volumes:
+      - webhook_data:/app/webhook
+      - ./webhook/.env.docker:/app/webhook/.env:ro
+      - ./webhook/webhook_server.db:/app/webhook/webhook_server.db
+    environment:
+      - FLASK_DEBUG=false
+      - PORT=5005
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:5005/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  webhook_data:
+    name: auto_assemble_webhook_data
