@@ -1,5 +1,5 @@
 # 构建阶段：安装Android SDK和JDK
-FROM ubuntu:22.04 as android-builder
+FROM ubuntu:22.04 AS android-builder
 
 # 设置环境变量
 ENV ANDROID_HOME=/opt/android-sdk \
@@ -59,7 +59,7 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /usr/bin/pip3 /usr/bin/pip \
     && pip install --no-cache-dir --upgrade pip
 
-# 复制项目文件
+# 复制依赖文件
 COPY requirements.txt ./requirements.txt
 
 # 创建并激活虚拟环境
@@ -80,10 +80,15 @@ ENV ANDROID_HOME=/opt/android-sdk \
     JAVA_HOME=/opt/java \
     PATH="$PATH:/opt/java/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$VIRTUAL_ENV/bin"
 
-# 复制其他项目文件
+# 复制项目文件
 COPY auto_assemble ./auto_assemble
 COPY webhook ./webhook
+COPY cbr ./cbr
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
+COPY pyproject.toml ./pyproject.toml
+
+# 安装auto_assemble模块
+RUN pip install -e .
 
 # 创建非root用户
 RUN addgroup --system --gid 1000 appuser \
