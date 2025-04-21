@@ -9,16 +9,35 @@ services:
       - webhook_data:/app/webhook
       - ./webhook/.env.docker:/app/webhook/.env:ro
       - ./webhook/webhook_server.db:/app/webhook/webhook_server.db
+      # Android构建环境
+      - android_sdk:/opt/android-sdk
+      - gradle_cache:/root/.gradle
+      - maven_cache:/root/.m2
+      # Git仓库
+      - ./distribution:/app/distribution
+      - ./uni-base:/app/uni-base
     environment:
       - FLASK_DEBUG=false
       - PORT=5005
+      # Android环境变量
+      - ANDROID_HOME=/opt/android-sdk
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+      - JAVA_HOME=/opt/java
+      - PATH=/usr/local/bin:/usr/bin:/bin:/opt/java/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:5005/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    command: [ "python", "-m", "webhook" ]
 
 volumes:
   webhook_data:
     name: auto_assemble_webhook_data
+  android_sdk:
+    name: auto_assemble_android_sdk
+  gradle_cache:
+    name: auto_assemble_gradle_cache
+  maven_cache:
+    name: auto_assemble_maven_cache

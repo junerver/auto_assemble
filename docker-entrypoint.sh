@@ -7,8 +7,5 @@ if [ ! -f "/app/webhook/webhook_server.db" ]; then
     sleep 5
 fi
 
-# 设置文件权限
-chown -R appuser:appuser /app/webhook
-
 # 执行主命令
-exec "$@" 
+exec python -m webhook "$@" 
