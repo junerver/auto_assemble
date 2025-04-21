@@ -1,32 +1,25 @@
+"""
+Notifications Module
+
+This module provides notification functionality for the webhook server.
+"""
+
 import logging
-import sys
-import threading
+
+from flask import current_app
 
 from ..models.task import Task
 
 
 def show_toast(title, message):
-    """显示Windows通知"""
+    """发送 toast 通知事件"""
     try:
-        if sys.platform == "win32":
-            from win11toast import toast
-
-            # 创建一个新的事件循环
-            def run_toast():
-                import asyncio
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                toast(title, message)
-                loop.close()
-
-            # 在新线程中运行toast
-            thread = threading.Thread(target=run_toast)
-            thread.start()
+        if hasattr(current_app, "extensions") and "sse" in current_app.extensions:
+            current_app.extensions["sse"].publish("toast", {"title": title, "message": message})
         else:
-            logging.info(f"Toast notification: {title} - {message}")
+            logging.warning("SSE extension not initialized")
     except Exception as e:
-        logging.error(f"显示通知时发生错误: {str(e)}")
+        logging.error(f"发送通知事件时发生错误: {str(e)}")
 
 
 def show_build_toast(task: Task, success: bool):

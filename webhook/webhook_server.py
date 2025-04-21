@@ -3,8 +3,9 @@ import logging
 from flask import Flask, render_template
 
 from .config import PORT, DEBUG, DB_FILE
-from .controllers import webhook_bp, project_bp, task_bp, third_party_bp, auth_bp
+from .controllers import webhook_bp, project_bp, task_bp, third_party_bp, auth_bp, events_bp
 from .extensions.context import init_app
+from .extensions.sse import ServerSentEvents
 from .models.database import init_db
 
 
@@ -22,12 +23,16 @@ def create_app():
     # 初始化数据库连接管理
     init_app(app)
 
+    # 初始化 SSE 扩展
+    sse = ServerSentEvents(app)
+
     # 注册蓝图
     app.register_blueprint(webhook_bp)
     app.register_blueprint(project_bp, url_prefix="/api/config")
     app.register_blueprint(task_bp)
     app.register_blueprint(third_party_bp, url_prefix="/api/config/third-party")
     app.register_blueprint(auth_bp)
+    app.register_blueprint(events_bp)
 
     # 打印所有注册的路由
     logging.info("已注册的路由:")
