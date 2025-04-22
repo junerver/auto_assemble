@@ -58,7 +58,3 @@ build/
 dist/
 release/
 *.spec 
-
-# client modules
-manager_client/
-cbr/

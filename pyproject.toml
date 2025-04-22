@@ -36,9 +36,10 @@ dev = [
 auto-assemble = "auto_assemble.__main__:main"
 webhook = "webhook.__main__:main"
 cbr = "cbr.__main__:main"
+manager-client = "manager_client.__main__:main"
 
 [tool.setuptools]
-packages = ["auto_assemble", "cbr", "webhook"]
+packages = ["auto_assemble", "cbr", "webhook", "manager_client"]
 
 [tool.black]
 line-length = 100

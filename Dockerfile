@@ -84,6 +84,7 @@ ENV ANDROID_HOME=/opt/android-sdk \
 COPY auto_assemble ./auto_assemble
 COPY webhook ./webhook
 COPY cbr ./cbr
+COPY manager_client ./manager_client
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 COPY pyproject.toml ./pyproject.toml
 
