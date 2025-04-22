@@ -94,3 +94,13 @@ def replay_webhook(task_id):
     except requests.exceptions.RequestException as e:
         logging.error(f"重放webhook请求时发生错误: {str(e)}")
         return jsonify({"error": f"请求发送失败: {str(e)}"}), 500
+
+
+@task_bp.route("/task/<task_id>/stop", methods=["POST"])
+def stop_task(task_id):
+    """停止运行中的任务"""
+    logging.info(f"停止任务: {task_id}")
+    task, message, status_code = TaskService.stop_task(task_id)
+    if task:
+        return jsonify({"message": message, "task": format_task_info(task.to_dict())}), status_code
+    return jsonify({"error": message}), status_code

@@ -832,6 +832,9 @@
                 <div class="task-item ${task.error ? 'warning' : ''}">
                     <h6 class="task-title">
                         <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
+                        ${isRunning ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
+                            <i class="bi bi-stop-circle"></i> 停止
+                        </button>` : ''}
                         ${task.error ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
                             <i class="bi bi-arrow-repeat"></i> 重播
                         </button>` : ''}
@@ -1763,6 +1766,31 @@
                         console.error('Error:', error);
                         alert('重播任务失败');
                     });
+            }
+        });
+
+        // 添加停止按钮点击事件处理
+        document.addEventListener('click', function (event) {
+            if (event.target.closest('.stop-btn')) {
+                const taskId = event.target.closest('.stop-btn').getAttribute('data-task-id');
+                if (confirm('确定要停止当前任务吗？')) {
+                    fetch(`/task/${taskId}/stop`, {
+                        method: 'POST'
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert(data.error);
+                            } else {
+                                alert('任务已停止');
+                                updateQueueStatus(); // 刷新状态
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('停止任务失败');
+                        });
+                }
             }
         });
 

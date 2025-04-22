@@ -61,7 +61,7 @@ def main():
             print("输入错误，请重新输入。")
 
         if result != 0:
-            print("\n程序执行中断，请查看日志文件了解详细信息。")
+            print(f"\n{result} 程序执行中断，请查看日志文件了解详细信息。")
         if config.work_mode == "ui":
             input("按回车键退出...")
         return result

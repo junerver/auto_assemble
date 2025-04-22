@@ -2,6 +2,7 @@ import json
 import logging
 from datetime import datetime
 
+from auto_assemble.err_code import format_error
 from ..models.task import Task
 from ..utils.notifications import show_toast
 from ..utils.validators import is_valid_build_task, parse_build_task
@@ -28,7 +29,9 @@ class TaskService:
 
         added_files = commits[0].get("added", [])
         if not is_valid_build_task(added_files):
-            logging.warning(f"收到无效的构建请求:\n {json.dumps(commits, ensure_ascii=False, indent=2)}")
+            logging.warning(
+                f"收到无效的构建请求:\n {json.dumps(commits, ensure_ascii=False, indent=2)}"
+            )
             return None, "Not a valid build task", 200
 
         # 解析任务信息
@@ -126,3 +129,26 @@ class TaskService:
             "queue_size": len(pending_tasks),
             "recent_tasks": [task.to_dict() for task in recent_tasks],
         }
+
+    @staticmethod
+    def stop_task(task_id):
+        """停止运行中的任务
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            tuple: (task, message, status_code)
+            - task: 更新后的任务对象，如果任务不存在或不在运行中则为None
+            - message: 处理结果消息
+            - status_code: HTTP状态码
+        """
+        task = Task.get_by_id(task_id)
+        if not task:
+            return None, "Task not found", 404
+
+        if task.status != "running":
+            return None, "Task is not running", 400
+
+        task.update_status("failed", format_error(10003))
+        return task, "Task stopped successfully", 200
