@@ -24,7 +24,7 @@ def get_build_req_label(build_mode: str, req_resp: str = "req"):
 
 
 def get_build_resp_message(commit_message: str):
-    return f"{get_build_req_label(config.build_mode, "resp")}{commit_message}"
+    return f"{get_build_req_label(config.build_mode, 'resp')}{commit_message}"
 
 
 def parse_build_req_message(message: str):
@@ -99,7 +99,7 @@ def execute_gradle_build(release: bool = True):
             "/c",
             "gradlew.bat",
             "clean",
-            f"app:assemble{"Release" if release else "Debug"}",
+            f"app:assemble{'Release' if release else 'Debug'}",
         ]
         logging.info(f"执行命令: {' '.join(cmd)}")
 
@@ -299,7 +299,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         else:
             # 本地构建只记录变更时间
             commit_message = (
-                f"{"release" if release else "debug"}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+                f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
             )
 
         if not update_git_info(commit_message):
