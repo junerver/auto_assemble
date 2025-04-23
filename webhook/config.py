@@ -3,20 +3,36 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# 加载环境变量
-env_path = Path(os.path.dirname(os.path.abspath(__file__))) / ".env"
-if not env_path.exists():
-    print(f"环境变量文件 '{env_path}' 不存在")
-else:
-    load_dotenv(env_path)
-    print(f"已加载环境变量文件: {env_path}")
+# 从环境变量读取配置
+DISTRIBUTION_PATH = os.getenv("DISTRIBUTION_PATH")
+ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+PORT = int(os.getenv("PORT", 5005))
+DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+
+# 打印当前环境变量状态
+print(
+    f"当前环境变量：\nDISTRIBUTION_PATH: {DISTRIBUTION_PATH}\nANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}\nWEBHOOK_URL: {WEBHOOK_URL}\nPORT: {PORT}\nDEBUG: {DEBUG}"
+)
+
+# 检查必需的环境变量
+required_vars = {
+    "DISTRIBUTION_PATH": DISTRIBUTION_PATH,
+    "ANDROID_UNI_BASE_PATH": ANDROID_UNI_BASE_PATH,
+    "WEBHOOK_URL": WEBHOOK_URL,
+}
+
+missing_vars = [var for var, value in required_vars.items() if value is None]
+if missing_vars:
+    env_path = Path(os.path.dirname(os.path.abspath(__file__))) / ".env"
+    if not env_path.exists():
+        print(f"环境变量文件 '{env_path}' 不存在")
+    else:
+        load_dotenv(env_path)
+        print(f"已加载环境变量文件: {env_path}")
 
 # 数据库配置
 DB_FILE = Path(__file__).parent / "webhook_server.db"
-
-# 服务器配置
-PORT = int(os.getenv("PORT", 5005))
-DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
 # 任务配置
 CHECK_INTERVAL = 1  # 检查间隔（秒）

@@ -3,6 +3,7 @@ Auto Assemble 命令行入口
 """
 
 import argparse
+import logging
 import os
 import sys
 import textwrap
@@ -48,11 +49,21 @@ def main():
             )
             select_func = input("请输入功能序号：").strip()
 
-        check_and_create_env(env_file, select_func)
-
-        # 加载指定的 .env 文件
-        load_dotenv(env_file)
-        print(f"已从 {env_file} 加载环境变量。")
+        if (
+                os.getenv("DISTRIBUTION_PATH") is not None
+                and os.getenv("ANDROID_UNI_BASE_PATH") is not None
+                and os.getenv("WEBHOOK_URL") is not None
+        ):
+            # 从环境变量中加载相关变量
+            print(f"DISTRIBUTION_PATH: {os.getenv('DISTRIBUTION_PATH')}")
+            print(f"ANDROID_UNI_BASE_PATH: {os.getenv('ANDROID_UNI_BASE_PATH')}")
+            print(f"WEBHOOK_URL: {os.getenv('WEBHOOK_URL')}")
+            print("已从环境变量中加载相关变量，不再从.env文件中加载。")
+        else:
+            check_and_create_env(env_file, select_func)
+            # 加载指定的 .env 文件
+            load_dotenv(env_file)
+            print(f"已从 {env_file} 加载环境变量。")
 
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
@@ -61,7 +72,7 @@ def main():
             print("输入错误，请重新输入。")
 
         if result != 0:
-            print(f"\n{result} 程序执行中断，请查看日志文件了解详细信息。")
+            logging.error(f"\n{result} 程序执行中断，请查看日志文件了解详细信息。")
         if config.work_mode == "ui":
             input("按回车键退出...")
         return result

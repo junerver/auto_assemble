@@ -39,9 +39,9 @@ def check_paths():
         FileNotFoundError: 当必要的路径不存在时抛出
     """
     paths_to_check = {
-        "仓库路径": config.DISTRIBUTION_PATH,
-        "应用目录": config.APPS_DIRECTORY,
-        "Gradle文件": config.BUILD_GRADLE_PATH,
+        "分发仓库仓库目录": config.DISTRIBUTION_PATH,
+        "UniApp应用目录apps目录": config.APPS_DIRECTORY,
+        "基座项目Gradle文件": config.BUILD_GRADLE_PATH,
     }
 
     for name, path in paths_to_check.items():
@@ -418,6 +418,14 @@ def main(prod_name: str = None, task_dir: str = None):
             logging.error("清空目标目录失败，终止执行")
             return 12003
 
+        if config.build_mode != "dev":
+            # release 构建模式下需要对代码进行混淆
+
+            pass
+        else:
+            # 无需混淆
+            logging.info("无需混淆，直接解压文件")
+
         # 解压文件
         if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY, temp_dir):
             logging.error("解压文件失败，终止执行")
@@ -451,6 +459,12 @@ def main(prod_name: str = None, task_dir: str = None):
         logging.info("所有操作执行成功")
         return 0
     except Exception as e:
+        if isinstance(e, FileNotFoundError):
+            logging.error(f"目录不存在: {e}")
+            return 10004
+        if isinstance(e, ImportError):
+            logging.error(f"配置文件错误: {e}")
+            return 10005
         logging.error(f"执行过程中发生错误: {e}")
         return 1
 
