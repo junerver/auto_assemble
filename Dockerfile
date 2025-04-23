@@ -21,7 +21,7 @@ RUN wget -q https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d
     && rm openjdk-17.0.2_linux-x64_bin.tar.gz
 
 # 安装Android SDK
-COPY sdk/commandlinetools-linux-13114758_latest.zip /tmp/
+COPY resource/commandlinetools-linux-13114758_latest.zip /tmp/
 RUN mkdir -p /opt/android-sdk/cmdline-tools \
     && unzip -q /tmp/commandlinetools-linux-13114758_latest.zip -d /opt/android-sdk/cmdline-tools \
     && mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest \
@@ -41,17 +41,15 @@ FROM ubuntu:22.04
 WORKDIR /app
 
 # 安装系统依赖和Python
-RUN apt-get update && apt-get install -y \
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list && \
+    apt-get update && apt-get install -y \
     python3.11 \
-    python3.11-dev \
-    python3.11-venv \
     python3-pip \
+    python3.11-venv \
     passwd \
     login \
     adduser \
-    gcc \
-    libffi-dev \
-    libssl-dev \
     wget \
     git \
     && rm -rf /var/lib/apt/lists/* \
@@ -59,18 +57,16 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /usr/bin/pip3 /usr/bin/pip \
     && pip install --no-cache-dir --upgrade pip
 
-# 复制依赖文件
-COPY requirements.txt ./requirements.txt
-
 # 创建并激活虚拟环境
 ENV VIRTUAL_ENV=/app/venv
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # 安装Python依赖
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 从android-builder阶段复制Android环境
+# 复制 Android 环境
 COPY --from=android-builder /opt/android-sdk /opt/android-sdk
 COPY --from=android-builder /opt/java /opt/java
 
@@ -80,29 +76,48 @@ ENV ANDROID_HOME=/opt/android-sdk \
     JAVA_HOME=/opt/java \
     PATH="$PATH:/opt/java/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:$VIRTUAL_ENV/bin"
 
-# 复制项目文件
-COPY auto_assemble ./auto_assemble
-COPY webhook ./webhook
-COPY cbr ./cbr
-COPY manager_client ./manager_client
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
-COPY pyproject.toml ./pyproject.toml
-
-# 安装auto_assemble模块
-RUN pip install -e .
-
-# 创建非root用户
+# 创建非 root 用户
 RUN addgroup --system --gid 1000 appuser \
     && adduser --system --uid 1000 --gid 1000 appuser \
-    && chown -R appuser:appuser /app \
-    && chown -R appuser:appuser /opt/android-sdk \
-    && chown -R appuser:appuser /opt/java
+    && mkdir -p /home/appuser \
+    && chown -R appuser:appuser /app /opt/android-sdk /opt/java /home/appuser
 
-# 设置入口点脚本权限
-RUN chmod +x docker-entrypoint.sh
+# 切换用户前复制 .netrc
+COPY resource/.netrc /home/appuser/.netrc
+RUN chmod 600 /home/appuser/.netrc && chown appuser:appuser /home/appuser/.netrc
 
-# 切换到非root用户
+# 切换为 appuser
 USER appuser
+WORKDIR /app
+
+# 设置 HOME 环境变量
+ENV HOME=/home/appuser
+
+# 准备 Git 认证
+RUN echo '#!/bin/sh' > /home/appuser/git-askpass.sh \
+    && echo 'case "$1" in *Username*) echo "junerver@qq.com";; *Password*) echo "tKKBSQCRsvSd3Sh";; esac' >> /home/appuser/git-askpass.sh \
+    && chmod +x /home/appuser/git-askpass.sh
+
+# 配置 Git 和克隆仓库
+ENV GIT_ASKPASS=/home/appuser/git-askpass.sh
+RUN git config --global user.name "assemble_bot" \
+    && git config --global user.email "assemble_bot@jkr.com" \
+    && git clone "http://192.168.187.232:28088/rdcenter/app-distribution.git" /app/distribution \
+    && rm /home/appuser/git-askpass.sh
+
+# 复制项目文件（必须在 USER appuser 之后，否则权限出错）
+COPY --chown=appuser:appuser auto_assemble ./auto_assemble
+COPY --chown=appuser:appuser webhook ./webhook
+COPY --chown=appuser:appuser cbr ./cbr
+COPY --chown=appuser:appuser manager_client ./manager_client
+COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
+
+# 安装 auto_assemble 模块
+RUN pip install -e .
+
+# 设置入口点权限
+RUN chmod +x docker-entrypoint.sh
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1 \
@@ -110,11 +125,7 @@ ENV PYTHONUNBUFFERED=1 \
     FLASK_APP=webhook/__main__.py \
     FLASK_ENV=production
 
-# 暴露端口
 EXPOSE 5005
 
-# 设置入口点
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-
-# 启动命令
-CMD ["python", "-m", "webhook"] 
+CMD ["python", "-m", "webhook"]

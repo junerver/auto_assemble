@@ -58,3 +58,5 @@ build/
 dist/
 release/
 *.spec 
+
+webhook/.env
