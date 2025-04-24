@@ -7,5 +7,8 @@ if [ ! -f "/app/webhook/webhook_server.db" ]; then
     sleep 5
 fi
 
+# 执行清理脚本
+./cleanup.sh
+
 # 执行主命令
 exec python -m webhook "$@" 

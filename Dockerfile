@@ -15,16 +15,20 @@ COPY --chown=appuser:appuser cbr ./cbr
 COPY --chown=appuser:appuser manager_client ./manager_client
 COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
-
+COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
 # 安装项目依赖和模块
 RUN pip install -e .
 
-# 设置入口点权限
-RUN chmod +x docker-entrypoint.sh
+# 设置入口点权限、清理脚本权限
+RUN chmod +x docker-entrypoint.sh && \
+    chmod +x cleanup.sh
 
 # 设置环境变量
 ENV FLASK_APP=webhook/__main__.py \
-    FLASK_ENV=production
+    FLASK_ENV=production \
+    GRADLE_USER_HOME=/home/appuser/.gradle
+
+RUN mkdir -p $GRADLE_USER_HOME && chown -R appuser:appuser $GRADLE_USER_HOME
 
 EXPOSE 5005
 
