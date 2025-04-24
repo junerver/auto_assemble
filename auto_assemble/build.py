@@ -9,7 +9,7 @@ from datetime import datetime
 
 from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.config import config
-from auto_assemble.git import git_push
+from auto_assemble.git import git_push, git_reset_and_clean
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 
@@ -106,7 +106,7 @@ def execute_gradle_build(release: bool = True):
             ]
         else:
             cmd = [
-                "gradlew",
+                "./gradlew",
                 "clean",
                 f"app:assemble{'Release' if release else 'Debug'}",
             ]
@@ -265,7 +265,7 @@ def update_git_info(commit_message):
         if not git_push(repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git push 执行失败")
             return 12013
-        return True
+        return 0
     except Exception as e:
         logging.error(f"更新git信息时发生错误: {e}")
         return 12014
@@ -329,6 +329,10 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         if isinstance(e, FileNotFoundError):
             return 12010
         return 1
+    finally:
+        # 清理
+        logging.info("开始清理基座项目git缓存")
+        git_reset_and_clean(repo_path=config.ANDROID_UNI_BASE_PATH)
 
 
 if __name__ == "__main__":

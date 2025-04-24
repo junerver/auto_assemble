@@ -149,6 +149,62 @@ def sync_repository(repo_path: str) -> bool:
         return False
 
 
+def git_reset_hard_head(repo_path: str) -> bool:
+    """
+    执行git reset --hard HEAD操作，重置当前分支最后一次提交
+    """
+    try:
+        result = subprocess.run(
+            ["git", "reset", "--hard", "HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+        )
+        if result.returncode != 0:
+            logging.error(f"Git reset --hard HEAD执行失败: {result.stderr}")
+            return False
+        logging.info("Git reset --hard HEAD执行成功")
+        return True
+    except Exception as e:
+        logging.error(f"Git reset --hard HEAD执行失败: {e}")
+        return False
+
+
+def git_clean_fd(repo_path: str) -> bool:
+    """
+    执行git clean操作，删除所有未跟踪的文件
+    """
+    try:
+        result = subprocess.run(
+            ["git", "clean", "-fd"], capture_output=True, text=True, encoding="utf-8", cwd=repo_path
+        )
+        if result.returncode != 0:
+            logging.error(f"Git clean执行失败: {result.stderr}")
+            return False
+        logging.info("Git clean执行成功")
+        return True
+    except Exception as e:
+        logging.error(f"Git clean执行失败: {e}")
+        return False
+
+
+def git_reset_and_clean(repo_path: str) -> bool:
+    """
+    执行git reset --hard HEAD和git clean -fd操作，重置当前分支最后一次提交并删除所有未跟踪的文件
+    """
+    try:
+        if not git_reset_hard_head(repo_path):
+            return False
+        if not git_clean_fd(repo_path):
+            return False
+        logging.info("Git reset --hard HEAD和git clean -fd执行成功")
+        return True
+    except Exception as e:
+        logging.error(f"Git reset --hard HEAD和git clean -fd执行失败: {e}")
+        return False
+
+
 def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
     """
     检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
@@ -216,9 +272,11 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
 
             if status_proc.stdout.strip():
                 logging.error(
-                    f"{repo_path}存在未提交的更改，无法安全拉取远程更新\n{status_proc.stdout}"
+                    f"{repo_path}存在未提交的更改，无法安全拉取远程更新, `{status_proc.stdout}`，准备重置并清理"
                 )
-                return False
+                # 重置并清理
+                if not git_reset_and_clean(repo_path):
+                    return False
 
             # 尝试拉取更新
             pull_proc = subprocess.run(

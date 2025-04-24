@@ -451,12 +451,14 @@ def main(prod_name: str = None, task_dir: str = None):
                     shutil.rmtree(temp_dir)
                     # 将混淆后的目录压缩为zip文件，作为留痕
                     zip_file = os.path.join(
-                        config.cur_task_dir, f"{latest_dir_name}_obfuscated.zip"
+                        config.cur_task_dir, f"{latest_dir_name}_obfuscated.bak"
                     )
                     with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zipf:
                         for root, dirs, files in os.walk(obfuscated_dir):
                             for file in files:
-                                zipf.write(os.path.join(root, file), os.path.join(root, file))
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.relpath(file_path, obfuscated_dir)
+                                zipf.write(file_path, arcname)
                     logging.info(f"混淆后的目录压缩为zip文件: {zip_file}")
                     temp_dir = obfuscated_dir
                     config.is_obfuscated = True
