@@ -31,7 +31,7 @@ def build_exe():
 # 复制文件到 release 目录
 def copy_to_release(exe_name="create_build_req"):
     """将打包好的文件复制到 release 目录"""
-    release_dir = r"D:\dev\identify_field\app-distribution\.build_req"
+    release_dir = r"D:/dev/identify_field/app-distribution/.build_req"
     if not os.path.exists(release_dir):
         os.makedirs(release_dir)
         print(f"📁 创建 {release_dir} 目录")

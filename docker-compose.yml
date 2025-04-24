@@ -1,21 +1,21 @@
 services:
   webhook:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: auto_assemble_webhook
     restart: unless-stopped
     ports:
       - "5005:5005"
     volumes:
       - ./webhook/webhook_server.db:/app/webhook/webhook_server.db
-      # .netrc 文件
-      - ./resource/.netrc:/root/.netrc:ro
       # Android构建环境
       - android_sdk:/opt/android-sdk
-      - gradle_cache:/root/.gradle
-      - maven_cache:/root/.m2
-      # Git仓库
-      - distribution:/app/distribution
-      - uni_base:/app/uni-base
+      - gradle_cache:/home/appuser/.gradle
+      - maven_cache:/home/appuser/.m2
+      # Git仓库（从git-repo服务挂载）
+      - git_repo_distribution:/app/distribution
+      - git_repo_uni_base:/app/uni-base
     environment:
       - DISTRIBUTION_PATH=/app/distribution
       - ANDROID_UNI_BASE_PATH=/app/uni-base
@@ -29,6 +29,16 @@ services:
       retries: 3
       start_period: 40s
     command: [ "python", "-m", "webhook" ]
+    depends_on:
+      - git-repo
+
+  git-repo:
+    image: auto-assemble-repo:latest
+    container_name: auto_assemble_git_repo
+    restart: unless-stopped
+    volumes:
+      - git_repo_distribution:/app/distribution
+      - git_repo_uni_base:/app/uni-base
 
 volumes:
   android_sdk:
@@ -37,7 +47,7 @@ volumes:
     name: auto_assemble_gradle_cache
   maven_cache:
     name: auto_assemble_maven_cache
-  distribution:
-    name: auto_assemble_distribution
-  uni_base:
-    name: auto_assemble_uni_base
+  git_repo_distribution:
+    name: auto_assemble_git_repo_distribution
+  git_repo_uni_base:
+    name: auto_assemble_git_repo_uni_base
