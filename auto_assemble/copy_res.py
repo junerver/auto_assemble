@@ -430,11 +430,11 @@ def main(prod_name: str = None, task_dir: str = None):
                     shutil.copytree(temp_dir, obfuscated_dir)
                 logging.info(f"复制temp_dir目录到混淆后的目录: {obfuscated_dir}")
                 if sys.platform == "win32":
-                    obfuscator_path = "javascript-obfuscator.cmd"
+                    obfuscator_cmd = "javascript-obfuscator.cmd"
                 else:
-                    obfuscator_path = "javascript-obfuscator"
+                    obfuscator_cmd = "javascript-obfuscator"
                 cmd = [
-                    obfuscator_path,
+                    obfuscator_cmd,
                     obfuscated_dir,
                     "--output",
                     obfuscated_dir,

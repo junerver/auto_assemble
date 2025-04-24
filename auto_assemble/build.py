@@ -4,10 +4,12 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 
 from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.config import config
+from auto_assemble.git import git_push
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 
@@ -94,13 +96,20 @@ def execute_gradle_build(release: bool = True):
             return False
 
         # 执行gradle命令
-        cmd = [
-            "cmd",
-            "/c",
-            "gradlew.bat",
-            "clean",
-            f"app:assemble{'Release' if release else 'Debug'}",
-        ]
+        if sys.platform == "win32":
+            cmd = [
+                "cmd",
+                "/c",
+                "gradlew.bat",
+                "clean",
+                f"app:assemble{'Release' if release else 'Debug'}",
+            ]
+        else:
+            cmd = [
+                "gradlew",
+                "clean",
+                f"app:assemble{'Release' if release else 'Debug'}",
+            ]
         logging.info(f"执行命令: {' '.join(cmd)}")
 
         result = subprocess.run(
@@ -161,7 +170,9 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
             shutil.copy2(source_metadata, target_metadata)
             # 在metadata末尾追加写入
             with open(target_metadata, "a", encoding="utf-8") as f:
-                f.write(f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}")
+                f.write(
+                    f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}"
+                )
             # 在目标目录下创建md5作为文件名的空白文件
             open(os.path.join(target_dir, md5), "w").close()
             logging.info("成功复制metadata文件")
@@ -234,13 +245,13 @@ def update_git_info(commit_message):
         # 使用push.py中的git_add函数
         if not git_add(repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git add 执行失败")
-            return False
+            return 12008
 
         # 获取已暂存的文件
         staged_files = get_staged_files(repo_path=config.ANDROID_UNI_BASE_PATH)
         if not staged_files:
             logging.error("没有待提交的文件，资源文件未更新，终止执行")
-            return False
+            return 12011
         logging.info("待提交的文件列表:")
         for file in staged_files:
             logging.info(f"  - {file}")
@@ -248,11 +259,16 @@ def update_git_info(commit_message):
         # 执行git commit
         if not git_commit(commit_message, repo_path=config.ANDROID_UNI_BASE_PATH):
             logging.error("git commit 执行失败")
-            return False
+            return 12012
+
+        # 执行git push
+        if not git_push(repo_path=config.ANDROID_UNI_BASE_PATH):
+            logging.error("git push 执行失败")
+            return 12013
         return True
     except Exception as e:
         logging.error(f"更新git信息时发生错误: {e}")
-        return False
+        return 12014
 
 
 def main(target_dir: str = None, release: bool = True, is_distribution: bool = True):
@@ -302,9 +318,9 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
                 f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
             )
 
-        if not update_git_info(commit_message):
+        if (git_code := update_git_info(commit_message)) != 0:
             logging.error("更新git信息失败，终止执行")
-            return 12008
+            return git_code
 
         logging.info("所有操作执行成功")
         return 0
