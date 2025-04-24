@@ -17,6 +17,7 @@ services:
       - git_repo_distribution:/app/distribution
       - git_repo_uni_base:/app/uni-base
     environment:
+      - TZ=Asia/Shanghai
       - DISTRIBUTION_PATH=/app/distribution
       - ANDROID_UNI_BASE_PATH=/app/uni-base
       - WEBHOOK_URL=http://localhost:5005

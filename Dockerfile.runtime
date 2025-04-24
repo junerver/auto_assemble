@@ -41,25 +41,37 @@ FROM ubuntu:22.04
 
 WORKDIR /app
 
-# 安装 Python、系统依赖，并创建虚拟环境
+# 设置时区
+ENV TZ=Asia/Shanghai
+# 禁止交互式配置
+ENV DEBIAN_FRONTEND=noninteractive 
+
+# 配置阿里云镜像源、安装依赖
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list && \
     sed -i 's|http://security.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list && \
-    apt-get update && apt-get install -y \
-    python3.11 python3-pip python3.11-venv \
-    passwd login adduser wget git curl && \
-    rm -rf /var/lib/apt/lists/* && \
-    \
-    # 安装 Node.js 和 javascript-obfuscator
+    apt-get update && \
+    apt-get install -y \
+        python3.11 python3-pip python3.11-venv \
+        passwd login adduser wget git curl \
+        tzdata && \
+    # 设置时区
+    ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \
+    echo ${TZ} > /etc/timezone && \
+    # 安装 Node.js
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
+    # 清理缓存
     rm -rf /var/lib/apt/lists/* && \
+    # 配置 Node.js 工具
     npm install -g javascript-obfuscator && \
-    javascript-obfuscator -v && \
-    \
+    # 链接 Python
     ln -sf /usr/bin/python3.11 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip && \
-    pip install --no-cache-dir --upgrade pip && \
-    python -m venv /app/venv
+    # 创建虚拟环境
+    python -m venv /app/venv && \
+    # 激活虚拟环境
+    . /app/venv/bin/activate && \
+    pip install --no-cache-dir --upgrade pip
 
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
