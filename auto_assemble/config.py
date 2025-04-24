@@ -47,6 +47,8 @@ class Config:
         self.cur_task_id = ""
         # 打包机主机地址
         self.SERVER_HOST_URL = "http://192.168.172.110:5005"
+        # 是否混淆
+        self.is_obfuscated = False
 
     @property
     def DISTRIBUTION_PATH(self):
@@ -63,14 +65,14 @@ class Config:
     @property
     def APPS_DIRECTORY(self):
         if self._apps_directory is None:
-            self._apps_directory = rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\apps"
+            self._apps_directory = f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/apps"
         return self._apps_directory
 
     @property
     def ANDROID_MANIFEST_PATH(self):
         if self._android_manifest_path is None:
             self._android_manifest_path = (
-                rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\AndroidManifest.xml"
+                rf"{self.ANDROID_UNI_BASE_PATH}/app/src/main/AndroidManifest.xml"
             )
         return self._android_manifest_path
 
@@ -78,27 +80,27 @@ class Config:
     def CONTROL_FILE_PATH(self):
         if self._control_file_path is None:
             self._control_file_path = (
-                rf"{self.ANDROID_UNI_BASE_PATH}\app\src\main\assets\data\dcloud_control.xml"
+                f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/data/dcloud_control.xml"
             )
         return self._control_file_path
 
     @property
     def BUILD_GRADLE_PATH(self):
         if self._build_gradle_path is None:
-            self._build_gradle_path = rf"{self.ANDROID_UNI_BASE_PATH}\app\build.gradle"
+            self._build_gradle_path = f"{self.ANDROID_UNI_BASE_PATH}/app/build.gradle"
         return self._build_gradle_path
 
     @property
     def VERSIONS_TOML_PATH(self):
         if self._versions_toml_path is None:
-            self._versions_toml_path = rf"{self.ANDROID_UNI_BASE_PATH}\gradle\libs.versions.toml"
+            self._versions_toml_path = f"{self.ANDROID_UNI_BASE_PATH}/gradle/libs.versions.toml"
         return self._versions_toml_path
 
     @property
     def BUILD_RELEASE_OUTPUT_DIR(self):
         if self._build_release_output_dir is None:
             self._build_release_output_dir = (
-                rf"{self.ANDROID_UNI_BASE_PATH}\app\build\outputs\apk\release"
+                f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/release"
             )
         return self._build_release_output_dir
 
@@ -106,7 +108,7 @@ class Config:
     def BUILD_DEBUG_OUTPUT_DIR(self):
         if self._build_debug_output_dir is None:
             self._build_debug_output_dir = (
-                rf"{self.ANDROID_UNI_BASE_PATH}\app\build\outputs\apk\debug"
+                f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/debug"
             )
         return self._build_debug_output_dir
 

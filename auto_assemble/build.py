@@ -161,7 +161,7 @@ def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
             shutil.copy2(source_metadata, target_metadata)
             # 在metadata末尾追加写入
             with open(target_metadata, "a", encoding="utf-8") as f:
-                f.write(f"\n\n打包请求: {config.last_commit_message}")
+                f.write(f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}")
             # 在目标目录下创建md5作为文件名的空白文件
             open(os.path.join(target_dir, md5), "w").close()
             logging.info("成功复制metadata文件")

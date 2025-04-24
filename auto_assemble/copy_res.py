@@ -1,7 +1,10 @@
 import logging
 import os
 import shutil
+import subprocess
+import sys
 import textwrap
+import zipfile
 from datetime import datetime
 from typing import Optional
 
@@ -419,9 +422,56 @@ def main(prod_name: str = None, task_dir: str = None):
             return 12003
 
         if config.build_mode != "dev":
-            # release 构建模式下需要对代码进行混淆
-
-            pass
+            try:
+                # release 构建模式下需要对代码进行混淆，执行javascript-obfuscator命令混淆temp_dir目录下的所有js文件
+                # 在当前目录下复制temp_dir目录，作为混淆后的目录
+                obfuscated_dir = os.path.join(config.cur_task_dir, "obfuscated")
+                if not os.path.exists(obfuscated_dir):
+                    shutil.copytree(temp_dir, obfuscated_dir)
+                logging.info(f"复制temp_dir目录到混淆后的目录: {obfuscated_dir}")
+                if sys.platform == "win32":
+                    obfuscator_path = "javascript-obfuscator.cmd"
+                else:
+                    obfuscator_path = "javascript-obfuscator"
+                cmd = [
+                    obfuscator_path,
+                    obfuscated_dir,
+                    "--output",
+                    obfuscated_dir,
+                    "--options-preset",
+                    "low-obfuscation",
+                ]
+                logging.info(f"执行javascript-obfuscator命令: {cmd}")
+                result = subprocess.run(cmd, check=True)
+                if result.returncode == 0:
+                    logging.info(
+                        f"javascript-obfuscator命令执行成功，混淆后的目录: {obfuscated_dir}"
+                    )
+                    # 删除原目录
+                    shutil.rmtree(temp_dir)
+                    # 将混淆后的目录压缩为zip文件，作为留痕
+                    zip_file = os.path.join(
+                        config.cur_task_dir, f"{latest_dir_name}_obfuscated.zip"
+                    )
+                    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zipf:
+                        for root, dirs, files in os.walk(obfuscated_dir):
+                            for file in files:
+                                zipf.write(os.path.join(root, file), os.path.join(root, file))
+                    logging.info(f"混淆后的目录压缩为zip文件: {zip_file}")
+                    temp_dir = obfuscated_dir
+                    config.is_obfuscated = True
+                else:
+                    logging.error(
+                        f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码"
+                    )
+                    # 执行失败，不进行混淆
+                    if os.path.exists(obfuscated_dir):
+                        shutil.rmtree(obfuscated_dir)
+            except Exception as e:
+                logging.error(f"执行javascript-obfuscator命令失败: {e}")
+                # 执行失败，不进行混淆
+                if os.path.exists(obfuscated_dir):
+                    shutil.rmtree(obfuscated_dir)
         else:
             # 无需混淆
             logging.info("无需混淆，直接解压文件")
