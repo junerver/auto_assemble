@@ -33,7 +33,7 @@ services:
       - git-repo
 
   git-repo:
-    image: auto-assemble-repo:latest
+    image: auto_assemble-repo:latest
     container_name: auto_assemble_git_repo
     restart: unless-stopped
     volumes:
