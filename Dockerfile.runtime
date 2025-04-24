@@ -13,13 +13,6 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|
     apt-get update && apt-get install -y wget unzip git curl && \
     rm -rf /var/lib/apt/lists/* && \
     \
-    # 安装 Node.js 和 javascript-obfuscator
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/* && \
-    npm install -g javascript-obfuscator && \
-    javascript-obfuscator -v && \
-    \
     # 安装 JDK
     wget -q https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2_linux-x64_bin.tar.gz && \
     mkdir -p /opt/java && \
@@ -57,13 +50,15 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|
     # 设置时区
     ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \
     echo ${TZ} > /etc/timezone && \
-    # 安装 Node.js
+    \
+    # 安装 Node.js 和 javascript-obfuscator
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g javascript-obfuscator && \
+    javascript-obfuscator -v && \
     # 清理缓存
     rm -rf /var/lib/apt/lists/* && \
-    # 配置 Node.js 工具
-    npm install -g javascript-obfuscator && \
     # 链接 Python
     ln -sf /usr/bin/python3.11 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip && \
