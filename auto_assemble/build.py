@@ -116,7 +116,8 @@ def execute_gradle_build(release: bool = True):
             cmd,
             capture_output=True,
             text=True,
-            encoding="gbk",
+            encoding="utf-8",  # ✅ 修改为 utf-8
+            errors="replace",  # ✅ 可选，避免报错，替换非法字符
         )
 
         if result.returncode == 0:
