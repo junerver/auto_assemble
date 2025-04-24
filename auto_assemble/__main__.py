@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from auto_assemble.auto_flow import main as auto_flow
 from auto_assemble.config import config
 from auto_assemble.create_env_file import check_and_create_env
+from auto_assemble.err_code import unified_error_code
 from auto_assemble.welcome import welcome
 
 
@@ -75,7 +76,8 @@ def main():
             logging.error(f"\n{result} 程序执行中断，请查看日志文件了解详细信息。")
         if config.work_mode == "ui":
             input("按回车键退出...")
-        return result
+        # 判断操作系统，如果是Windows，则直接返回，否则将错误码格式化为Unix/Linux规则的0-255的错误码
+        return unified_error_code(result)
     except Exception as e:
         print(f"\n程序发生异常: {e}")
         print("请查看日志文件了解详细信息。")
