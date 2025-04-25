@@ -10,5 +10,5 @@ fi
 # 执行清理脚本
 ./cleanup.sh
 
-# 执行主命令
-exec python -m webhook "$@" 
+# 执行传入的命令
+exec "$@"
