@@ -15,5 +15,5 @@ if env_path.exists():
     load_dotenv(env_path)
 
 # 配置项
-SERVER_URL = os.getenv("SERVER_URL", "http://localhost:5005")
+SERVER_HOST_URL = os.getenv("SERVER_HOST_URL", "http://localhost:5005")
 RECONNECT_INTERVAL = int(os.getenv("RECONNECT_INTERVAL", "5"))

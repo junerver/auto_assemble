@@ -9,6 +9,7 @@ from datetime import datetime
 
 import requests
 from win11toast import toast
+from dotenv import load_dotenv
 
 from auto_assemble.build import get_build_req_label
 from auto_assemble.config import config
@@ -45,6 +46,14 @@ def create_build_req():
         parser.add_argument("-t", "--test", action="store_true", help="Test mode")
         parser.add_argument("-r", "--release", action="store_true", help="Release mode")
         args = parser.parse_args()
+
+        env_file = os.path.join(os.getcwd(), ".env")
+        if not os.path.exists(env_file):
+            logging.error("没有找到.env文件，请检查是否存在")
+            return 1
+        load_dotenv(env_file)
+        config.SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
+        logging.info(f"打包服务器地址: {config.SERVER_HOST_URL}")
 
         # 默认打包模式为dev
         req_mode = "dev"

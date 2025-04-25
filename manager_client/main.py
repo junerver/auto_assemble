@@ -9,7 +9,7 @@ import logging
 import sys
 
 from .client import EventManager
-from .config import SERVER_URL
+from .config import SERVER_HOST_URL
 from .notifications import show_toast
 
 
@@ -30,7 +30,7 @@ def handle_toast(data: dict):
 
 async def run_manager():
     """运行管理器"""
-    manager = EventManager(SERVER_URL)
+    manager = EventManager(SERVER_HOST_URL)
     manager.on("toast", handle_toast)
     manager.start()
 

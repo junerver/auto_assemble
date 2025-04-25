@@ -12,13 +12,13 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from .config import SERVER_URL, RECONNECT_INTERVAL
+from .config import SERVER_HOST_URL, RECONNECT_INTERVAL
 
 
 class EventManager:
     """事件管理器，用于处理 SSE 事件"""
 
-    def __init__(self, base_url: str = SERVER_URL):
+    def __init__(self, base_url: str = SERVER_HOST_URL):
         self.base_url = base_url
         self.event_handlers: Dict[str, Callable] = {}
         self.session = None
@@ -33,9 +33,9 @@ class EventManager:
                 async with aiohttp.ClientSession() as session:
                     self.session = session
                     async with session.get(
-                            urljoin(self.base_url, "/events"),
-                            headers={"Accept": "text/event-stream"},
-                            timeout=aiohttp.ClientTimeout(total=None),
+                        urljoin(self.base_url, "/events"),
+                        headers={"Accept": "text/event-stream"},
+                        timeout=aiohttp.ClientTimeout(total=None),
                     ) as response:
                         logging.info(f"Response status: {response.status}")
                         logging.info(f"Response headers: {response.headers}")

@@ -6,7 +6,7 @@ from the webhook server.
 """
 
 from .client import EventManager
-from .config import SERVER_URL, RECONNECT_INTERVAL
+from .config import SERVER_HOST_URL, RECONNECT_INTERVAL
 from .notifications import show_toast
 
-__all__ = ["EventManager", "show_toast", "SERVER_URL", "RECONNECT_INTERVAL"]
+__all__ = ["EventManager", "show_toast", "SERVER_HOST_URL", "RECONNECT_INTERVAL"]
