@@ -37,17 +37,16 @@
 
 3. 激活虚拟环境：
    ```bash
+   # windows
    .\venv\Scripts\activate
+   # unix/linux
+   source venv/bin/activate
    ```
 
 4. 安装依赖：
    ```bash
    pip install -e .
    ```
-
-5. 配置 `.env`：
-
-   参考 `.env.template` 文件，创建 `.env` 环境变量文件，填写分发工程、基座工程的目录地址和需要打包的项目
 
 ### 启动服务
 
@@ -78,6 +77,7 @@ http://{host}:{port}/webhook
 - `auto_assemble` 自动构建模块
 - `cbr` 构建请求工具模块
 - `webhook` 构建系统后台，提供hook钩子、管理后台的api等
+- `manager_client` 构建通知客户端
 
 ### 环境变量说明
 
@@ -85,10 +85,10 @@ http://{host}:{port}/webhook
 
 ```bash
 # 分发仓库的本地目录
-DISTRIBUTION_PATH=D:\dev\identify_field\app-distribution
+DISTRIBUTION_PATH=D:/dev/identify_field/app-distribution
 
 # Android 基座工程所在目录
-ANDROID_UNI_BASE_PATH=E:\dev\uni\uni-base
+ANDROID_UNI_BASE_PATH=E:/dev/uni/uni-base
 
 # 是否启用调试模式
 FLASK_DEBUG=true
@@ -107,26 +107,26 @@ WEBHOOK_URL=http://localhost:5005
 
 ### 部署步骤
 
-1. 准备数据库文件：
+1. 备份本地数据库文件：
    ```bash
    # 备份现有数据库
    cp webhook/webhook_server.db webhook/webhook_server.db.bak
    ```
 
-2. 配置环境变量：
-   ```bash
-   # 复制环境变量模板
-   cp webhook/.env.template webhook/.env.docker
-   # 编辑环境变量文件，修改必要的配置
-   ```
-
 3. 构建和启动容器：
    ```bash
-   # 构建镜像
-   docker-compose build
-   
-   # 启动服务
    docker-compose up -d
+   ```
+
+   注意，该服务依赖两个镜像：
+
+   - `auto_assemble-repo:latest` 分发仓库镜像
+   - `auto_assemble-webhook:latest` 运行环境镜像
+
+   如果没有远程镜像仓库则需要先执行下面的命令自行构建：
+
+   ```bash
+   docker build -t auto_assemble-webhook:latest -f Dockerfile . && docker build -t auto_assemble-repo:latest -f Dockerfile.repo .
    ```
 
 4. 查看服务状态：
@@ -137,11 +137,6 @@ WEBHOOK_URL=http://localhost:5005
    # 查看容器状态
    docker-compose ps
    ```
-
-### 数据持久化
-
-- 数据库文件保存在Docker卷中：`auto_assemble_webhook_data`
-- 日志文件保存在容器内的`/app/webhook`目录
 
 ### 维护操作
 
@@ -195,38 +190,48 @@ WEBHOOK_URL=http://localhost:5005
 - 120：本机基座工程
 - 200：基座工程构建
 
-| 错误码   | 错误信息                           |
-|-------|--------------------------------|
-| 10001 | 项目未在自动打包系统中创建、配置               |
-| 10002 | 打包服务器失败重试超时                    |
-| 10003 | 打包服务器主动停止任务                    |
-| 11001 | 本地分发仓库不存在                      |
-| 11002 | 打包服务器本地分发仓库同步失败                |
-| 11003 | 本次打包任务所在文件夹已经存在产物              |
-| 11004 | 打包任务指向的目录中没有压缩文件               |
-| 11005 | 压缩文件内容检查失败                     |
-| 11006 | 分发仓库没有任何更新                     |
-| 11007 | 分发仓库中需要提交的文件错误                 |
-| 11008 | 分发仓库中没有需要提交的apk                |
-| 11009 | 分发仓库执行 git add 失败              |
-| 11010 | 分发仓库中没有待提交文件                   |
-| 11011 | 分发仓库待提交文件校验失败                  |
-| 11012 | 分发仓库执行 git commit 失败           |
-| 11013 | 用户取消push                       |
-| 11014 | 分发仓库执行 git push 失败             |
-| 12001 | 基座工程分支检查失败                     |
-| 12002 | 基座工程资源目录结构检查失败                 |
-| 12003 | 基座工程清空资源目录失败                   |
-| 12004 | 解压资源文件到基座工程失败                  |
-| 12005 | 更新基座工程构建脚本失败                   |
-| 12006 | 更新基座工程 dcloud_control.xml 文件失败 |
-| 12007 | 更新 AndroidManifest.xml 文件失败    |
-| 12008 | 基座工程git更新失败（add、commit）        |
-| 20001 | 执行 Gradle 构建失败                 |
-| 20002 | 复制构建产物失败                       |
+| 错误码   | 错误信息                                |
+|-------|-------------------------------------|
+| 10001 | 项目未在自动打包系统中创建、配置                    |
+| 10002 | 打包服务器失败重试超时                         |
+| 10003 | 打包服务器主动停止任务                         |
+| 10004 | 打包服务器本地环境检查出错                       |
+| 10005 | 打包服务器缺少 rar、zip 依赖库                 |
+| 11001 | 本地分发仓库不存在                           |
+| 11002 | 打包服务器本地分发仓库同步失败                     |
+| 11003 | 本次打包任务所在文件夹已经存在产物                   |
+| 11004 | 本次打包任务指向的目录中没有压缩文件                  |
+| 11005 | 对UniApp资源包压缩文件内容检查失败                |
+| 11006 | 分发仓库没有任何更新                          |
+| 11007 | 分发仓库中需要提交的文件错误                      |
+| 11008 | 分发仓库中没有需要提交的apk                     |
+| 11009 | 分发仓库执行 git add 失败                   |
+| 11010 | 分发仓库中没有待提交文件                        |
+| 11011 | 分发仓库待提交文件校验失败                       |
+| 11012 | 分发仓库执行 git commit 失败                |
+| 11013 | 用户取消push                            |
+| 11014 | 分发仓库执行 git push 失败                  |
+| 11015 | 构建模式错误，不是通过构建工具发起的构建请求，不符合约定的提交信息格式 |
+| 12001 | 基座工程分支检查失败                          |
+| 12002 | 基座工程资源目录结构检查失败                      |
+| 12003 | 基座工程清空资源目录失败                        |
+| 12004 | 解压资源文件到基座工程失败                       |
+| 12005 | 更新基座工程构建脚本失败                        |
+| 12006 | 更新基座工程 dcloud_control.xml 文件失败      |
+| 12007 | 更新 AndroidManifest.xml 文件失败         |
+| 12008 | 基座工程git执行add操作失败                    |
+| 12009 | 基座解析依赖失败，请检查依赖配置                    |
+| 12010 | 基座工程项目校验失败，工程文件缺失                   |
+| 12011 | 基座工程没有待提交的文件，资源文件未更新，终止执行           |
+| 12012 | 基座工程git执行commit操作失败                 |
+| 12013 | 基座工程git执行push操作失败                   |
+| 12014 | 基座工程git更新失败                         |
+| 20001 | 执行 Gradle 构建失败                      |
+| 20002 | 复制构建产物失败                            |
 
 ## Changelog
 
+- `v0.3.0` 容器化部署，实现本地容器化方案
 - `v0.2.4` 添加错误重播功能，后门鉴权，最近任务筛选
 - `v0.2.3` bugfix
 - `v0.2.2` 服务端分层拆分
