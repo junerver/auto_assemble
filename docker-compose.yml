@@ -18,16 +18,16 @@ services:
       - TZ=Asia/Shanghai
       - DISTRIBUTION_PATH=/app/distribution
       - ANDROID_UNI_BASE_PATH=/app/uni-base
-      - WEBHOOK_URL=http://localhost:5005
+      - SERVER_HOST_URL=http://localhost:5005
       - PORT=5005
       - FLASK_DEBUG=false
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:5005/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5005/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    command: [ "python", "-m", "webhook" ]
+    command: ["python", "-m", "webhook"]
     depends_on:
       - git-repo
 

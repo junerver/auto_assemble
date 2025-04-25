@@ -6,20 +6,20 @@ from dotenv import load_dotenv
 # 从环境变量读取配置
 DISTRIBUTION_PATH = os.getenv("DISTRIBUTION_PATH")
 ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
 PORT = int(os.getenv("PORT", 5005))
 DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 
 # 打印当前环境变量状态
 print(
-    f"当前环境变量：\nDISTRIBUTION_PATH: {DISTRIBUTION_PATH}\nANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}\nWEBHOOK_URL: {WEBHOOK_URL}\nPORT: {PORT}\nDEBUG: {DEBUG}"
+    f"当前环境变量：\nDISTRIBUTION_PATH: {DISTRIBUTION_PATH}\nANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}\nSERVER_HOST_URL: {SERVER_HOST_URL}\nPORT: {PORT}\nDEBUG: {DEBUG}"
 )
 
 # 检查必需的环境变量
 required_vars = {
     "DISTRIBUTION_PATH": DISTRIBUTION_PATH,
     "ANDROID_UNI_BASE_PATH": ANDROID_UNI_BASE_PATH,
-    "WEBHOOK_URL": WEBHOOK_URL,
+    "SERVER_HOST_URL": SERVER_HOST_URL,
 }
 
 missing_vars = [var for var, value in required_vars.items() if value is None]

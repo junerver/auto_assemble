@@ -51,14 +51,14 @@ def main():
             select_func = input("请输入功能序号：").strip()
 
         if (
-                os.getenv("DISTRIBUTION_PATH") is not None
-                and os.getenv("ANDROID_UNI_BASE_PATH") is not None
-                and os.getenv("WEBHOOK_URL") is not None
+            os.getenv("DISTRIBUTION_PATH") is not None
+            and os.getenv("ANDROID_UNI_BASE_PATH") is not None
+            and os.getenv("SERVER_HOST_URL") is not None
         ):
             # 从环境变量中加载相关变量
             print(f"DISTRIBUTION_PATH: {os.getenv('DISTRIBUTION_PATH')}")
             print(f"ANDROID_UNI_BASE_PATH: {os.getenv('ANDROID_UNI_BASE_PATH')}")
-            print(f"WEBHOOK_URL: {os.getenv('WEBHOOK_URL')}")
+            print(f"SERVER_HOST_URL: {os.getenv('SERVER_HOST_URL')}")
             print("已从环境变量中加载相关变量，不再从.env文件中加载。")
         else:
             check_and_create_env(env_file, select_func)

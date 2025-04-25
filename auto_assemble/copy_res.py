@@ -171,7 +171,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
 
 
 def extract_compressed_file(
-        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+    compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
@@ -341,7 +341,7 @@ def main(prod_name: str = None, task_dir: str = None):
             config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
-            response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/{config.cur_task_id}")
+            response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/{config.cur_task_id}")
             if response.status_code == 200:
                 task_info = response.json()["task"]
                 logging.info(f"获取到提交信息: {task_info}")
@@ -486,9 +486,9 @@ def main(prod_name: str = None, task_dir: str = None):
         # 更新build.gradle
         try:
             if not update_build_gradle(
-                    config.BUILD_GRADLE_PATH,
-                    latest_dir_name,
-                    readme_info,
+                config.BUILD_GRADLE_PATH,
+                latest_dir_name,
+                readme_info,
             ):
                 logging.error("更新build.gradle失败，终止执行")
                 return 12005
@@ -498,7 +498,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
-                config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
+            config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 12006
@@ -522,7 +522,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
 
 if __name__ == "__main__":
-    response = requests.get(f"{os.getenv('WEBHOOK_URL')}/task/identify_field,202504071846")
+    response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846")
     if response.status_code == 200:
         task_info = response.json()
         logging.info(f"获取到任务信息: {task_info}")

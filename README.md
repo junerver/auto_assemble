@@ -95,7 +95,7 @@ FLASK_DEBUG=true
 # 服务端口
 PORT=5005
 # 管理后台接口地址
-WEBHOOK_URL=http://localhost:5005
+SERVER_HOST_URL=http://localhost:5005
 ```
 
 ## Docker部署说明
