@@ -1,8 +1,6 @@
 services:
   webhook:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: auto_assemble-webhook:latest
     container_name: auto_assemble_webhook
     restart: unless-stopped
     ports:
