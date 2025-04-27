@@ -27,7 +27,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    command: ["python", "-m", "webhook"]
+    command:
+      [
+        "python",
+        "-m",
+        "waitress",
+        "--port=5005",
+        "--host=0.0.0.0",
+        "webhook.__main__:app",
+      ]
     depends_on:
       - git-repo
 
