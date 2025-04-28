@@ -38,7 +38,9 @@ def create_build_req():
             description="Load environment variables from a specified .env file and execute the program."
         )
         # 配置 UniApp 项目地址
-        parser.add_argument("-u", "--uni", type=str, help="Path to the uniapp project root")
+        parser.add_argument(
+            "-u", "--uni", type=str, help="Path to the uniapp project root"
+        )
         # 提交消息参数，配置此参数时，通过cli模式运行，不需要用户确认
         parser.add_argument("-m", "--message", type=str, help="Commit message")
         # 构建模式参数
@@ -80,18 +82,26 @@ def create_build_req():
         try:
             env_vars, third_party_configs = scan_uni_project(args.uni, os.getcwd())
         except Exception as e:
-            logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
+            logging.error(
+                f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}"
+            )
             return 1
 
-        is_ready, manifest_info, resources_dir = check_uni_project(env_vars, third_party_configs)
+        is_ready, manifest_info, resources_dir = check_uni_project(
+            env_vars, third_party_configs
+        )
         if not is_ready:
-            logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
+            logging.error(
+                "本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！"
+            )
             return 1
         # 美观的打印manifest_info，但排除permissions字段
         manifest_info_without_permissions = manifest_info.copy()
         manifest_info_without_permissions.pop("permissions", {})
         manifest_info_without_permissions.pop("permissions_content", {})
-        logging.info(f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}")
+        logging.info(
+            f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}"
+        )
 
         # 更新UNI_APP_ID
         config.UNI_APP_ID = manifest_info["uniapp_id"]
@@ -132,7 +142,9 @@ def create_build_req():
             check_git_branch(config.DISTRIBUTION_PATH, req_mode)
 
         # 在分发目录的PROD_NAME目录下创建req_date目录
-        req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
+        req_date_dir = os.path.join(
+            config.DISTRIBUTION_PATH, config.PROD_NAME, req_date
+        )
         config.cur_task_id = f"{config.PROD_NAME},{req_date}"
         config.cur_task_dir = req_date_dir
         logging.info(f"本次请求id:{config.cur_task_id}")
@@ -140,7 +152,9 @@ def create_build_req():
         # 复制zip文件到指定目录
         shutil.copy(zip_file_path, str(req_date_dir))
         os.remove(zip_file_path)
-        logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
+        logging.info(
+            f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下"
+        )
         create_readme_file(str(req_date_dir), manifest_info)
         # 在分发目录执行git add
         os.chdir(config.DISTRIBUTION_PATH)
@@ -212,7 +226,9 @@ def rolling_req_build_status():
     dots = ""  # 用于存储进度点
     while True:
         try:
-            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
+            response = requests.get(
+                f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}"
+            )
             if response.status_code == 200:
                 task_info = response.json().get("task", {})
                 status = task_info.get("status")
@@ -234,7 +250,7 @@ def rolling_req_build_status():
                         buttons = [
                             {
                                 "activationType": "protocol",
-                                "arguments": f'file:///{config.cur_task_dir.replace("\\", "/")}',
+                                "arguments": f"file:///{config.cur_task_dir.replace('\\', '/')}",
                                 "content": "打开目录",
                             }
                         ]

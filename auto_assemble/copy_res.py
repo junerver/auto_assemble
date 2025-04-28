@@ -67,7 +67,9 @@ def find_latest_directory(base_path: str) -> str:
     """
     try:
         directories = [
-            d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))
+            d
+            for d in os.listdir(base_path)
+            if os.path.isdir(os.path.join(base_path, d))
         ]
         if not directories:
             raise ValueError(f"在 {base_path} 中没有找到目录")
@@ -212,7 +214,9 @@ def extract_compressed_file(
                 return False
         else:
             # 临时目录不存在，执行正常解压
-            logging.info(f"临时解压目录不存在，执行正常解压: {compressed_file} -> {extract_to}")
+            logging.info(
+                f"临时解压目录不存在，执行正常解压: {compressed_file} -> {extract_to}"
+            )
             patoolib.extract_archive(compressed_file, outdir=extract_to)
             logging.info(f"成功解压文件到: {extract_to}")
             return True
@@ -277,7 +281,9 @@ def get_prod_name(distribution_path: str) -> tuple[str, str]:
             project_path = os.path.join(distribution_path, project_dir)
             # 获取项目目录下的所有时间戳目录
             timestamp_dirs = [
-                d for d in os.listdir(project_path) if os.path.isdir(os.path.join(project_path, d))
+                d
+                for d in os.listdir(project_path)
+                if os.path.isdir(os.path.join(project_path, d))
             ]
             if not timestamp_dirs:
                 continue
@@ -290,14 +296,18 @@ def get_prod_name(distribution_path: str) -> tuple[str, str]:
                 if latest_timestamp is None or latest_timestamp_dir > latest_timestamp:
                     latest_timestamp = latest_timestamp_dir
                     latest_project = project_dir
-                    latest_timestamp_path = os.path.join(project_path, latest_timestamp_dir)
+                    latest_timestamp_path = os.path.join(
+                        project_path, latest_timestamp_dir
+                    )
             except ValueError:
                 continue
 
         if latest_project is None:
             raise ValueError(f"在 {distribution_path} 中没有找到有效的时间戳目录")
 
-        logging.info(f"获取到项目名称: {latest_project}, 最新时间戳目录: {latest_timestamp_path}")
+        logging.info(
+            f"获取到项目名称: {latest_project}, 最新时间戳目录: {latest_timestamp_path}"
+        )
         return latest_project, latest_timestamp_path
     except Exception as e:
         logging.error(f"获取项目名称失败: {e}")
@@ -339,10 +349,14 @@ def main(prod_name: str = None, task_dir: str = None):
         # 获取项目名称和最新目录
         try:
             config.PROD_NAME = prod_name
-            config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
+            config.cur_task_dir = os.path.join(
+                config.DISTRIBUTION_PATH, prod_name, task_dir
+            )
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
-            response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/{config.cur_task_id}")
+            response = requests.get(
+                f"{os.getenv('SERVER_HOST_URL')}/task/{config.cur_task_id}"
+            )
             if response.status_code == 200:
                 task_info = response.json()["task"]
                 logging.info(f"获取到提交信息: {task_info}")
@@ -481,7 +495,9 @@ def main(prod_name: str = None, task_dir: str = None):
             logging.info("无需混淆，直接解压文件")
 
         # 解压文件
-        if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY, temp_dir):
+        if not extract_compressed_file(
+                compressed_file, config.APPS_DIRECTORY, temp_dir
+        ):
             logging.error("解压文件失败，终止执行")
             return 12004
 
@@ -500,7 +516,9 @@ def main(prod_name: str = None, task_dir: str = None):
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
-                config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
+                config.CONTROL_FILE_PATH,
+                readme_info["uniapp_id"],
+                config.build_mode == "dev",
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 12006
@@ -524,7 +542,9 @@ def main(prod_name: str = None, task_dir: str = None):
 
 
 if __name__ == "__main__":
-    _response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846")
+    _response = requests.get(
+        f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846"
+    )
     if _response.status_code == 200:
         _task_info = _response.json()
         logging.info(f"获取到任务信息: {_task_info}")

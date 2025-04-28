@@ -3,7 +3,14 @@ import logging
 from flask import Flask, render_template
 
 from .config import PORT, DEBUG, DB_FILE
-from .controllers import webhook_bp, project_bp, task_bp, third_party_bp, auth_bp, events_bp
+from .controllers import (
+    webhook_bp,
+    project_bp,
+    task_bp,
+    third_party_bp,
+    auth_bp,
+    events_bp,
+)
 from .extensions.context import init_app
 from .extensions.sse import ServerSentEvents
 from .models.database import init_db
@@ -55,4 +62,6 @@ if __name__ == "__main__":
     # 创建应用
     _app = create_app()
     # 运行应用
-    _app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)
+    _app.run(
+        host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG
+    )

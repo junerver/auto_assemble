@@ -1,7 +1,9 @@
 from cbr.types import ThirdPartyConfig
 
 
-def parse_third_party_configs(third_party_configs: list[ThirdPartyConfig]) -> dict[str, dict]:
+def parse_third_party_configs(
+        third_party_configs: list[ThirdPartyConfig],
+) -> dict[str, dict]:
     """
     将从服务器获取的第三方配置列表解析为字典对象
     Args:

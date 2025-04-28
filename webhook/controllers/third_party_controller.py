@@ -24,7 +24,9 @@ def add_third_party_dict():
         except Exception as e:
             return jsonify({"error": str(e)}), 400
         if ThirdPartyService.add_dict_item(dict_item):
-            return jsonify({"message": "Third party dictionary item added successfully"}), 201
+            return jsonify(
+                {"message": "Third party dictionary item added successfully"}
+            ), 201
         else:
             return jsonify({"error": "Dictionary key already exists"}), 400
 
@@ -54,9 +56,13 @@ def update_third_party_dict_item(key):
         except Exception as e:
             return jsonify({"error": str(e)}), 400
         if ThirdPartyService.update_dict_item(key, dict_item):
-            return jsonify({"message": "Third party dictionary item updated successfully"}), 200
+            return jsonify(
+                {"message": "Third party dictionary item updated successfully"}
+            ), 200
         else:
-            return jsonify({"error": "Dictionary item not found or key already exists"}), 404
+            return jsonify(
+                {"error": "Dictionary item not found or key already exists"}
+            ), 404
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -67,7 +73,9 @@ def delete_third_party_dict_item(key):
     """删除第三方配置字典项"""
     try:
         if ThirdPartyService.delete_dict_item(key):
-            return jsonify({"message": "Third party dictionary item deleted successfully"}), 200
+            return jsonify(
+                {"message": "Third party dictionary item deleted successfully"}
+            ), 200
         else:
             return jsonify({"error": "Dictionary item not found or is in use"}), 400
     except Exception as e:

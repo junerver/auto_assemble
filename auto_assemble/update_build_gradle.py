@@ -28,7 +28,7 @@ THIRD_PARTY_END = "//---------------third party dependencies end---------------"
 def _format_manifest_placeholder(line: str, key: str, value: str) -> str:
     """
     格式化manifest placeholder行，确保key和value对齐
-    
+
     Args:
         line: 原始行
         key: manifest placeholder的key
@@ -49,12 +49,12 @@ def _process_line(
 ) -> str:
     """
     处理单行内容，根据不同的行类型返回处理后的内容
-    
+
     Args:
         line: 当前处理的行
         artifact_name: 最终产物名称
         version_info: 包含版本信息的字典
-        
+
     Returns:
         str: 处理后的行内容
     """
@@ -104,86 +104,138 @@ def _process_line(
         case '"DCLOUD_APPKEY"' if uniapp_key:
             return _format_manifest_placeholder(line, '"DCLOUD_APPKEY"', uniapp_key)
 
-        case '"WX_APPID"' if (third_party_config.get("wechat", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"WX_APPID"', third_party_config["wechat"]["appid"])
+        case '"WX_APPID"' if third_party_config.get("wechat", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"WX_APPID"', third_party_config["wechat"]["appid"]
+            )
 
-        case '"WX_SECRET"' if (third_party_config.get("wechat", {}).get("secret")):
-            return _format_manifest_placeholder(line, '"WX_SECRET"', third_party_config["wechat"]["secret"])
+        case '"WX_SECRET"' if third_party_config.get("wechat", {}).get("secret"):
+            return _format_manifest_placeholder(
+                line, '"WX_SECRET"', third_party_config["wechat"]["secret"]
+            )
 
-        case '"AMAP_APIKEY"' if (third_party_config.get("amap", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"AMAP_APIKEY"', third_party_config["amap"]["appkey"])
+        case '"AMAP_APIKEY"' if third_party_config.get("amap", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"AMAP_APIKEY"', third_party_config["amap"]["appkey"]
+            )
 
-        case '"BAIDU_MAP_APIKEY"' if (third_party_config.get("baidu", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"BAIDU_MAP_APIKEY"', third_party_config["baidu"]["appkey"])
+        case '"BAIDU_MAP_APIKEY"' if third_party_config.get("baidu", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"BAIDU_MAP_APIKEY"', third_party_config["baidu"]["appkey"]
+            )
 
         # 处理个推相关内容
-        case '"GETUI_APPID"' if (third_party_config.get("getui", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"GETUI_APPID"', third_party_config["getui"]["appid"])
+        case '"GETUI_APPID"' if third_party_config.get("getui", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"GETUI_APPID"', third_party_config["getui"]["appid"]
+            )
 
-        case '"XIAOMI_APP_ID"' if (third_party_config.get("xiaomi", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"XIAOMI_APP_ID"', third_party_config["xiaomi"]["appid"])
+        case '"XIAOMI_APP_ID"' if third_party_config.get("xiaomi", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"XIAOMI_APP_ID"', third_party_config["xiaomi"]["appid"]
+            )
 
-        case '"XIAOMI_APP_KEY"' if (third_party_config.get("xiaomi", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"XIAOMI_APP_KEY"', third_party_config["xiaomi"]["appkey"])
+        case '"XIAOMI_APP_KEY"' if third_party_config.get("xiaomi", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"XIAOMI_APP_KEY"', third_party_config["xiaomi"]["appkey"]
+            )
 
-        case '"MEIZU_APP_ID"' if (third_party_config.get("meizu", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"MEIZU_APP_ID"', third_party_config["meizu"]["appid"])
+        case '"MEIZU_APP_ID"' if third_party_config.get("meizu", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"MEIZU_APP_ID"', third_party_config["meizu"]["appid"]
+            )
 
-        case '"MEIZU_APP_KEY"' if (third_party_config.get("meizu", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"MEIZU_APP_KEY"', third_party_config["meizu"]["appkey"])
+        case '"MEIZU_APP_KEY"' if third_party_config.get("meizu", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"MEIZU_APP_KEY"', third_party_config["meizu"]["appkey"]
+            )
 
-        case '"HUAWEI_APP_ID"' if (third_party_config.get("huawei", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"HUAWEI_APP_ID"', third_party_config["huawei"]["appid"])
+        case '"HUAWEI_APP_ID"' if third_party_config.get("huawei", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"HUAWEI_APP_ID"', third_party_config["huawei"]["appid"]
+            )
 
-        case '"OPPO_APP_KEY"' if (third_party_config.get("oppo", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"OPPO_APP_KEY"', third_party_config["oppo"]["appkey"])
+        case '"OPPO_APP_KEY"' if third_party_config.get("oppo", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"OPPO_APP_KEY"', third_party_config["oppo"]["appkey"]
+            )
 
-        case '"OPPO_APP_SECRET"' if (third_party_config.get("oppo", {}).get("secret")):
-            return _format_manifest_placeholder(line, '"OPPO_APP_SECRET"', third_party_config["oppo"]["secret"])
+        case '"OPPO_APP_SECRET"' if third_party_config.get("oppo", {}).get("secret"):
+            return _format_manifest_placeholder(
+                line, '"OPPO_APP_SECRET"', third_party_config["oppo"]["secret"]
+            )
 
-        case '"VIVO_APP_ID"' if (third_party_config.get("vivo", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"VIVO_APP_ID"', third_party_config["vivo"]["appid"])
+        case '"VIVO_APP_ID"' if third_party_config.get("vivo", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"VIVO_APP_ID"', third_party_config["vivo"]["appid"]
+            )
 
-        case '"VIVO_APP_KEY"' if (third_party_config.get("vivo", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"VIVO_APP_KEY"', third_party_config["vivo"]["appkey"])
+        case '"VIVO_APP_KEY"' if third_party_config.get("vivo", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"VIVO_APP_KEY"', third_party_config["vivo"]["appkey"]
+            )
 
-        case '"HONOR_APP_ID"' if (third_party_config.get("honor", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"HONOR_APP_ID"', third_party_config["honor"]["appid"])
+        case '"HONOR_APP_ID"' if third_party_config.get("honor", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"HONOR_APP_ID"', third_party_config["honor"]["appid"]
+            )
 
         # 处理极光推送
-        case '"JPUSH_APPKEY"' if (third_party_config.get("jpush", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"JPUSH_APPKEY"', third_party_config["jpush"]["appkey"])
+        case '"JPUSH_APPKEY"' if third_party_config.get("jpush", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"JPUSH_APPKEY"', third_party_config["jpush"]["appkey"]
+            )
 
-        case '"MEIZU_APPKEY"' if (third_party_config.get("meizu", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"MEIZU_APPKEY"', f'MZ-{third_party_config["meizu"]["appkey"]}')
+        case '"MEIZU_APPKEY"' if third_party_config.get("meizu", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"MEIZU_APPKEY"', f"MZ-{third_party_config['meizu']['appkey']}"
+            )
 
-        case '"MEIZU_APPID"' if (third_party_config.get("meizu", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"MEIZU_APPID"', f'MZ-{third_party_config["meizu"]["appid"]}')
+        case '"MEIZU_APPID"' if third_party_config.get("meizu", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"MEIZU_APPID"', f"MZ-{third_party_config['meizu']['appid']}"
+            )
 
-        case '"XIAOMI_APPID"' if (third_party_config.get("xiaomi", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"XIAOMI_APPID"', third_party_config["xiaomi"]["appid"])
+        case '"XIAOMI_APPID"' if third_party_config.get("xiaomi", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"XIAOMI_APPID"', third_party_config["xiaomi"]["appid"]
+            )
 
-        case '"XIAOMI_APPKEY"' if (third_party_config.get("xiaomi", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"XIAOMI_APPKEY"', third_party_config["xiaomi"]["appkey"])
+        case '"XIAOMI_APPKEY"' if third_party_config.get("xiaomi", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"XIAOMI_APPKEY"', third_party_config["xiaomi"]["appkey"]
+            )
 
-        case '"OPPO_APPKEY"' if (third_party_config.get("oppo", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"OPPO_APPKEY"', f'OP-{third_party_config["oppo"]["appkey"]}')
+        case '"OPPO_APPKEY"' if third_party_config.get("oppo", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"OPPO_APPKEY"', f"OP-{third_party_config['oppo']['appkey']}"
+            )
 
-        case '"OPPO_APPID"' if (third_party_config.get("oppo", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"OPPO_APPID"', f'OP-{third_party_config["oppo"]["appid"]}')
+        case '"OPPO_APPID"' if third_party_config.get("oppo", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"OPPO_APPID"', f"OP-{third_party_config['oppo']['appid']}"
+            )
 
-        case '"OPPO_APPSECRET"' if (third_party_config.get("oppo", {}).get("secret")):
-            return _format_manifest_placeholder(line, '"OPPO_APPSECRET"', f'OP-{third_party_config["oppo"]["secret"]}')
+        case '"OPPO_APPSECRET"' if third_party_config.get("oppo", {}).get("secret"):
+            return _format_manifest_placeholder(
+                line, '"OPPO_APPSECRET"', f"OP-{third_party_config['oppo']['secret']}"
+            )
 
-        case '"VIVO_APPID"' if (third_party_config.get("vivo", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"VIVO_APPID"', third_party_config["vivo"]["appid"])
+        case '"VIVO_APPID"' if third_party_config.get("vivo", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"VIVO_APPID"', third_party_config["vivo"]["appid"]
+            )
 
-        case '"VIVO_APPKEY"' if (third_party_config.get("vivo", {}).get("appkey")):
-            return _format_manifest_placeholder(line, '"VIVO_APPKEY"', third_party_config["vivo"]["appkey"])
+        case '"VIVO_APPKEY"' if third_party_config.get("vivo", {}).get("appkey"):
+            return _format_manifest_placeholder(
+                line, '"VIVO_APPKEY"', third_party_config["vivo"]["appkey"]
+            )
 
-        case '"HONOR_APPID"' if (third_party_config.get("honor", {}).get("appid")):
-            return _format_manifest_placeholder(line, '"HONOR_APPID"', third_party_config["honor"]["appid"])
-            
+        case '"HONOR_APPID"' if third_party_config.get("honor", {}).get("appid"):
+            return _format_manifest_placeholder(
+                line, '"HONOR_APPID"', third_party_config["honor"]["appid"]
+            )
+
         case _:
             return line
 
@@ -235,7 +287,9 @@ def update_build_gradle(
         for line in lines:
             if line.strip().startswith("def reqDate ="):
                 quote_char = '"' if '"' in line else "'"
-                old_artifact_name = line[line.index(quote_char) + 1: line.rindex(quote_char)]
+                old_artifact_name = line[
+                                    line.index(quote_char) + 1: line.rindex(quote_char)
+                                    ]
                 logging.info(f"当前reqDate值: {old_artifact_name}")
                 break
         # 处理每一行并写入新文件
@@ -279,7 +333,9 @@ def update_build_gradle(
         if version_info.get("uniapp_key"):
             logging.info(f"更新 uniapp_key 为: {version_info['uniapp_key']}")
         if version_info.get("third_party_config"):
-            logging.info(f"更新 third_party_config 为: {version_info['third_party_config']}")
+            logging.info(
+                f"更新 third_party_config 为: {version_info['third_party_config']}"
+            )
         if version_info.get("abi_filters"):
             logging.info(f"更新 abi_filters 为: {version_info['abi_filters']}")
 
@@ -290,9 +346,10 @@ def update_build_gradle(
 
             # 使用正则表达式匹配第三方依赖区域
             import re
+
             pattern = re.compile(
                 f"{re.escape(THIRD_PARTY_BEGIN)}.*?{re.escape(THIRD_PARTY_END)}",
-                re.DOTALL
+                re.DOTALL,
             )
 
             # 构建新的依赖内容

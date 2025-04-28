@@ -79,7 +79,9 @@ def parse_uni_manifest(
         uniapp_id: str = manifest_data.get("appid", "")
 
         # 提取第三方配置, {供应商-{供应商配置项}}
-        third_party_config: dict[str, dict] = parse_third_party_configs(third_party_configs)
+        third_party_config: dict[str, dict] = parse_third_party_configs(
+            third_party_configs
+        )
 
         # 构建权限处理的内容
         permissions_content = DEFAULT_PERMISSIONS + "\n\n"
@@ -110,7 +112,9 @@ def parse_uni_manifest(
                     # 添加abi_filters
                     if "abiFilters" in android_config:
                         # 取出的字符串数组需要补充 " " 包裹
-                        abi_filters = ", ".join(f'"{abi}"' for abi in android_config["abiFilters"])
+                        abi_filters = ", ".join(
+                            f'"{abi}"' for abi in android_config["abiFilters"]
+                        )
 
                     # 添加schemes
                     if "schemes" in android_config:
@@ -118,6 +122,7 @@ def parse_uni_manifest(
 
         # 使用parse_and_merge_permissions处理权限
         from auto_assemble.parse_permissions import parse_and_merge_permissions
+
         permissions = parse_and_merge_permissions(permissions_content)
 
         # 解析模块信息

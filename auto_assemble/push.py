@@ -5,7 +5,13 @@ import subprocess
 from datetime import datetime
 
 from auto_assemble.config import config
-from auto_assemble.git import get_untracked_files, get_staged_files, git_commit, git_add, git_push
+from auto_assemble.git import (
+    get_untracked_files,
+    get_staged_files,
+    git_commit,
+    git_add,
+    git_push,
+)
 from auto_assemble.log import setup_logging
 
 
@@ -144,7 +150,9 @@ def main():
     """主函数"""
     try:
         # 配置日志
-        setup_logging(task_name=f"校验分发提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        setup_logging(
+            task_name=f"校验分发提交 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
         logging.info("开始执行git推送流程")
 
         # 检查目录是否存在

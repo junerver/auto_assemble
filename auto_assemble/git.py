@@ -6,7 +6,9 @@ from collections import namedtuple
 
 from auto_assemble.config import config
 
-GitCommitInfo = namedtuple("GitCommitInfo", ["commit_date", "author", "message", "commit_hash"])
+GitCommitInfo = namedtuple(
+    "GitCommitInfo", ["commit_date", "author", "message", "commit_hash"]
+)
 
 
 def get_git_info(repo_path: str) -> GitCommitInfo | None:
@@ -37,9 +39,14 @@ def get_git_info(repo_path: str) -> GitCommitInfo | None:
             cwd=repo_path,
         )
         if last_commit.returncode == 0:
-            commit_date, author, message, commit_hash = last_commit.stdout.strip().split(",", 3)
+            commit_date, author, message, commit_hash = (
+                last_commit.stdout.strip().split(",", 3)
+            )
             return GitCommitInfo(
-                commit_date=commit_date, author=author, message=message, commit_hash=commit_hash
+                commit_date=commit_date,
+                author=author,
+                message=message,
+                commit_hash=commit_hash,
             )
         else:
             logging.error(f"获取Git信息失败: {last_commit.stderr}")
@@ -59,7 +66,11 @@ def git_fetch(repo_path: str) -> bool:
     try:
         # 检查远程是否有更新
         fetch_result = subprocess.run(
-            ["git", "fetch"], capture_output=True, text=True, encoding="utf-8", cwd=repo_path
+            ["git", "fetch"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
         )
         if fetch_result.returncode != 0:
             logging.error(f"Git fetch失败: {fetch_result.stderr}")
@@ -117,7 +128,9 @@ def sync_repository(repo_path: str) -> bool:
             return True
 
         # 执行更新
-        result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
+        result = subprocess.run(
+            ["git", "pull"], capture_output=True, text=True, encoding="utf-8"
+        )
         if result.returncode == 0:
             # 获取更新后的提交信息
             after_commit_info = get_git_info(repo_path)
@@ -177,7 +190,11 @@ def git_clean_fd(repo_path: str) -> bool:
     """
     try:
         result = subprocess.run(
-            ["git", "clean", "-fd"], capture_output=True, text=True, encoding="utf-8", cwd=repo_path
+            ["git", "clean", "-fd"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
         )
         if result.returncode != 0:
             logging.error(f"Git clean执行失败: {result.stderr}")
@@ -356,13 +373,16 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
 
             # 更精确的分支匹配
             branches = [
-                branch.strip() for branch in branches_proc.stdout.split("\n") if branch.strip()
+                branch.strip()
+                for branch in branches_proc.stdout.split("\n")
+                if branch.strip()
             ]
             local_branch_exists = any(
                 branch.replace("*", "").strip() == target_branch for branch in branches
             )
             remote_branch_exists = any(
-                branch.strip() == f"remotes/origin/{target_branch}" for branch in branches
+                branch.strip() == f"remotes/origin/{target_branch}"
+                for branch in branches
             )
 
             if local_branch_exists:
@@ -393,7 +413,9 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                     timeout=30,
                 )
                 if create_branch_proc.returncode != 0:
-                    logging.error(f"从远程分支创建本地分支失败: {create_branch_proc.stderr}")
+                    logging.error(
+                        f"从远程分支创建本地分支失败: {create_branch_proc.stderr}"
+                    )
                     return False
 
                 logging.info(f"成功创建并切换到新分支: {target_branch}")
@@ -427,7 +449,9 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                     timeout=30,
                 )
                 if create_branch_proc.returncode != 0:
-                    logging.error(f"从master创建新分支失败: {create_branch_proc.stderr}")
+                    logging.error(
+                        f"从master创建新分支失败: {create_branch_proc.stderr}"
+                    )
                     return False
 
                 logging.info(f"成功创建并切换到新分支: {target_branch}")
@@ -509,7 +533,9 @@ def get_staged_files(repo_path: str):
 def git_add(repo_path: str):
     """执行git add操作"""
     try:
-        result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=repo_path)
+        result = subprocess.run(
+            ["git", "add", "."], capture_output=True, text=True, cwd=repo_path
+        )
         if result.returncode != 0:
             logging.error(f"git add 执行失败: {result.stderr}")
             return False

@@ -71,7 +71,9 @@ class ServerSentEvents:
                 # 清理客户端
                 if client_queue in self.clients:
                     self.clients.remove(client_queue)
-                    logging.info(f"Client removed: {len(self.clients)} clients remaining")
+                    logging.info(
+                        f"Client removed: {len(self.clients)} clients remaining"
+                    )
 
         return Response(
             stream_with_context(generate()),

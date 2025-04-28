@@ -46,7 +46,10 @@ class TaskService:
 
         # 创建任务
         task = TaskService.create_task(
-            prod_name=prod_name, task_name=task_name, commit_info=commit_info, priority=0
+            prod_name=prod_name,
+            task_name=task_name,
+            commit_info=commit_info,
+            priority=0,
         )
 
         return task, "Task created successfully", 200
@@ -74,7 +77,9 @@ class TaskService:
             try:
                 timestamp = commit_info.get("timestamp")
                 if timestamp:
-                    task.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
+                    task.created_at = datetime.strptime(
+                        timestamp, "%Y-%m-%dT%H:%M:%S%z"
+                    )
             except (ValueError, TypeError):
                 pass
 

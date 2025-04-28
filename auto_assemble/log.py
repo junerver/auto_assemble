@@ -28,7 +28,9 @@ def setup_logging(clear_log_file: bool = False, task_name: str = "任务"):
 
     # 文件处理器
     file_handler = logging.FileHandler(config.LOG_FILE, encoding="utf-8")
-    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    )
 
     # 控制台处理器（带颜色）
     console_handler = colorlog.StreamHandler()

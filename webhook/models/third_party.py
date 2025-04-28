@@ -76,7 +76,13 @@ class ThirdPartyDict:
                 SET provider = ?, dict_key = ?, dict_value = ?, description = ?
                 WHERE dict_key = ?
                 """,
-                (self.provider, self.dict_key, self.dict_value, self.description, self.dict_key),
+                (
+                    self.provider,
+                    self.dict_key,
+                    self.dict_value,
+                    self.description,
+                    self.dict_key,
+                ),
             )
             if cursor.rowcount == 0:
                 return False

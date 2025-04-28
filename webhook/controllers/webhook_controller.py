@@ -76,7 +76,9 @@ def execute_task(task: Task, app):
                     with queue_lock:
                         if not task_queue.empty():
                             next_task = task_queue.get()
-                            Thread(target=execute_task, args=(next_task, app), daemon=True).start()
+                            Thread(
+                                target=execute_task, args=(next_task, app), daemon=True
+                            ).start()
 
         Thread(target=cleanup, daemon=True).start()
 
@@ -104,7 +106,9 @@ def webhook():
         # 保存webhook请求记录，如果请求头中包含X-Webhook-Request-Cache，则表示这是一个缓存的请求，
         # 则不保存
         if not request.headers.get("X-Webhook-Request-Cache"):
-            WebhookRequestService.save_webhook_request(task.id, data, dict(request.headers))
+            WebhookRequestService.save_webhook_request(
+                task.id, data, dict(request.headers)
+            )
         else:
             # 记录缓存请求 replay_count+1
             WebhookRequestService.update_replay_count(task.id)
@@ -128,9 +132,13 @@ def webhook():
         else:
             # 直接执行构建
             Thread(
-                target=execute_task, args=(task, current_app._get_current_object()), daemon=True
+                target=execute_task,
+                args=(task, current_app._get_current_object()),
+                daemon=True,
             ).start()
-            return jsonify({"message": "Build started successfully", "task": task.to_dict()}), 200
+            return jsonify(
+                {"message": "Build started successfully", "task": task.to_dict()}
+            ), 200
 
     except Exception as e:
         logging.error(f"处理webhook请求时发生错误: {str(e)}")

@@ -14,11 +14,15 @@ def get_metadata():
     project = data["project"]
 
     return {
-        "version": tuple(map(int, project["version"].split("."))),  # 转换为 (x, y, z, 0) 形式
+        "version": tuple(
+            map(int, project["version"].split("."))
+        ),  # 转换为 (x, y, z, 0) 形式
         "product_name": project["name"],
         "description": project.get("description", ""),
         "author": (
-            project["authors"][0]["name"] if "authors" in project and project["authors"] else ""
+            project["authors"][0]["name"]
+            if "authors" in project and project["authors"]
+            else ""
         ),
         "license": project["license"]["text"] if "license" in project else "MIT",
     }
@@ -112,7 +116,9 @@ def check_exe_version(metadata):
     exe_path = f"dist/{metadata['product_name']}.exe"
     if os.path.exists(exe_path):
         print("🔍 检查 EXE 版本信息...")
-        subprocess.run(["powershell", "-Command", f'(Get-Item "{exe_path}").VersionInfo'])
+        subprocess.run(
+            ["powershell", "-Command", f'(Get-Item "{exe_path}").VersionInfo']
+        )
 
 
 # 主流程

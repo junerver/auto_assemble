@@ -10,7 +10,9 @@ class WebhookRequestService:
         """保存webhook请求记录"""
         try:
             request_body = (
-                json.dumps(request_data) if isinstance(request_data, dict) else request_data
+                json.dumps(request_data)
+                if isinstance(request_data, dict)
+                else request_data
             )
             # 向header中插入自定义标头，表示这是一个缓存的请求
             headers["X-Webhook-Request-Cache"] = "true"

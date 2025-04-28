@@ -40,7 +40,13 @@ class WebhookRequest:
             INSERT INTO webhook_requests (task_id, request_body, headers, created_at, replay_count)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (self.task_id, self.request_body, self.headers, self.created_at, self.replay_count),
+            (
+                self.task_id,
+                self.request_body,
+                self.headers,
+                self.created_at,
+                self.replay_count,
+            ),
         )
         self.id = cursor.lastrowid
         conn.commit()

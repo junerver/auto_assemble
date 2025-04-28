@@ -44,7 +44,9 @@ def check_uni_base():
                     missing_items.append(item)
 
             if missing_items:
-                error_msg = f"项目结构不完整，缺少以下必需项: {', '.join(missing_items)}"
+                error_msg = (
+                    f"项目结构不完整，缺少以下必需项: {', '.join(missing_items)}"
+                )
                 logging.error(error_msg)
                 raise FileNotFoundError(error_msg)
 

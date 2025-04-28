@@ -15,7 +15,9 @@ def show_toast(title, message):
     """发送 toast 通知事件"""
     try:
         if hasattr(current_app, "extensions") and "sse" in current_app.extensions:
-            current_app.extensions["sse"].publish("toast", {"title": title, "message": message})
+            current_app.extensions["sse"].publish(
+                "toast", {"title": title, "message": message}
+            )
         else:
             logging.warning("SSE extension not initialized")
     except Exception as e:

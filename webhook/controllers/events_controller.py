@@ -33,5 +33,6 @@ def test():
 
     # 返回测试结果
     return Response(
-        json.dumps({"status": "success", "message": "Event published"}), mimetype="application/json"
+        json.dumps({"status": "success", "message": "Event published"}),
+        mimetype="application/json",
     )

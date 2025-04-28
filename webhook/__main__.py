@@ -20,7 +20,9 @@ for handler in logger.handlers[:]:
 
 # 文件处理器
 file_handler = logging.FileHandler("webhook.log", encoding="utf-8")
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+file_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+)
 
 # 控制台处理器（带颜色）
 console_handler = colorlog.StreamHandler()
@@ -59,7 +61,9 @@ def main():
     # 配置热更新
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
-    app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)
+    app.run(
+        host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG
+    )
 
 
 if __name__ == "__main__":

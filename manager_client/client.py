@@ -45,7 +45,9 @@ class EventManager:
                             await asyncio.sleep(RECONNECT_INTERVAL)
                             continue
 
-                        if "text/event-stream" not in response.headers.get("Content-Type", ""):
+                        if "text/event-stream" not in response.headers.get(
+                                "Content-Type", ""
+                        ):
                             logging.error(
                                 f"Unexpected content type: {response.headers.get('Content-Type')}"
                             )

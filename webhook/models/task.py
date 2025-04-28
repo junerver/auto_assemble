@@ -76,11 +76,15 @@ class Task:
         """获取待处理的任务"""
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
+        cursor.execute(
+            "SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC"
+        )
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
+    def get_recent_tasks(
+            cls, limit: int = 5, build_mode: str | None = None
+    ) -> list["Task"]:
         """获取最近的任务
 
         Args:

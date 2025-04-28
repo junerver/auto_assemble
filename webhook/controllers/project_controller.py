@@ -16,7 +16,12 @@ def configure_project():
 
         project = ProjectService.configure_project(data)
         return (
-            jsonify({"message": "Project configured successfully", "project": project.to_dict()}),
+            jsonify(
+                {
+                    "message": "Project configured successfully",
+                    "project": project.to_dict(),
+                }
+            ),
             200,
         )
 
@@ -35,7 +40,9 @@ def get_project_config():
         if not project_url and not prod_name:
             return jsonify({"error": "Must provide either url or name parameter"}), 400
 
-        project = ProjectService.get_project(project_url=project_url, prod_name=prod_name)
+        project = ProjectService.get_project(
+            project_url=project_url, prod_name=prod_name
+        )
         if not project:
             return jsonify({"error": "Project not found"}), 404
 
@@ -46,7 +53,9 @@ def get_project_config():
             jsonify(
                 {
                     "project_config": project.to_dict(),
-                    "third_party_configs": [config.to_dict() for config in third_party_configs],
+                    "third_party_configs": [
+                        config.to_dict() for config in third_party_configs
+                    ],
                     "message": "获取项目配置成功",
                 }
             ),
@@ -66,7 +75,9 @@ def update_project_config(project_id):
             return jsonify({"error": "No JSON data received"}), 400
 
         # 分离基础配置和第三方配置
-        base_config = {k: v for k, v in data.items() if k not in ["third_party_configs"]}
+        base_config = {
+            k: v for k, v in data.items() if k not in ["third_party_configs"]
+        }
         third_party_configs = data.get("third_party_configs", [])
 
         # 更新基础配置
@@ -91,23 +102,35 @@ def update_project_config(project_id):
                 # 检查字典项是否存在
                 dict_item = ThirdPartyService.get_dict_item(dict_key)
                 if not dict_item:
-                    return jsonify({"error": f"Dictionary item {dict_key} not found"}), 400
+                    return jsonify(
+                        {"error": f"Dictionary item {dict_key} not found"}
+                    ), 400
 
                 # 只有当配置值发生变化时才更新
-                if dict_key not in current_configs or current_configs[dict_key] != config_value:
+                if (
+                        dict_key not in current_configs
+                        or current_configs[dict_key] != config_value
+                ):
                     third_party_config = ThirdPartyConfig(
-                        project_id=project_id, dict_key=dict_key, config_value=config_value
+                        project_id=project_id,
+                        dict_key=dict_key,
+                        config_value=config_value,
                     )
                     if not third_party_config.save():
                         return (
-                            jsonify({"error": f"Failed to save third party config for {dict_key}"}),
+                            jsonify(
+                                {
+                                    "error": f"Failed to save third party config for {dict_key}"
+                                }
+                            ),
                             500,
                         )
 
         # 获取更新后的完整项目信息
         project_dict = project.to_dict()
         project_dict["third_party_configs"] = [
-            config.to_dict() for config in ThirdPartyService.get_project_configs(project_id)
+            config.to_dict()
+            for config in ThirdPartyService.get_project_configs(project_id)
         ]
 
         return (

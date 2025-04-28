@@ -34,7 +34,9 @@ class Project:
         """根据URL获取项目"""
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM project_config WHERE project_url = ?", (project_url,))
+        cursor.execute(
+            "SELECT * FROM project_config WHERE project_url = ?", (project_url,)
+        )
         row = cursor.fetchone()
         if row:
             return cls(**dict(row))
@@ -102,7 +104,7 @@ class Project:
             cursor.execute(
                 f"""
                 UPDATE project_config 
-                SET {', '.join(update_fields)}, updated_at = datetime('now', 'localtime')
+                SET {", ".join(update_fields)}, updated_at = datetime('now', 'localtime')
                 WHERE id = ?
             """,
                 update_values,

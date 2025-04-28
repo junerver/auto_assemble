@@ -12,7 +12,11 @@ def prettify_xml(elem):
     reparsed = minidom.parseString(rough_string)
     # 过滤掉多余的空行
     return "\n".join(
-        [line for line in reparsed.toprettyxml(indent="  ").splitlines() if line.strip()]
+        [
+            line
+            for line in reparsed.toprettyxml(indent="  ").splitlines()
+            if line.strip()
+        ]
     )
 
 
@@ -40,7 +44,9 @@ namespaces = {
 
 
 def update_android_manifest(
-        android_manifest_path: str, update_info: ManifestInfo, launch_activity: str = "io.dcloud.PandoraEntry"
+        android_manifest_path: str,
+        update_info: ManifestInfo,
+        launch_activity: str = "io.dcloud.PandoraEntry",
 ) -> bool:
     """
     更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）,
@@ -55,7 +61,9 @@ def update_android_manifest(
         bool: 更新成功返回 True，失败返回 False
     """
     # 备份原始文件
-    backup_path = os.path.join(os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml")
+    backup_path = os.path.join(
+        os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml"
+    )
     # 暂时不备份，因为git本身会追踪文件的修改
     # shutil.copy(android_manifest_path, backup_path)
     permissions = update_info["permissions"]
@@ -84,7 +92,9 @@ def update_android_manifest(
         root.set("xmlns:app", namespaces["app"])
 
         # **移除所有 <uses-permission> 和 <uses-feature> 元素**
-        for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
+        for element in root.findall("./uses-permission") + root.findall(
+                "./uses-feature"
+        ):
             root.remove(element)
         logging.info("移除所有 <uses-permission> 和 <uses-feature> 元素")
 
@@ -133,7 +143,9 @@ def update_android_manifest(
                         if schemes:
                             for scheme in schemes:
                                 data = ET.Element("data")
-                                data.set(f"{{{namespaces['android']}}}scheme", scheme.strip())
+                                data.set(
+                                    f"{{{namespaces['android']}}}scheme", scheme.strip()
+                                )
                                 intent_filter.append(data)
                         else:
                             # 如果没有schemes，添加默认的空scheme
