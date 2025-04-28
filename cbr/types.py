@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from xml.dom.minidom import Element
 
 
@@ -11,7 +11,7 @@ class ManifestInfo(TypedDict):
     uniapp_key: str
     third_party_config: dict[str, dict]
     permissions: dict[str, dict]
-    permissions_content: str | None
+    permissions_content: NotRequired[str]
     modules: list[str]
     abi_filters: str
     schemes: str
@@ -21,6 +21,7 @@ class PermissionsFeatures(TypedDict):
     """
     全部权限与特性的字典
     """
+
     # 权限名称-xml实例
     permissions: dict[str, Element]
     # 特性名称-xml实例
@@ -31,6 +32,7 @@ class ManifestPermissions(TypedDict):
     """
     从manifest中解析出的三个权限分区
     """
+
     default: PermissionsFeatures
     add: PermissionsFeatures
     del_: PermissionsFeatures

@@ -178,7 +178,6 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
             "uniapp_key": uniapp_key_match.group(1) if uniapp_key_match else "",
             "third_party_config": third_party_config,
             "permissions": permissions,
-            "permissions_content": None,
             "abi_filters": abi_filters,
             "schemes": schemes_match.group(1) if schemes_match else "",
             "modules": modules,
