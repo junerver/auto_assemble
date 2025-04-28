@@ -36,25 +36,10 @@
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
-3. 创建虚拟环境：
+3. 同步项目
 
    ```bash
-   uv venv .venv
-   ```
-
-4. 激活虚拟环境：
-   ```bash
-   # windows
-   .\venv\Scripts\activate
-   # unix/linux
-   source venv/bin/activate
-   # 停用虚拟环境
-   deactivate
-   ```
-
-5. 安装依赖：
-   ```bash
-   uv pip install .
+   uv sync
    ```
 
 ### 启动服务
