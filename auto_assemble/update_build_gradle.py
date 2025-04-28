@@ -20,8 +20,26 @@ MODULE_DEPENDENCY_MAP = {
     "OAuth : weixin": "implementation(libs.bundles.uni.oauth.wechat)",
     "Webview-x5": "implementation(libs.bundles.uni.x5)",
 }
+# 第三方依赖开始和结束标记
 THIRD_PARTY_BEGIN = "//--------------third party dependencies begin--------------"
 THIRD_PARTY_END = "//---------------third party dependencies end---------------"
+
+
+def _format_manifest_placeholder(line: str, key: str, value: str) -> str:
+    """
+    格式化manifest placeholder行，确保key和value对齐
+    
+    Args:
+        line: 原始行
+        key: manifest placeholder的key
+        value: manifest placeholder的value
+    Returns:
+        str: 格式化后的行
+    """
+    indent = line[: line.index(key)]
+    # 计算key后面的空格数量，确保所有行对齐
+    spaces = " " * (24 - len(key))
+    return f'{indent}{key}{spaces}: "{value}",\n'
 
 
 def _process_line(
@@ -81,35 +99,91 @@ def _process_line(
             return f"{indent}versionCode {version_code}\n"
 
         case '"DCLOUD_APPID"' if uniapp_id:
-            # 处理 DCLOUD_APPID
-            indent = line[: line.index('"DCLOUD_APPID"')]
-            return f'{indent}"DCLOUD_APPID"          : "{uniapp_id}",\n'
+            return _format_manifest_placeholder(line, '"DCLOUD_APPID"', uniapp_id)
 
         case '"DCLOUD_APPKEY"' if uniapp_key:
-            # 处理 DCLOUD_APPKEY
-            indent = line[: line.index('"DCLOUD_APPKEY"')]
-            return f'{indent}"DCLOUD_APPKEY"         : "{uniapp_key}",\n'
+            return _format_manifest_placeholder(line, '"DCLOUD_APPKEY"', uniapp_key)
 
         case '"WX_APPID"' if (third_party_config.get("wechat", {}).get("appid")):
-            # 处理 WX_APPID
-            indent = line[: line.index('"WX_APPID"')]
-            return f'{indent}"WX_APPID"              : "{third_party_config["wechat"]["appid"]}",\n'
+            return _format_manifest_placeholder(line, '"WX_APPID"', third_party_config["wechat"]["appid"])
 
         case '"WX_SECRET"' if (third_party_config.get("wechat", {}).get("secret")):
-            # 处理 WX_SECRET
-            indent = line[: line.index('"WX_SECRET"')]
-            return f'{indent}"WX_SECRET"             : "{third_party_config["wechat"]["secret"]}",\n'
+            return _format_manifest_placeholder(line, '"WX_SECRET"', third_party_config["wechat"]["secret"])
 
         case '"AMAP_APIKEY"' if (third_party_config.get("amap", {}).get("appkey")):
-            # 处理 AMAP_APIKEY
-            indent = line[: line.index('"AMAP_APIKEY"')]
-            return f'{indent}"AMAP_APIKEY"           : "{third_party_config["amap"]["appkey"]}",\n'
+            return _format_manifest_placeholder(line, '"AMAP_APIKEY"', third_party_config["amap"]["appkey"])
 
         case '"BAIDU_MAP_APIKEY"' if (third_party_config.get("baidu", {}).get("appkey")):
-            # 处理 BAIDU_MAP_APIKEY
-            indent = line[: line.index('"BAIDU_MAP_APIKEY"')]
-            return f'{indent}"BAIDU_MAP_APIKEY"       : "{third_party_config["baidu"]["appkey"]}",\n'
+            return _format_manifest_placeholder(line, '"BAIDU_MAP_APIKEY"', third_party_config["baidu"]["appkey"])
 
+        # 处理个推相关内容
+        case '"GETUI_APPID"' if (third_party_config.get("getui", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"GETUI_APPID"', third_party_config["getui"]["appid"])
+
+        case '"XIAOMI_APP_ID"' if (third_party_config.get("xiaomi", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"XIAOMI_APP_ID"', third_party_config["xiaomi"]["appid"])
+
+        case '"XIAOMI_APP_KEY"' if (third_party_config.get("xiaomi", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"XIAOMI_APP_KEY"', third_party_config["xiaomi"]["appkey"])
+
+        case '"MEIZU_APP_ID"' if (third_party_config.get("meizu", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"MEIZU_APP_ID"', third_party_config["meizu"]["appid"])
+
+        case '"MEIZU_APP_KEY"' if (third_party_config.get("meizu", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"MEIZU_APP_KEY"', third_party_config["meizu"]["appkey"])
+
+        case '"HUAWEI_APP_ID"' if (third_party_config.get("huawei", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"HUAWEI_APP_ID"', third_party_config["huawei"]["appid"])
+
+        case '"OPPO_APP_KEY"' if (third_party_config.get("oppo", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"OPPO_APP_KEY"', third_party_config["oppo"]["appkey"])
+
+        case '"OPPO_APP_SECRET"' if (third_party_config.get("oppo", {}).get("secret")):
+            return _format_manifest_placeholder(line, '"OPPO_APP_SECRET"', third_party_config["oppo"]["secret"])
+
+        case '"VIVO_APP_ID"' if (third_party_config.get("vivo", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"VIVO_APP_ID"', third_party_config["vivo"]["appid"])
+
+        case '"VIVO_APP_KEY"' if (third_party_config.get("vivo", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"VIVO_APP_KEY"', third_party_config["vivo"]["appkey"])
+
+        case '"HONOR_APP_ID"' if (third_party_config.get("honor", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"HONOR_APP_ID"', third_party_config["honor"]["appid"])
+
+        # 处理极光推送
+        case '"JPUSH_APPKEY"' if (third_party_config.get("jpush", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"JPUSH_APPKEY"', third_party_config["jpush"]["appkey"])
+
+        case '"MEIZU_APPKEY"' if (third_party_config.get("meizu", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"MEIZU_APPKEY"', f'MZ-{third_party_config["meizu"]["appkey"]}')
+
+        case '"MEIZU_APPID"' if (third_party_config.get("meizu", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"MEIZU_APPID"', f'MZ-{third_party_config["meizu"]["appid"]}')
+
+        case '"XIAOMI_APPID"' if (third_party_config.get("xiaomi", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"XIAOMI_APPID"', third_party_config["xiaomi"]["appid"])
+
+        case '"XIAOMI_APPKEY"' if (third_party_config.get("xiaomi", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"XIAOMI_APPKEY"', third_party_config["xiaomi"]["appkey"])
+
+        case '"OPPO_APPKEY"' if (third_party_config.get("oppo", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"OPPO_APPKEY"', f'OP-{third_party_config["oppo"]["appkey"]}')
+
+        case '"OPPO_APPID"' if (third_party_config.get("oppo", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"OPPO_APPID"', f'OP-{third_party_config["oppo"]["appid"]}')
+
+        case '"OPPO_APPSECRET"' if (third_party_config.get("oppo", {}).get("secret")):
+            return _format_manifest_placeholder(line, '"OPPO_APPSECRET"', f'OP-{third_party_config["oppo"]["secret"]}')
+
+        case '"VIVO_APPID"' if (third_party_config.get("vivo", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"VIVO_APPID"', third_party_config["vivo"]["appid"])
+
+        case '"VIVO_APPKEY"' if (third_party_config.get("vivo", {}).get("appkey")):
+            return _format_manifest_placeholder(line, '"VIVO_APPKEY"', third_party_config["vivo"]["appkey"])
+
+        case '"HONOR_APPID"' if (third_party_config.get("honor", {}).get("appid")):
+            return _format_manifest_placeholder(line, '"HONOR_APPID"', third_party_config["honor"]["appid"])
+            
         case _:
             return line
 
@@ -120,14 +194,7 @@ def update_build_gradle(
         version_info: dict,
 ) -> bool:
     """
-    更新build.gradle文件中的reqDate变量和版本信息，
-    如果version_info中包含hbx_version，则更新hbx_version，
-    如果version_info中包含version_name，则更新versionName，
-    如果version_info中包含version_code，则更新versionCode，
-    如果version_info中包含uniapp_id，则更新uniapp_id，
-    如果version_info中包含uniapp_key，则更新uniapp_key，
-    如果version_info中包含third_party_config，则更新third_party_config。
-
+    更新build.gradle文件中的reqDate变量和版本信息
     Args:
         build_gradle_path: build.gradle文件路径
         artifact_name: 最终产物名称
@@ -174,6 +241,7 @@ def update_build_gradle(
         # 处理每一行并写入新文件
         with open(build_gradle_path, "w", encoding="utf-8") as file:
             for line in lines:
+                # 处理每一行，用来填充单行类信息、第三方依赖的密钥等
                 processed_line = _process_line(
                     line,
                     artifact_name,
@@ -181,7 +249,7 @@ def update_build_gradle(
                 )
                 file.write(processed_line)
 
-        # todo: 映射勾选模块到实际依赖项目
+        # 映射勾选模块到实际依赖项目
         if "Maps : amap" in modules and "Geolocation : amap" in modules:
             # 同时存在高德地图与高德定位
             modules.remove("Maps : amap")
@@ -249,3 +317,12 @@ def update_build_gradle(
             logging.error(f"模块 '{e.args[0]}' 未找到在MODULE_DEPENDENCY_MAP中")
             raise e
         return False
+
+
+if __name__ == "__main__":
+    line = '"XIAOMI_APP_ID"         : "",'
+    key = '"XIAOMI_APP_ID"'
+    value = "12345"
+
+    formatted_line = _format_manifest_placeholder(line, key, value)
+    print(formatted_line)
