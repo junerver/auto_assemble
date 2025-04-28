@@ -2,7 +2,6 @@ import logging
 
 import json5
 
-from auto_assemble.parse_permissions import parse_and_merge_permissions
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
 from cbr.types import CbrEnvVars, ManifestInfo
 
@@ -118,6 +117,7 @@ def parse_uni_manifest(
                         schemes = android_config["schemes"]
 
         # 使用parse_and_merge_permissions处理权限
+        from auto_assemble.parse_permissions import parse_and_merge_permissions
         permissions = parse_and_merge_permissions(permissions_content)
 
         # 解析模块信息

@@ -86,7 +86,7 @@ def update_android_manifest(
         # **移除所有 <uses-permission> 和 <uses-feature> 元素**
         for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
             root.remove(element)
-        logging.info(f"移除所有 <uses-permission> 和 <uses-feature> 元素")
+        logging.info("移除所有 <uses-permission> 和 <uses-feature> 元素")
 
         # **找到正确的插入位置**
         insert_index = 0  # 默认插入到 <manifest> 开头
@@ -106,7 +106,7 @@ def update_android_manifest(
             element.tail = "\n"  # 添加换行
             root.insert(insert_index, element)
 
-        logging.info(f"添加新的 <uses-permission> 和 <uses-feature> 元素")
+        logging.info("添加新的 <uses-permission> 和 <uses-feature> 元素")
 
         # 处理schemes
         logging.info(f"处理schemes: {schemes}")
@@ -148,7 +148,7 @@ def update_android_manifest(
         with open(android_manifest_path, "w", encoding="utf-8") as f:
             f.write(formatted_xml)
 
-        logging.info(f"写回文件")
+        logging.info("写回文件")
         return True
 
     except Exception as e:

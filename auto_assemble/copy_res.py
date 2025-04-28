@@ -365,7 +365,7 @@ def main(prod_name: str = None, task_dir: str = None):
             logging.error(f"获取项目名称失败: {e}")
             return 10001
 
-        if not config.build_mode in ["dev", "test", "release"]:
+        if config.build_mode not in ["dev", "test", "release"]:
             logging.error(f"构建模式错误: {config.build_mode}")
             return 11015
 

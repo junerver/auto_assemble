@@ -9,6 +9,6 @@ cd /d %MODULE_DIR%
 call venv\Scripts\activate.bat
 
 :: 使用当前激活环境中的 Python 运行 push 脚本
-python -m manager_client.main
+uv run manager-client
 
 pause

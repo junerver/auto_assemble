@@ -48,7 +48,7 @@ class ServerSentEvents:
         for client_queue in self.clients:
             try:
                 client_queue.put(message)
-                logging.info(f"Event sent to client successfully")
+                logging.info("Event sent to client successfully")
             except Exception as e:
                 logging.error(f"Error sending event to client: {e}")
                 self.clients.remove(client_queue)

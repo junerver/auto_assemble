@@ -30,22 +30,31 @@
    cd auto_assemble
    ```
 
-2. 创建虚拟环境：
+2. 安装 uv
+
    ```bash
-   python -m venv venv
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
-3. 激活虚拟环境：
+3. 创建虚拟环境：
+
+   ```bash
+   uv venv .venv
+   ```
+
+4. 激活虚拟环境：
    ```bash
    # windows
    .\venv\Scripts\activate
    # unix/linux
    source venv/bin/activate
+   # 停用虚拟环境
+   deactivate
    ```
 
-4. 安装依赖：
+5. 安装依赖：
    ```bash
-   pip install -e .
+   uv pip install .
    ```
 
 ### 启动服务
@@ -53,7 +62,7 @@
 开发环境启动服务：
 
 ```bash
-python -m webhook
+uv run webhook
 ```
 
 生产环境启动服务：

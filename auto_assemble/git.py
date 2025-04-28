@@ -122,7 +122,7 @@ def sync_repository(repo_path: str) -> bool:
             # 获取更新后的提交信息
             after_commit_info = get_git_info(repo_path)
             if after_commit_info:
-                logging.info(f"更新成功 - 新版本信息:")
+                logging.info("更新成功 - 新版本信息:")
                 logging.info(f"提交时间: {after_commit_info.commit_date}")
                 logging.info(f"提交人: {after_commit_info.author}")
                 logging.info(f"提交信息: {after_commit_info.message}")
@@ -400,7 +400,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
                 return True
             else:
                 # 10. 如果本地和远程都不存在，从master创建新分支
-                logging.info(f"目标分支不存在，准备从master创建新分支")
+                logging.info("目标分支不存在，准备从master创建新分支")
 
                 # 先切换到master分支
                 switch_master_proc = subprocess.run(
