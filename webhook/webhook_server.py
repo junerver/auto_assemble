@@ -24,7 +24,7 @@ def create_app():
     init_app(app)
 
     # 初始化 SSE 扩展
-    sse = ServerSentEvents(app)
+    ServerSentEvents(app)
 
     # 注册蓝图
     app.register_blueprint(webhook_bp)
@@ -53,6 +53,6 @@ def create_app():
 
 if __name__ == "__main__":
     # 创建应用
-    app = create_app()
+    _app = create_app()
     # 运行应用
-    app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)
+    _app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)
