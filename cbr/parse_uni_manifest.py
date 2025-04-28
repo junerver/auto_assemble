@@ -1,11 +1,10 @@
-import json
 import logging
 
 import json5
 
 from auto_assemble.parse_permissions import parse_and_merge_permissions
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
-from cbr.env_vars import CbrEnvVars
+from cbr.types import CbrEnvVars, ManifestInfo
 
 # 默认权限列表
 DEFAULT_PERMISSIONS = """```xml
@@ -48,7 +47,7 @@ def parse_uni_manifest(
         manifest_path: str,
         env_vars: CbrEnvVars | None = None,
         third_party_configs: list[dict[str, str]] | None = None,
-) -> dict[str, str]:
+) -> ManifestInfo:
     """
     解析uniapp的manifest.json文件
     Args:
@@ -76,16 +75,18 @@ def parse_uni_manifest(
             manifest_data = json5.load(f)
 
         # 提取基本信息
-        version_name = manifest_data.get("versionName", "")
-        version_code = manifest_data.get("versionCode", "")
-        uniapp_id = manifest_data.get("appid", "")
+        version_name: str = manifest_data.get("versionName", "")
+        version_code: str = manifest_data.get("versionCode", "")
+        uniapp_id: str = manifest_data.get("appid", "")
 
-        # 提取第三方配置
-        third_party_config = parse_third_party_configs(third_party_configs)
+        # 提取第三方配置, {供应商-{供应商配置项}}
+        third_party_config: dict[str, dict] = parse_third_party_configs(third_party_configs)
 
         # 构建权限处理的内容
         permissions_content = DEFAULT_PERMISSIONS + "\n\n"
 
+        abi_filters: str = '"armeabi-v7a", "arm64-v8a"'
+        schemes: str = ""
         # 添加manifest.json中的额外权限
         if "app-plus" in manifest_data:
             app_plus = manifest_data["app-plus"]
@@ -143,7 +144,7 @@ def parse_uni_manifest(
                             modules.append(module_name)
         hbx_version = env_vars.HBX_VERSION if env_vars else ""
         uniapp_key = env_vars.UNIAPP_APPKEY if env_vars else ""
-        result = {
+        result: ManifestInfo = {
             "hbx_version": hbx_version,  # manifest.json中不包含HBuilderX版本信息, 使用环境变量HBX_VERSION
             "version_name": version_name,
             "version_code": version_code,
@@ -176,42 +177,3 @@ def parse_uni_manifest(
             "abi_filters": "",
             "schemes": "",
         }
-
-
-if __name__ == "__main__":
-    """
-    本地测试代码
-    """
-    # 配置日志
-    logging.basicConfig(level=logging.INFO)
-
-    # 测试文件路径
-    manifest_path = "manifest.json5"  # 项目根目录下的manifest.json5
-
-    try:
-        print(f"\n测试解析文件: {manifest_path}")
-        # 解析manifest文件
-        result = parse_uni_manifest(manifest_path)
-
-        # 打印结果
-        print("\n解析结果:")
-        print(f"版本名称: {result['version_name']}")
-        print(f"版本号: {result['version_code']}")
-        print(f"AppID: {result['uniapp_id']}")
-        print("\n第三方配置:")
-        print(json.dumps(result["third_party_config"], ensure_ascii=False, indent=2))
-        print("\n权限信息:")
-        print(f"权限数量: {len(result['permissions']['permissions'])}")
-        print(f"特性数量: {len(result['permissions']['features'])}")
-        print("\n权限列表:")
-        for perm_name in result["permissions"]["permissions"]:
-            print(f"- {perm_name}")
-        print("\n模块信息:")
-        for module in result["modules"]:
-            print(f"- {module}")
-        print(f"\nABI过滤器: {result['abi_filters']}")
-        print(f"Schemes: {result['schemes']}")
-    except FileNotFoundError:
-        print(f"文件不存在: {manifest_path}")
-    except Exception as e:
-        print(f"解析出错: {e}")

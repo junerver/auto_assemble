@@ -3,6 +3,8 @@ import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
+from cbr.types import ManifestInfo
+
 
 def prettify_xml(elem):
     """格式化 XML 并去除多余空行"""
@@ -38,7 +40,7 @@ namespaces = {
 
 
 def update_android_manifest(
-        android_manifest_path: str, update_info: dict, launch_activity: str = "io.dcloud.PandoraEntry"
+        android_manifest_path: str, update_info: ManifestInfo, launch_activity: str = "io.dcloud.PandoraEntry"
 ) -> bool:
     """
     更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）,

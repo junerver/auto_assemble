@@ -34,21 +34,21 @@ class Config:
         self._prod_name = None
 
         # 应用配置
-        self._uni_app_id = None
+        self.UNI_APP_ID: str = ""
         # Git提交信息
         self.last_commit_message = ""
         # 工作模式：ui 或 cli , 默认ui，ui模式下需要用户确认，cli 模式下通过 --fn 直接指定功能序号，不再进行input确认
         self.work_mode: Work_Mode = "ui"
         # 当前任务目录，用于指向本次构建任务的目录
-        self.cur_task_dir = ""
+        self.cur_task_dir: str = ""
         # 构建模式，默认dev，可选值：dev、test、release
-        self.build_mode = "release"
+        self.build_mode: str = "release"
         # 当前任务id，即 prod_name,req_date
-        self.cur_task_id = ""
+        self.cur_task_id: str = ""
         # 打包机主机地址
-        self.SERVER_HOST_URL = "http://192.168.189.243:5005"
+        self.SERVER_HOST_URL: str = "http://192.168.189.243:5005"
         # 是否混淆
-        self.is_obfuscated = False
+        self.is_obfuscated: bool = False
 
     @property
     def DISTRIBUTION_PATH(self):
@@ -128,15 +128,6 @@ class Config:
         if self._prod_branch is None:
             self._prod_branch = rf"prod_{self.PROD_NAME}"
         return self._prod_branch
-
-    @property
-    def UNI_APP_ID(self):
-        return self._uni_app_id
-
-    @UNI_APP_ID.setter
-    def UNI_APP_ID(self, value):
-        self._uni_app_id = value
-
 
 # 创建全局配置实例
 config = Config()

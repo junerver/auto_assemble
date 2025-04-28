@@ -2,8 +2,10 @@ import logging
 import os
 from textwrap import dedent
 
+from cbr.types import ManifestInfo
 
-def create_readme_file(req_dir: str, manifest_info: dict):
+
+def create_readme_file(req_dir: str, manifest_info: ManifestInfo):
     """
     创建readme.txt文件
     Args:

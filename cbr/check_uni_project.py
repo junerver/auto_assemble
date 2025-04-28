@@ -3,8 +3,8 @@ import json
 import logging
 import os
 
-from cbr.env_vars import CbrEnvVars
 from cbr.parse_uni_manifest import parse_uni_manifest
+from cbr.types import CbrEnvVars, ManifestInfo
 
 
 def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[dict[str, str]]]:
@@ -87,7 +87,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[
 
 def check_uni_project(
         env_vars: CbrEnvVars, third_party_configs: list[dict[str, str]]
-) -> tuple[bool, dict[str, str], str]:
+) -> tuple[bool, ManifestInfo | None, str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -113,7 +113,7 @@ def check_uni_project(
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")
-            return False, {}, ""
+            return False, None, ""
 
         # 确定 manifest.json 文件位置
         manifest_path = (
@@ -124,10 +124,10 @@ def check_uni_project(
 
         if not os.path.exists(manifest_path):
             logging.error(f"manifest.json 文件不存在: {manifest_path}")
-            return False, {}, ""
+            return False, None, ""
 
         # 解析 manifest.json 文件
-        manifest_info = parse_uni_manifest(manifest_path, env_vars, third_party_configs)
+        manifest_info: ManifestInfo = parse_uni_manifest(manifest_path, env_vars, third_party_configs)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
             return False, manifest_info, ""
@@ -155,4 +155,4 @@ def check_uni_project(
     except Exception as e:
         error_msg = f"检查 UniApp 项目时发生错误: {str(e)}"
         logging.error(error_msg)
-        return False, {}, ""
+        return False, None, ""

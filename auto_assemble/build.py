@@ -18,6 +18,7 @@ def get_build_req_label(build_mode: str, req_resp: str = "req"):
     """
     获取构建请求标签
     Args:
+        req_resp: 请求标识、响应标识
         build_mode (str): 构建模式，可选值：dev、test、release
     Returns:
         str: 构建请求标签
@@ -52,7 +53,7 @@ def get_build_output_name(release):
     """
     # 查找构建输出目录下符合yyyyMMddHHmm格式的apk文件
     for file in os.listdir(
-        config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
+            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
     ):
         if file.endswith(".apk"):
             return file
@@ -131,7 +132,7 @@ def execute_gradle_build(release: bool = True):
         return False
 
 
-def copy_build_outputs(apk_name, target_dir, release) -> tuple[bool, str]:
+def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[bool, str]:
     """
     复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
 
@@ -283,6 +284,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
     Args:
         target_dir: 构建产物目标输出目录，可空，不传递时默认输出到分发目录下
         release: 指定构建类型，True 将构建release包，False 将构建debug包
+        is_distribution: 是否分发，决定基座仓库的commit message格式
     """
     try:
         # 配置日志

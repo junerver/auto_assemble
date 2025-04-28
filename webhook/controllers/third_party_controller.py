@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, Request
 
 from . import third_party_bp
 from ..models.third_party import ThirdPartyDict
@@ -19,22 +19,10 @@ def get_third_party_dict():
 def add_third_party_dict():
     """添加新的第三方配置字典项"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data received"}), 400
-
-        required_fields = ["provider", "dict_key", "dict_value", "description"]
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-
-        dict_item = ThirdPartyDict(
-            provider=data["provider"],
-            dict_key=data["dict_key"],
-            dict_value=data["dict_value"],
-            description=data["description"],
-        )
-
+        try:
+            dict_item = parse_third_party_config_dict(request)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
         if ThirdPartyService.add_dict_item(dict_item):
             return jsonify({"message": "Third party dictionary item added successfully"}), 201
         else:
@@ -61,22 +49,10 @@ def get_third_party_dict_item(key):
 def update_third_party_dict_item(key):
     """更新第三方配置字典项"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data received"}), 400
-
-        required_fields = ["provider", "dict_key", "dict_value", "description"]
-        for field in required_fields:
-            if field not in data:
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-
-        dict_item = ThirdPartyDict(
-            provider=data["provider"],
-            dict_key=data["dict_key"],
-            dict_value=data["dict_value"],
-            description=data["description"],
-        )
-
+        try:
+            dict_item = parse_third_party_config_dict(request)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
         if ThirdPartyService.update_dict_item(key, dict_item):
             return jsonify({"message": "Third party dictionary item updated successfully"}), 200
         else:
@@ -110,3 +86,23 @@ def get_unconfigured_dict_items():
         return jsonify({"items": [item.to_dict() for item in unconfigured_items]}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def parse_third_party_config_dict(api_request: Request) -> ThirdPartyDict:
+    """解析第三方配置字典项"""
+    data = api_request.get_json()
+    if not data:
+        raise ValueError("No JSON data received")
+
+    required_fields = ["provider", "dict_key", "dict_value", "description"]
+    for field in required_fields:
+        if field not in data:
+            raise ValueError(f"Missing required field: {field}")
+
+    dict_item = ThirdPartyDict(
+        provider=data["provider"],
+        dict_key=data["dict_key"],
+        dict_value=data["dict_value"],
+        description=data["description"],
+    )
+    return dict_item

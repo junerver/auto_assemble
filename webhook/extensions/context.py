@@ -11,7 +11,7 @@ def get_db():
     return g.db
 
 
-def close_db(e=None):
+def close_db():
     """关闭数据库连接"""
     db = g.pop("db", None)
     if db is not None:

@@ -2,7 +2,7 @@
 Auto Assemble - 自动化打包工具
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.1"
 __author__ = "Junerver"
 __email__ = "junerver@gmail.com"
 

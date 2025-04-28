@@ -8,6 +8,7 @@ import yaml
 from auto_assemble.config import config
 from auto_assemble.parse_permissions import parse_and_merge_permissions
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
+from cbr.types import ManifestInfo
 
 
 def parse_uni_modules(content: str) -> list[str]:
@@ -73,11 +74,11 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
         yaml_content = "\n".join(processed_lines)
 
         # 解析 YAML 内容
-        config = yaml.safe_load(yaml_content)
+        third_party_config_yaml = yaml.safe_load(yaml_content)
 
         # 重新组织配置结构
         result = {}
-        for key, value in config.items():
+        for key, value in third_party_config_yaml.items():
             if isinstance(value, dict):
                 result[key] = value
             elif key in ["appid", "secret"]:
@@ -99,7 +100,7 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
         return {}
 
 
-def parse_readme(readme_path: str) -> dict[str, str]:
+def parse_readme(readme_path: str) -> ManifestInfo | None:
     """
     从 README.md 文件中解析版本信息
     Args:
@@ -121,15 +122,7 @@ def parse_readme(readme_path: str) -> dict[str, str]:
     try:
         if not os.path.exists(readme_path):
             logging.warning(f"README.md 文件不存在: {readme_path}")
-            return {
-                "version_name": "",
-                "version_code": "",
-                "uniapp_id": "",
-                "uniapp_key": "",
-                "third_party_config": {},
-                "permissions": {},
-                "modules": [],
-            }
+            return None
 
         with open(readme_path, "r", encoding="utf-8") as file:
             content = file.read()
@@ -177,7 +170,7 @@ def parse_readme(readme_path: str) -> dict[str, str]:
         # 解析模块信息
         modules = parse_uni_modules(content)
 
-        result = {
+        result: ManifestInfo = {
             "hbx_version": hbx_version_match.group(1) if hbx_version_match else "",
             "version_name": version_name_match.group(1) if version_name_match else "",
             "version_code": version_code_match.group(1) if version_code_match else "",
@@ -185,6 +178,7 @@ def parse_readme(readme_path: str) -> dict[str, str]:
             "uniapp_key": uniapp_key_match.group(1) if uniapp_key_match else "",
             "third_party_config": third_party_config,
             "permissions": permissions,
+            "permissions_content": None,
             "abi_filters": abi_filters,
             "schemes": schemes_match.group(1) if schemes_match else "",
             "modules": modules,
@@ -208,28 +202,20 @@ def parse_readme(readme_path: str) -> dict[str, str]:
         return result
     except Exception as e:
         logging.error(f"解析 README.md 文件时发生错误: {e}")
-        return {
-            "version_name": "",
-            "version_code": "",
-            "uniapp_id": "",
-            "uniapp_key": "",
-            "third_party_config": {},
-            "permissions": {},
-            "modules": [],
-        }
+        return None
 
 
 if __name__ == "__main__":
     # 模块依赖映射字典
-    result = parse_readme(os.path.join(r"./", "list.md"))
-    print(result)
-    modules = result.get("modules", [])
-    if "Maps : amap" in modules and "Geolocation : amap" in modules:
+    _result = parse_readme(os.path.join(r"./", "list.md"))
+    print(_result)
+    _modules = _result.get("modules", [])
+    if "Maps : amap" in _modules and "Geolocation : amap" in _modules:
         # 同时存在高德地图与高德定位
-        modules.remove("Maps : amap")
-        modules.remove("Geolocation : amap")
-        modules.append("Maps : amap & Geolocation : amap")
+        _modules.remove("Maps : amap")
+        _modules.remove("Geolocation : amap")
+        _modules.append("Maps : amap & Geolocation : amap")
     from auto_assemble.update_build_gradle import MODULE_DEPENDENCY_MAP
 
-    deps = [dep for m in modules if (dep := MODULE_DEPENDENCY_MAP.get(m)) is not None]
+    deps = [dep for m in _modules if (dep := MODULE_DEPENDENCY_MAP.get(m)) is not None]
     [print(dep) for dep in deps]

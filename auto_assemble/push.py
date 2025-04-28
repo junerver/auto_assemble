@@ -9,7 +9,7 @@ from auto_assemble.git import get_untracked_files, get_staged_files, git_commit,
 from auto_assemble.log import setup_logging
 
 
-def validate_timestamp_format(timestamp):
+def validate_timestamp_format(timestamp) -> bool:
     """验证时间戳格式是否为yyyyMMddHHmm"""
     pattern = r"^\d{12}$"
     if not re.match(pattern, timestamp):
@@ -21,7 +21,7 @@ def validate_timestamp_format(timestamp):
         return False
 
 
-def has_changes(cwd=config.DISTRIBUTION_PATH):
+def has_changes(cwd=config.DISTRIBUTION_PATH) -> bool:
     """检查是否有任何修改（包括未跟踪和已修改的文件）"""
     try:
         # 检查未跟踪的文件

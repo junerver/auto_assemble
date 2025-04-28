@@ -1,7 +1,7 @@
 import logging
-from typing import Any
 
 from auto_assemble.config import config
+from cbr.types import ManifestInfo
 
 # 模块依赖映射字典
 MODULE_DEPENDENCY_MAP = {
@@ -45,7 +45,7 @@ def _format_manifest_placeholder(line: str, key: str, value: str) -> str:
 def _process_line(
         line: str,
         artifact_name: str,
-        version_info: dict[str, Any],
+        version_info: ManifestInfo,
 ) -> str:
     """
     处理单行内容，根据不同的行类型返回处理后的内容
@@ -191,7 +191,7 @@ def _process_line(
 def update_build_gradle(
         build_gradle_path: str,
         artifact_name: str,
-        version_info: dict,
+        version_info: ManifestInfo,
 ) -> bool:
     """
     更新build.gradle文件中的reqDate变量和版本信息
@@ -317,12 +317,3 @@ def update_build_gradle(
             logging.error(f"模块 '{e.args[0]}' 未找到在MODULE_DEPENDENCY_MAP中")
             raise e
         return False
-
-
-if __name__ == "__main__":
-    line = '"XIAOMI_APP_ID"         : "",'
-    key = '"XIAOMI_APP_ID"'
-    value = "12345"
-
-    formatted_line = _format_manifest_placeholder(line, key, value)
-    print(formatted_line)

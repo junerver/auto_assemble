@@ -12,7 +12,6 @@ from dotenv import load_dotenv
 
 from auto_assemble.auto_flow import main as auto_flow
 from auto_assemble.config import config
-from auto_assemble.create_env_file import check_and_create_env
 from auto_assemble.err_code import unified_error_code
 from auto_assemble.welcome import welcome
 
@@ -37,8 +36,8 @@ def main():
         if fn:
             select_func = fn
             config.work_mode = "cli"
-
-        if config.work_mode == "ui":
+        else:
+            config.work_mode = "ui"
             welcome()
             print(
                 textwrap.dedent(
@@ -61,11 +60,11 @@ def main():
             print(f"SERVER_HOST_URL: {os.getenv('SERVER_HOST_URL')}")
             print("已从环境变量中加载相关变量，不再从.env文件中加载。")
         else:
-            check_and_create_env(env_file, select_func)
             # 加载指定的 .env 文件
             load_dotenv(env_file)
             print(f"已从 {env_file} 加载环境变量。")
 
+        result = 0
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
             result = auto_flow(task_id=args.task if args.task else None)

@@ -1,6 +1,8 @@
 import re
 import xml.etree.ElementTree as ET
 
+from cbr.types import PermissionsFeatures, ManifestPermissions
+
 """
 文件名称: parse_permissions.py
 作者: junerver
@@ -20,7 +22,7 @@ __all__ = ["parse_and_merge_permissions"]
 namespaces = {"android": "http://schemas.android.com/apk/res/android"}
 
 
-def _extract_permissions(xml_content):
+def _extract_permissions(xml_content: str) -> PermissionsFeatures:
     """
     解析 XML 代码块，提取 <uses-permission> 和 <uses-feature> 元素
 
@@ -31,7 +33,7 @@ def _extract_permissions(xml_content):
             - "permissions": {android:name -> <uses-permission> 元素}
             - "features": {android:name -> <uses-feature> 元素}
     """
-    permissions = {"permissions": {}, "features": {}}
+    permissions: PermissionsFeatures = {"permissions": {}, "features": {}}
     try:
         # 确保 XML 结构正确
         wrapped_xml = f"<root xmlns:android='{namespaces['android']}'>{xml_content.strip()}</root>"
@@ -54,12 +56,12 @@ def _extract_permissions(xml_content):
     return permissions
 
 
-def _parse_manifest_permission(content: str):
+def _parse_manifest_permission(permissions_content: str) -> ManifestPermissions:
     """
     解析出文档中的xml块，按照顺序排列，依次为default、add、del，对xml块进行解析，提取出<uses-permission> 和 <uses-feature> 元素
 
     Args:
-        content: 包含 XML 代码块的文本
+        permissions_content: 包含 XML 代码块的文本
 
     Returns:
         dict: 一个字典，包含：
@@ -73,9 +75,9 @@ def _parse_manifest_permission(content: str):
                 - "permissions": {android:name -> <uses-permission> 元素}
                 - "features": {android:name -> <uses-feature> 元素}
     """
-    sections = {"default": "", "add": "", "del": ""}
+    sections: dict[str, str] = {"default": "", "add": "", "del": ""}
     # 修正正则匹配，确保提取完整 XML 代码块
-    matches = re.findall(r"```xml\s*(.*?)\s*```", content, re.DOTALL)
+    matches = re.findall(r"```xml\s*(.*?)\s*```", permissions_content, re.DOTALL)
 
     if len(matches) > 0:
         sections["default"] = matches[0]
@@ -87,11 +89,11 @@ def _parse_manifest_permission(content: str):
     return {
         "default": _extract_permissions(sections["default"]),
         "add": _extract_permissions(sections["add"]),
-        "del": _extract_permissions(sections["del"]),
+        "del_": _extract_permissions(sections["del"]),
     }
 
 
-def _merge_permissions(permissions):
+def _merge_permissions(permissions: ManifestPermissions):
     """
     合并 default 和 add 中的权限，并移除 del 里的权限（包括 uses-permission 和 uses-feature），
     但移除的权限不是直接删除，而是添加 tools:node="remove" 属性。
@@ -122,11 +124,11 @@ def _merge_permissions(permissions):
         merged["features"][key] = ET.Element("uses-feature", {"android:name": key})
 
     # 处理 del 里的权限和特性，不直接删除，而是添加 tools:node="remove"
-    for del_key in permissions["del"]["permissions"]:
+    for del_key in permissions["del_"]["permissions"]:
         merged["permissions"][del_key] = ET.Element(
             "uses-permission", {"android:name": del_key, "tools:node": "remove"}
         )
-    for del_key in permissions["del"]["features"]:
+    for del_key in permissions["del_"]["features"]:
         merged["features"][del_key] = ET.Element(
             "uses-feature", {"android:name": del_key, "tools:node": "remove"}
         )
@@ -141,19 +143,19 @@ def _merge_permissions(permissions):
     return merged
 
 
-def parse_and_merge_permissions(content: str) -> dict:
+def parse_and_merge_permissions(permissions_content: str) -> dict:
     """
     解析包含默认权限、添加权限和移除权限的内容，返回一个字典
 
     Args:
-        content: 包含 XML 代码块的文本
+        permissions_content: 包含 XML 代码块的文本
 
     Returns:
         dict: 一个字典，包含：
             - "permissions": 合并后的权限
             - "features": 合并后的特性
     """
-    permissions = _parse_manifest_permission(content)
+    permissions = _parse_manifest_permission(permissions_content)
     merged_permissions = _merge_permissions(permissions)
     return merged_permissions
 
@@ -185,11 +187,11 @@ if __name__ == "__main__":
     """
 
     # 解析权限
-    merged_permissions = parse_and_merge_permissions(content)
+    _merged_permissions = parse_and_merge_permissions(content)
 
     print("\n合并后权限:")
     print(
-        merged_permissions["permissions"][
+        _merged_permissions["permissions"][
             "android.permission.READ_EXTERNAL_STORAGE"
         ].attrib
     )

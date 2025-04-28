@@ -19,6 +19,7 @@ from auto_assemble.parse_readme import parse_readme
 from auto_assemble.update_android_manifest import update_android_manifest
 from auto_assemble.update_build_gradle import update_build_gradle
 from auto_assemble.update_control_file import update_control_file
+from cbr.types import ManifestInfo
 
 
 def check_dependencies():
@@ -171,7 +172,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
 
 
 def extract_compressed_file(
-    compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
@@ -390,7 +391,7 @@ def main(prod_name: str = None, task_dir: str = None):
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
         readme_path = os.path.join(config.cur_task_dir, "README.md")
         # 解析readme文件拿到本次打包请求所需的内容
-        readme_info = parse_readme(readme_path)
+        readme_info: ManifestInfo = parse_readme(readme_path)
 
         # 更新UNI_APP_ID
         config.UNI_APP_ID = readme_info["uniapp_id"]
@@ -422,6 +423,7 @@ def main(prod_name: str = None, task_dir: str = None):
             return 12003
 
         if config.build_mode != "dev":
+            obfuscated_dir = None
             try:
                 # release 构建模式下需要对代码进行混淆，执行javascript-obfuscator命令混淆temp_dir目录下的所有js文件
                 # 在当前目录下复制temp_dir目录，作为混淆后的目录
@@ -467,7 +469,7 @@ def main(prod_name: str = None, task_dir: str = None):
                         f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码"
                     )
                     # 执行失败，不进行混淆
-                    if os.path.exists(obfuscated_dir):
+                    if obfuscated_dir is not None and os.path.exists(obfuscated_dir):
                         shutil.rmtree(obfuscated_dir)
             except Exception as e:
                 logging.error(f"执行javascript-obfuscator命令失败: {e}")
@@ -486,9 +488,9 @@ def main(prod_name: str = None, task_dir: str = None):
         # 更新build.gradle
         try:
             if not update_build_gradle(
-                config.BUILD_GRADLE_PATH,
-                latest_dir_name,
-                readme_info,
+                    config.BUILD_GRADLE_PATH,
+                    latest_dir_name,
+                    readme_info,
             ):
                 logging.error("更新build.gradle失败，终止执行")
                 return 12005
@@ -498,7 +500,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
-            config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
+                config.CONTROL_FILE_PATH, readme_info["uniapp_id"], config.build_mode == "dev"
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 12006
@@ -522,9 +524,9 @@ def main(prod_name: str = None, task_dir: str = None):
 
 
 if __name__ == "__main__":
-    response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846")
-    if response.status_code == 200:
-        task_info = response.json()
-        logging.info(f"获取到任务信息: {task_info}")
+    _response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846")
+    if _response.status_code == 200:
+        _task_info = _response.json()
+        logging.info(f"获取到任务信息: {_task_info}")
     else:
-        logging.error(f"获取任务信息失败: {response.status_code}")
+        logging.error(f"获取任务信息失败: {_response.status_code}")

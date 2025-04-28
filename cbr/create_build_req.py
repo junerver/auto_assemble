@@ -8,8 +8,8 @@ import zipfile
 from datetime import datetime
 
 import requests
-from win11toast import toast
 from dotenv import load_dotenv
+from win11toast import toast
 
 from auto_assemble.build import get_build_req_label
 from auto_assemble.config import config
@@ -84,21 +84,21 @@ def create_build_req():
             return 1
 
         is_ready, manifest_info, resources_dir = check_uni_project(env_vars, third_party_configs)
+        if not is_ready:
+            logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
+            return 1
         # 美观的打印manifest_info，但排除permissions字段
         manifest_info_without_permissions = manifest_info.copy()
         manifest_info_without_permissions.pop("permissions", {})
         manifest_info_without_permissions.pop("permissions_content", {})
         logging.info(f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}")
-        if not is_ready:
-            logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
-            return 1
 
         # 更新UNI_APP_ID
         config.UNI_APP_ID = manifest_info["uniapp_id"]
         # 创建时间
         req_date = datetime.now().strftime("%Y%m%d%H%M")
         # 压缩资源目录下的名称为config.UNI_APP_ID的目录，并重命名为req_date.zip
-        zip_file_path = os.path.join(resources_dir, f"{req_date}.zip")
+        zip_file_path: str = os.path.join(resources_dir, f"{req_date}.zip")
         # 压缩资源目录下的名称为config.UNI_APP_ID的目录
         target_dir = os.path.join(resources_dir, config.UNI_APP_ID)
         if not os.path.exists(target_dir):
@@ -138,10 +138,10 @@ def create_build_req():
         logging.info(f"本次请求id:{config.cur_task_id}")
         os.makedirs(req_date_dir, exist_ok=True)
         # 复制zip文件到指定目录
-        shutil.copy(zip_file_path, req_date_dir)
+        shutil.copy(zip_file_path, str(req_date_dir))
         os.remove(zip_file_path)
         logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
-        create_readme_file(req_date_dir, manifest_info)
+        create_readme_file(str(req_date_dir), manifest_info)
         # 在分发目录执行git add
         os.chdir(config.DISTRIBUTION_PATH)
         # 检查是否有任何修改

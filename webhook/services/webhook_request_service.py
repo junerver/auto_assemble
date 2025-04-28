@@ -70,6 +70,7 @@ class WebhookRequestService:
         """更新webhook请求记录的replay_count"""
         try:
             WebhookRequest.update_replay_count(task_id)
+            return True
         except Exception as e:
             logging.error(f"更新webhook请求记录的replay_count失败: {str(e)}")
             return False
