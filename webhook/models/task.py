@@ -10,19 +10,33 @@ class Task:
     """任务"""
 
     id: Optional[str] = None
+    # 项目名称
     prod_name: Optional[str] = None
+    # 任务名称（时间戳）
     task_name: Optional[str] = None
+    # 作者
     author: Optional[str] = None
+    # 提交标题
     commit_title: Optional[str] = None
+    # 提交消息
     commit_message: Optional[str] = None
+    # 提交URL
     commit_url: Optional[str] = None
+    # 优先级
     priority: int = 0
+    # 重试次数
     retries: int = 0
+    # 创建时间
     created_at: Optional[datetime] = None
+    # 开始时间
     started_at: Optional[datetime] = None
+    # 完成时间
     completed_at: Optional[datetime] = None
+    # 状态
     status: Optional[str] = None
+    # 错误信息
     error: Optional[str] = None
+    # 提交哈希（分发仓库）
     commit_hash: Optional[str] = None
 
     def __lt__(self, other):
@@ -107,6 +121,27 @@ class Task:
 
         cursor.execute(query, params)
         return [cls(**dict(row)) for row in cursor.fetchall()]
+
+    @classmethod
+    def get_tasks_statistics(cls) -> list[dict]:
+        """
+        获取所有任务的统计情况，按照项目名称分组，最终返回一个数组，数组中每个元素是一个字典，字典中包含项目名称和任务数量
+        """
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT prod_name, COUNT(*) FROM tasks GROUP BY prod_name")
+        return [{"prod_name": row[0], "count": row[1]} for row in cursor.fetchall()]
+
+    # 统计打包机使用人员
+    @classmethod
+    def get_packer_usage_statistics(cls) -> list[dict]:
+        """
+        统计打包机使用人员
+        """
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("SELECT author, COUNT(*) FROM tasks GROUP BY author")
+        return [{"author": row[0], "count": row[1]} for row in cursor.fetchall()]
 
     def save(self) -> None:
         """保存任务"""

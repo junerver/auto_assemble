@@ -19,6 +19,14 @@ def get_task_info(task_id):
     return jsonify({"error": "Task not found"}), 404
 
 
+@task_bp.route("/tasks/statistics", methods=["GET"])
+def get_tasks_statistics():
+    """获取所有任务的统计情况"""
+    tasks = TaskService.get_tasks_statistics()
+    packer_usage = TaskService.get_packer_usage_statistics()
+    return jsonify({"tasks": tasks, "packer_usage": packer_usage}), 200
+
+
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
     """获取队列状态"""
@@ -38,26 +46,6 @@ def get_queue_status():
     }
 
     return jsonify(formatted_status), 200
-
-
-def format_task_info(task_dict):
-    """格式化任务信息，确保返回正确的字段名称"""
-    if not task_dict:
-        return None
-    return {
-        "id": task_dict["id"],
-        "project": task_dict["prod_name"],  # 修改字段名以匹配前端期望
-        "task": task_dict["task_name"],  # 修改字段名以匹配前端期望
-        "author": task_dict["author"],
-        "commit_title": task_dict["commit_title"],
-        "commit_message": task_dict["commit_message"],
-        "commit_url": task_dict["commit_url"],
-        "created_at": task_dict["created_at"],
-        "started_at": task_dict["started_at"],
-        "completed_at": task_dict["completed_at"],
-        "status": task_dict["status"],
-        "error": task_dict["error"],
-    }
 
 
 @task_bp.route("/task/<task_id>/replay", methods=["POST"])
@@ -104,3 +92,23 @@ def stop_task(task_id):
     if task:
         return jsonify({"message": message, "task": format_task_info(task.to_dict())}), status_code
     return jsonify({"error": message}), status_code
+
+
+def format_task_info(task_dict):
+    """格式化任务信息，确保返回正确的字段名称"""
+    if not task_dict:
+        return None
+    return {
+        "id": task_dict["id"],
+        "project": task_dict["prod_name"],  # 修改字段名以匹配前端期望
+        "task": task_dict["task_name"],  # 修改字段名以匹配前端期望
+        "author": task_dict["author"],
+        "commit_title": task_dict["commit_title"],
+        "commit_message": task_dict["commit_message"],
+        "commit_url": task_dict["commit_url"],
+        "created_at": task_dict["created_at"],
+        "started_at": task_dict["started_at"],
+        "completed_at": task_dict["completed_at"],
+        "status": task_dict["status"],
+        "error": task_dict["error"],
+    }

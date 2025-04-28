@@ -152,3 +152,13 @@ class TaskService:
 
         task.update_status("failed", format_error(10003))
         return task, "Task stopped successfully", 200
+
+    @staticmethod
+    def get_tasks_statistics():
+        """获取所有任务的统计情况"""
+        return Task.get_tasks_statistics()
+
+    @staticmethod
+    def get_packer_usage_statistics():
+        """获取打包机使用人员统计情况"""
+        return Task.get_packer_usage_statistics()
