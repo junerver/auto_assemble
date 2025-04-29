@@ -4,7 +4,6 @@ FROM auto_assemble-runtime:uv
 # 保存git凭证
 RUN git config --global credential.helper store && \
     echo "http://junerver%40qq.com:tKKBSQCRsvSd3Sh@192.168.187.232:28088" >> ~/.git-credentials && \
-    echo "http://houwenjun:%40Aa123456@192.168.187.209:22999" >> ~/.git-credentials && \
     git config --global user.name "assemble_bot" && \
     git config --global user.email "assemble_bot@jkr.com"
 
