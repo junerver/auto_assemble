@@ -1,5 +1,5 @@
 # 使用运行时镜像作为基础
-FROM auto_assemble-runtime:latest
+FROM auto_assemble-runtime:uv
 
 # 保存git凭证
 RUN git config --global credential.helper store && \
@@ -16,8 +16,15 @@ COPY --chown=appuser:appuser manager_client ./manager_client
 COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
 COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
+
+# 删除文件中的回车符
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /app/cleanup.sh
+
 # 安装项目依赖和模块
-RUN pip install -e .
+RUN uv python install 3.13 && \
+    uv sync && \
+    uv pip install -e .
 
 # 设置入口点权限、清理脚本权限
 RUN chmod +x docker-entrypoint.sh && \
@@ -33,4 +40,4 @@ RUN mkdir -p $GRADLE_USER_HOME && chown -R appuser:appuser $GRADLE_USER_HOME
 EXPOSE 5005
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["python", "-m", "webhook"]
+CMD ["uv", "run", "webhook"]

@@ -29,11 +29,10 @@ ENV GIT_ASKPASS=echo
 # 保存git凭证，配置 git 用户名和邮箱，并克隆仓库
 RUN git config --global credential.helper store && \
     echo "http://junerver%40qq.com:tKKBSQCRsvSd3Sh@192.168.187.232:28088" >> ~/.git-credentials && \
-    echo "http://houwenjun:%40Aa123456@192.168.187.209:22999" >> ~/.git-credentials && \
     git config --global user.name "assemble_bot" && \
     git config --global user.email "assemble_bot@jkr.com" && \
     git clone "http://192.168.187.232:28088/rdcenter/app-distribution.git" /app/distribution && \
-    git clone "http://192.168.187.209:22999/r/jkr/uni-base.git" /app/uni-base 
+    git clone "http://192.168.187.232:28088/rhcourtyard/framework/jkr-android-uni-base.git" /app/uni-base 
 
 # 创建卷挂载点
 VOLUME ["/app/distribution", "/app/uni-base"]

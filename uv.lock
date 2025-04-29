@@ -137,35 +137,33 @@ name = "auto-assemble"
 version = "0.2.1"
 source = { editable = "." }
 dependencies = [
-    { name = "aiohttp" },
     { name = "colorlog" },
     { name = "flask" },
     { name = "json5" },
     { name = "patool" },
-    { name = "pex" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "rarfile" },
     { name = "requests" },
     { name = "toml" },
     { name = "waitress" },
-    { name = "win11toast" },
 ]
 
 [package.optional-dependencies]
 dev = [
+    { name = "aiohttp" },
     { name = "pyinstaller" },
     { name = "pyinstaller-hooks-contrib" },
+    { name = "win11toast" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.11.18" },
+    { name = "aiohttp", marker = "extra == 'dev'", specifier = ">=3.11.18" },
     { name = "colorlog", specifier = ">=6.8.0" },
     { name = "flask", specifier = "~=3.1.0" },
     { name = "json5", specifier = ">=0.10.0" },
     { name = "patool", specifier = ">=4.0.0" },
-    { name = "pex", specifier = "~=2.33.6" },
     { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.12.0" },
     { name = "pyinstaller-hooks-contrib", marker = "extra == 'dev'", specifier = ">=2025.2" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
@@ -174,7 +172,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.31.0" },
     { name = "toml", specifier = "~=0.10.2" },
     { name = "waitress", specifier = ">=3.0.0" },
-    { name = "win11toast", specifier = ">=0.35" },
+    { name = "win11toast", marker = "extra == 'dev'", specifier = ">=0.35" },
 ]
 provides-extras = ["dev"]
 
@@ -631,15 +629,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/78/c5/3b3c62223f72e2360737fd2a57c30e5b2adecd85e70276879609a7403334/pefile-2023.2.7.tar.gz", hash = "sha256:82e6114004b3d6911c77c3953e3838654b04511b8b66e8583db70c65998017dc", size = 74854, upload_time = "2023-02-07T12:23:55.958Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/55/26/d0ad8b448476d0a1e8d3ea5622dc77b916db84c6aa3cb1e1c0965af948fc/pefile-2023.2.7-py3-none-any.whl", hash = "sha256:da185cd2af68c08a6cd4481f7325ed600a88f6a813bad9dea07ab3ef73d8d8d6", size = 71791, upload_time = "2023-02-07T12:28:36.678Z" },
-]
-
-[[package]]
-name = "pex"
-version = "2.33.10"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/67/75/6608c05af365fd6b56cefdadae87787a01b779ba25bacfee2590bd076e04/pex-2.33.10.tar.gz", hash = "sha256:bea80711bd08d4d1288fcf88b51d3003f91391293157c00105293fb2dade78a7", size = 4842717, upload_time = "2025-04-24T21:48:17.448Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/7f/2f511c30be32a6874f1632ef3c457868ae990da45009d5d96e77b5f89ea9/pex-2.33.10-py2.py3-none-any.whl", hash = "sha256:7b61ca558defba0dc0cbcc7f28afcf9611d194f8ce3169eaeb0a635510b9b352", size = 3754878, upload_time = "2025-04-24T21:48:14.874Z" },
 ]
 
 [[package]]
