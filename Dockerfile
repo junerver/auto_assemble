@@ -16,25 +16,24 @@ COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
 COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
 
-# 删除文件中的回车符
-RUN sed -i 's/\r$//' /app/docker-entrypoint.sh
-RUN sed -i 's/\r$//' /app/cleanup.sh
 
-# 安装项目依赖和模块
-RUN uv python install 3.13 && \
-    uv sync && \
-    uv pip install -e .
-
-# 设置入口点权限、清理脚本权限
-RUN chmod +x docker-entrypoint.sh && \
-    chmod +x cleanup.sh
 
 # 设置环境变量
 ENV FLASK_APP=webhook/__main__.py \
     FLASK_ENV=production \
     GRADLE_USER_HOME=/home/appuser/.gradle
-
-RUN mkdir -p $GRADLE_USER_HOME && chown -R appuser:appuser $GRADLE_USER_HOME
+# 删除文件中的回车符并设置权限
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && \
+    sed -i 's/\r$//' /app/cleanup.sh && \
+    chmod +x /app/docker-entrypoint.sh && \
+    chmod +x /app/cleanup.sh && \
+    # 创建 gradle 目录并设置权限
+    mkdir -p $GRADLE_USER_HOME && \
+    chown -R appuser:appuser $GRADLE_USER_HOME && \
+    # 安装项目依赖和模块
+    uv python install 3.13 && \
+    uv sync && \
+    uv pip install -e .
 
 EXPOSE 5005
 

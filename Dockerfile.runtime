@@ -32,6 +32,14 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|
 # 最终阶段：运行镜像
 FROM ubuntu:22.04
 
+# 创建用户和组
+RUN addgroup --system --gid 1000 appuser && \
+    adduser --system --uid 1000 --gid 1000 appuser && \
+    mkdir -p /home/appuser && \
+    mkdir -p /app && \
+    chown -R appuser:appuser /app /home/appuser
+
+# 设置工作目录
 WORKDIR /app
 
 # 设置时区
@@ -66,24 +74,16 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# 拷贝 Android SDK 和 JDK
-COPY --from=android-builder /opt/android-sdk /opt/android-sdk
-COPY --from=android-builder /opt/java /opt/java
+# 复制 Android SDK 和 JDK
+COPY --from=android-builder --chown=appuser:appuser /opt/android-sdk /opt/android-sdk
+COPY --from=android-builder --chown=appuser:appuser /opt/java /opt/java
 
 ENV ANDROID_HOME=/opt/android-sdk \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     JAVA_HOME=/opt/java \
-    PATH="$PATH:/opt/java/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools"
-
-# 创建非 root 用户并赋权
-RUN addgroup --system --gid 1000 appuser && \
-    adduser --system --uid 1000 --gid 1000 appuser && \
-    mkdir -p /home/appuser && \
-    chown -R appuser:appuser /app /opt/android-sdk /opt/java /home/appuser
-
-USER appuser
-WORKDIR /app
-
-ENV HOME=/home/appuser \
+    PATH="$PATH:/opt/java/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools" \
+    HOME=/home/appuser \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+USER appuser
