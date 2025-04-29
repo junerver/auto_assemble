@@ -11,8 +11,12 @@ def get_db():
     return g.db
 
 
-def close_db():
-    """关闭数据库连接"""
+def close_db(e=None):
+    """关闭数据库连接
+
+    Args:
+        e: 可选的异常参数，由 Flask 的 teardown 处理器传入
+    """
     db = g.pop("db", None)
     if db is not None:
         db.close()

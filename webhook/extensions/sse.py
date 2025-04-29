@@ -6,7 +6,10 @@ This module provides Server-Sent Events (SSE) functionality for the webhook serv
 
 import json
 import logging
+import queue
+import time
 from queue import Queue
+from threading import Lock
 from typing import List
 
 from flask import Response, stream_with_context
@@ -18,6 +21,7 @@ class ServerSentEvents:
     def __init__(self, app=None):
         self.app = app
         self.clients: List[Queue] = []
+        self._lock = Lock()  # 添加锁
         if app is not None:
             self.init_app(app)
 
@@ -29,51 +33,62 @@ class ServerSentEvents:
         """广播事件到所有客户端"""
         message = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
         logging.info(f"Publishing: {message.strip()}")
-        logging.info(f"Current clients: {len(self.clients)}")
 
-        # 清理无效的客户端
-        valid_clients = []
-        for client_queue in self.clients:
-            try:
-                # 测试客户端是否仍然有效
-                client_queue.put(":\n\n", block=False)  # 发送心跳消息
-                valid_clients.append(client_queue)
-            except Exception as e:
-                logging.error(f"Removing invalid client: {e}")
+        with self._lock:
+            clients_to_remove = []
+            for client_queue in self.clients:
+                try:
+                    client_queue.put(message, timeout=1.0)
+                    logging.info("Event sent to client successfully")
+                except queue.Full:
+                    logging.warning("Client queue is full, removing client")
+                    clients_to_remove.append(client_queue)
+                except Exception as e:
+                    logging.error(f"Unexpected error sending event to client: {e}")
+                    clients_to_remove.append(client_queue)
 
-        self.clients = valid_clients
-        logging.info(f"Valid clients after cleanup: {len(self.clients)}")
-
-        # 发送事件到所有有效客户端
-        for client_queue in self.clients:
-            try:
-                client_queue.put(message)
-                logging.info("Event sent to client successfully")
-            except Exception as e:
-                logging.error(f"Error sending event to client: {e}")
-                self.clients.remove(client_queue)
+            # 批量移除无效客户端
+            for client in clients_to_remove:
+                try:
+                    self.clients.remove(client)
+                except ValueError:
+                    pass
 
     def stream(self):
         """SSE 流处理"""
-        client_queue = Queue()
-        self.clients.append(client_queue)
+        # 设置队列最大大小
+        client_queue = Queue(maxsize=100)
+        with self._lock:
+            self.clients.append(client_queue)
         logging.info(f"New client connected: {len(self.clients)} clients total")
 
         def generate():
+            last_heartbeat = time.time()
             try:
-                yield ":\n\n"  # 防止某些浏览器连接断开
+                # 发送初始心跳
+                yield ":\n\n"
                 while True:
-                    message = client_queue.get()
-                    yield message
-            except GeneratorExit:
+                    try:
+                        # 设置超时，避免永久阻塞
+                        message = client_queue.get(timeout=30.0)
+                        last_heartbeat = time.time()
+                        yield message
+                    except Exception:
+                        # 检查心跳超时
+                        if time.time() - last_heartbeat > 60:  # 60秒无响应视为断开
+                            raise TimeoutError("Client heartbeat timeout")
+                        # 发送心跳保持连接
+                        yield ":\n\n"
+            except (GeneratorExit, TimeoutError):
                 logging.info("Client disconnected")
             finally:
                 # 清理客户端
-                if client_queue in self.clients:
-                    self.clients.remove(client_queue)
-                    logging.info(
-                        f"Client removed: {len(self.clients)} clients remaining"
-                    )
+                with self._lock:
+                    try:
+                        self.clients.remove(client_queue)
+                        logging.info(f"Client removed: {len(self.clients)} clients remaining")
+                    except ValueError:
+                        pass
 
         return Response(
             stream_with_context(generate()),

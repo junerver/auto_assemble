@@ -19,7 +19,7 @@ def stream():
     return current_app.extensions["sse"].stream()
 
 
-# @events_bp.route("/events/test")
+@events_bp.route("/events/test")
 def test():
     """测试端点"""
     logging.info("Test endpoint called")
