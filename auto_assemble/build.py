@@ -68,9 +68,7 @@ def get_distribution_target_dir(apk_name: str):
     Returns:
         str: 目标目录路径
     """
-    return os.path.join(
-        config.DISTRIBUTION_PATH, config.PROD_NAME, apk_name.replace(".apk", "")
-    )
+    return os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, apk_name.replace(".apk", ""))
 
 
 def execute_gradle_build(release: bool = True):
@@ -117,7 +115,8 @@ def execute_gradle_build(release: bool = True):
 
         result = subprocess.run(
             cmd,
-            capture_output=True,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
             text=True,
             encoding="utf-8",  # ✅ 修改为 utf-8
             errors="replace",  # ✅ 可选，避免报错，替换非法字符
@@ -134,9 +133,7 @@ def execute_gradle_build(release: bool = True):
         return False
 
 
-def copy_build_outputs(
-        apk_name: str, target_dir: str, release: bool
-) -> tuple[bool, str]:
+def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[bool, str]:
     """
     复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
 
@@ -151,11 +148,7 @@ def copy_build_outputs(
         # 确保目标目录存在
         os.makedirs(target_dir, exist_ok=True)
         # 根据构建模式确定输出目录
-        output_dir = (
-            config.BUILD_RELEASE_OUTPUT_DIR
-            if release
-            else config.BUILD_DEBUG_OUTPUT_DIR
-        )
+        output_dir = config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
         # 复制APK文件
         source_apk = os.path.join(output_dir, apk_name)
         target_apk = os.path.join(target_dir, apk_name)
@@ -296,9 +289,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
     """
     try:
         # 配置日志
-        setup_logging(
-            task_name=f"新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        setup_logging(task_name=f"新的构建任务 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info("开始执行构建流程")
 
         # 检查基座工程
@@ -327,7 +318,9 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
             commit_message = f"release_req: {apk_name}{config.last_commit_message}"
         else:
             # 本地构建只记录变更时间
-            commit_message = f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+            commit_message = (
+                f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
+            )
 
         if (git_code := update_git_info(commit_message)) != 0:
             logging.error("更新git信息失败，终止执行")
