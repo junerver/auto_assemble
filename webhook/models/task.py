@@ -123,8 +123,8 @@ class Task:
             params = (limit,)
 
         query = (
-                base_query
-                + """
+            base_query
+            + """
             ORDER BY 
                 CASE 
                     WHEN t.completed_at IS NULL THEN 1
@@ -165,7 +165,6 @@ class Task:
             task = cls(**row_dict)
             task.metadata = metadata
             tasks.append(task)
-        logger.info(f"数据: {tasks}")
         return tasks
 
     @classmethod
