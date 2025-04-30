@@ -9,8 +9,8 @@ import logging
 import queue
 import time
 from queue import Queue
-from threading import Lock
-from typing import List
+from threading import Lock, Event
+from typing import Dict, Set
 
 from flask import Response, stream_with_context
 
@@ -20,8 +20,12 @@ class ServerSentEvents:
 
     def __init__(self, app=None):
         self.app = app
-        self.clients: List[Queue] = []
-        self._lock = Lock()  # 添加锁
+        self.clients: Dict[str, Queue] = {}
+        self.active_clients: Set[str] = set()
+        self._lock = Lock()
+        self._client_id_counter = 0
+        self._stop_event = Event()
+        self._heartbeat_interval = 15  # 心跳间隔（秒）
         if app is not None:
             self.init_app(app)
 
@@ -29,68 +33,90 @@ class ServerSentEvents:
         """初始化扩展"""
         app.extensions["sse"] = self
 
+    def _get_next_client_id(self) -> str:
+        """获取下一个客户端ID"""
+        with self._lock:
+            self._client_id_counter += 1
+            return f"client_{self._client_id_counter}"
+
     def publish(self, event_type: str, data: dict):
         """广播事件到所有客户端"""
         message = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
         logging.info(f"Publishing: {message.strip()}")
 
         with self._lock:
-            clients_to_remove = []
-            for client_queue in self.clients:
+            clients_to_remove = set()
+            active_clients = self.active_clients.copy()
+
+            for client_id in active_clients:
+                if client_id not in self.clients:
+                    continue
+
+                client_queue = self.clients[client_id]
                 try:
-                    client_queue.put(message, timeout=1.0)
-                    logging.info("Event sent to client successfully")
+                    # 使用非阻塞方式发送消息
+                    client_queue.put_nowait(message)
+                    logging.info(f"Event sent to client {client_id} successfully")
                 except queue.Full:
-                    logging.warning("Client queue is full, removing client")
-                    clients_to_remove.append(client_queue)
+                    logging.warning(f"Client {client_id} queue is full, removing client")
+                    clients_to_remove.add(client_id)
                 except Exception as e:
-                    logging.error(f"Unexpected error sending event to client: {e}")
-                    clients_to_remove.append(client_queue)
+                    logging.error(f"Unexpected error sending event to client {client_id}: {e}")
+                    clients_to_remove.add(client_id)
 
             # 批量移除无效客户端
-            for client in clients_to_remove:
+            for client_id in clients_to_remove:
                 try:
-                    self.clients.remove(client)
-                except ValueError:
+                    del self.clients[client_id]
+                    self.active_clients.discard(client_id)
+                    logging.info(
+                        f"Client {client_id} removed: {len(self.clients)} clients remaining"
+                    )
+                except KeyError:
                     pass
 
     def stream(self):
         """SSE 流处理"""
-        # 设置队列最大大小
-        client_queue = Queue(maxsize=100)
+        client_id = self._get_next_client_id()
+        client_queue = Queue(maxsize=10)  # 减小队列大小
+
         with self._lock:
-            self.clients.append(client_queue)
-        logging.info(f"New client connected: {len(self.clients)} clients total")
+            self.clients[client_id] = client_queue
+            self.active_clients.add(client_id)
+        logging.info(f"New client {client_id} connected: {len(self.clients)} clients total")
 
         def generate():
             last_heartbeat = time.time()
             try:
                 # 发送初始心跳
                 yield ":\n\n"
-                while True:
+                while not self._stop_event.is_set():
                     try:
-                        # 设置超时，避免永久阻塞
-                        message = client_queue.get(timeout=30.0)
+                        # 使用较短的超时时间
+                        message = client_queue.get(timeout=self._heartbeat_interval)
                         last_heartbeat = time.time()
                         yield message
-                    except Exception:
+                    except queue.Empty:
                         # 检查心跳超时
-                        if time.time() - last_heartbeat > 60:  # 60秒无响应视为断开
+                        if time.time() - last_heartbeat > self._heartbeat_interval * 2:
                             raise TimeoutError("Client heartbeat timeout")
                         # 发送心跳保持连接
                         yield ":\n\n"
             except (GeneratorExit, TimeoutError):
-                logging.info("Client disconnected")
+                logging.info(f"Client {client_id} disconnected")
             finally:
                 # 清理客户端
                 with self._lock:
                     try:
-                        self.clients.remove(client_queue)
-                        logging.info(f"Client removed: {len(self.clients)} clients remaining")
-                    except ValueError:
+                        del self.clients[client_id]
+                        self.active_clients.discard(client_id)
+                        logging.info(
+                            f"Client {client_id} removed: {len(self.clients)} clients remaining"
+                        )
+                    except KeyError:
                         pass
 
-        return Response(
+        response = Response(
             stream_with_context(generate()),
             mimetype="text/event-stream",
             headers={
@@ -98,3 +124,14 @@ class ServerSentEvents:
                 "X-Accel-Buffering": "no",
             },
         )
+
+        # 设置响应超时
+        response.timeout = None
+        return response
+
+    def shutdown(self):
+        """关闭所有SSE连接"""
+        self._stop_event.set()
+        with self._lock:
+            self.clients.clear()
+            self.active_clients.clear()

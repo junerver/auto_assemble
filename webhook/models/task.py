@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from ..extensions.context import get_db
+
+TaskStatus = Literal["pending", "running", "completed", "failed"]
 
 
 @dataclass
@@ -33,7 +35,7 @@ class Task:
     # 完成时间
     completed_at: Optional[datetime] = None
     # 状态
-    status: Optional[str] = None
+    status: Optional[TaskStatus] = None
     # 错误信息
     error: Optional[str] = None
     # 提交哈希（分发仓库）
@@ -76,15 +78,11 @@ class Task:
         """获取待处理的任务"""
         db = get_db()
         cursor = db.cursor()
-        cursor.execute(
-            "SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC"
-        )
+        cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_recent_tasks(
-            cls, limit: int = 5, build_mode: str | None = None
-    ) -> list["Task"]:
+    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
         """获取最近的任务
 
         Args:
