@@ -83,7 +83,8 @@ class Task:
 
     @classmethod
     def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
-        """获取最近的任务
+        """
+        获取最近的任务
 
         Args:
             limit: 返回的任务数量限制
