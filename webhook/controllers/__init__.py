@@ -7,7 +7,7 @@ task_bp = Blueprint("task", __name__)
 third_party_bp = Blueprint("third_party", __name__)
 auth_bp = Blueprint("auth", __name__)
 events_bp = Blueprint("events", __name__)
-
+metadata_bp = Blueprint("metadata", __name__)
 # 导入路由
 from .webhook_controller import *
 from .project_controller import *
@@ -15,3 +15,4 @@ from .task_controller import *
 from .third_party_controller import *
 from .auth_controller import *
 from .events_controller import *
+from .metadata_controller import *

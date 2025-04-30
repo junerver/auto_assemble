@@ -89,6 +89,27 @@ def init_db():
             request_body TEXT NOT NULL,
             headers TEXT,
             created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY (task_id) REFERENCES tasks (id)
+        )
+        """
+    )
+
+    # 创建构建任务产物元数据表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS build_task_metadata
+        (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id      TEXT    NOT NULL,
+            package_name TEXT    NOT NULL,
+            version_name TEXT    NOT NULL,
+            version_code INTEGER NOT NULL,
+            build_type   TEXT    NOT NULL,
+            flavor       TEXT    NOT NULL,
+            build_date   TEXT    NOT NULL,
+            file_size    INTEGER NOT NULL,
+            md5          TEXT    NOT NULL,
+            created_at   TIMESTAMP DEFAULT (datetime('now', 'localtime')),
             FOREIGN KEY (task_id) REFERENCES tasks(id)
         )
     """

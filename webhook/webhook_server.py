@@ -10,6 +10,7 @@ from .controllers import (
     third_party_bp,
     auth_bp,
     events_bp,
+    metadata_bp,
 )
 from .extensions.context import init_app
 from .extensions.sse import ServerSentEvents
@@ -40,6 +41,7 @@ def create_app():
     app.register_blueprint(third_party_bp, url_prefix="/api/config/third-party")
     app.register_blueprint(auth_bp)
     app.register_blueprint(events_bp)
+    app.register_blueprint(metadata_bp, url_prefix="/api/metadata")
 
     # 打印所有注册的路由
     logging.info("已注册的路由:")
@@ -62,6 +64,4 @@ if __name__ == "__main__":
     # 创建应用
     _app = create_app()
     # 运行应用
-    _app.run(
-        host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG
-    )
+    _app.run(host="0.0.0.0", port=PORT, ssl_context=None, debug=DEBUG, use_reloader=DEBUG)

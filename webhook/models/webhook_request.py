@@ -1,9 +1,8 @@
-import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from ..config import DB_FILE
+from webhook.extensions.context import get_db
 
 
 @dataclass
@@ -33,8 +32,8 @@ class WebhookRequest:
 
     def save(self):
         """保存webhook请求记录"""
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             """
             INSERT INTO webhook_requests (task_id, request_body, headers, created_at, replay_count)
@@ -49,14 +48,13 @@ class WebhookRequest:
             ),
         )
         self.id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        db.commit()
 
     @staticmethod
     def get_by_task_id(task_id):
         """根据task_id获取webhook请求记录"""
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             """
             SELECT id, task_id, request_body, headers, created_at
@@ -66,7 +64,6 @@ class WebhookRequest:
             (task_id,),
         )
         row = cursor.fetchone()
-        conn.close()
         if row:
             request = WebhookRequest(row[1], row[2], row[3])
             request.id = row[0]
@@ -77,8 +74,8 @@ class WebhookRequest:
     @staticmethod
     def delete_by_task_id(task_id):
         """根据task_id删除webhook请求记录"""
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             """
             DELETE FROM webhook_requests
@@ -86,22 +83,20 @@ class WebhookRequest:
             """,
             (task_id,),
         )
-        conn.commit()
-        conn.close()
+        db.commit()
 
     @staticmethod
     def update_replay_count(task_id):
         """更新webhook请求记录的replay_count"""
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
+        db = get_db()
+        cursor = db.cursor()
         cursor.execute(
             """
             UPDATE webhook_requests SET replay_count = replay_count + 1 WHERE task_id = ?
             """,
             (task_id,),
         )
-        conn.commit()
-        conn.close()
+        db.commit()
 
     def to_dict(self):
         """转换为字典格式"""

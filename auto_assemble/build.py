@@ -7,11 +7,14 @@ import subprocess
 import sys
 from datetime import datetime
 
+import requests
+
 from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.config import config
 from auto_assemble.git import git_push, git_reset_and_clean
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
+from auto_assemble.types import BuildMetadata
 
 
 def get_build_req_label(build_mode: str, req_resp: str = "req"):
@@ -187,6 +190,8 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
             # 解析metadata文件
             metadata = parse_metadata(metadata_text)
             logging.info(f"解析metadata文件结果: {json.dumps(metadata)}")
+            # 调用接口，记录任务对应的元数据
+            record_task_metadata(metadata)
 
         else:
             logging.error(f"源metadata文件不存在: {source_metadata}")
@@ -198,7 +203,24 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
         return False, ""
 
 
-def parse_metadata(metadata_text: str):
+def record_task_metadata(metadata: BuildMetadata):
+    """
+    调用接口，记录任务对应的元数据
+    """
+    try:
+        request_url = f"{config.SERVER_HOST_URL}/api/metadata/{config.cur_task_id}"
+        response = requests.post(request_url, json=metadata)
+        if response.status_code != 201:
+            logging.error(f"调用接口提交元数据失败: {response.status_code} {response.text}")
+            return False
+        logging.info(f"调用接口提交元数据成功: {response.status_code} {response.text}")
+        return True
+    except Exception as e:
+        logging.error(f"调用接口提交元数据失败: {e}")
+        return False
+
+
+def parse_metadata(metadata_text: str) -> BuildMetadata:
     """
     解析metadata文件
     """
@@ -216,7 +238,7 @@ def parse_metadata(metadata_text: str):
     }
 
     # 转换为 dict 并跳过不需要的字段
-    metadata = {}
+    metadata: BuildMetadata = {}
     for line in metadata_text.strip().splitlines():
         if not line.strip():
             continue
@@ -227,9 +249,9 @@ def parse_metadata(metadata_text: str):
             if key in key_mapping:
                 mapped_key = key_mapping[key]
                 if mapped_key == "file_size":
-                    # 提取开头的纯数字部分（字节数）
-                    match = re.search(r"^\d+", value)
-                    metadata[mapped_key] = int(match.group()) if match else 0
+                    # 提取后半段kb部分的数值
+                    match = re.search(r"\d+ KB", value)
+                    metadata[mapped_key] = int(match.group().replace(" KB", "")) if match else 0
                 else:
                     metadata[mapped_key] = value
 
