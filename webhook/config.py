@@ -30,6 +30,8 @@ if missing_vars:
     else:
         load_dotenv(env_path)
         print(f"已加载环境变量文件: {env_path}")
+        DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+        PORT = int(os.getenv("PORT", 5005))
 
 # 数据库配置
 DB_FILE = Path(__file__).parent / "webhook_server.db"

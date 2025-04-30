@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Optional
+from venv import logger
 
 from ..extensions.context import get_db
 
@@ -40,6 +41,8 @@ class Task:
     error: Optional[str] = None
     # 提交哈希（分发仓库）
     commit_hash: Optional[str] = None
+    # 元数据
+    metadata: Optional[dict] = None
 
     def __lt__(self, other):
         """比较两个任务的优先级
@@ -97,13 +100,23 @@ class Task:
             raise ValueError("build_mode must be one of: dev, test, release")
 
         base_query = """
-            SELECT * FROM tasks 
-            WHERE status IN ('completed', 'failed')
+                     SELECT t.*,
+                            btm.package_name,
+                            btm.version_name,
+                            btm.version_code,
+                            btm.build_type,
+                            btm.flavor,
+                            btm.build_date,
+                            btm.file_size,
+                            btm.md5
+                     FROM tasks t
+                              LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
+                     WHERE t.status IN ('completed', 'failed')
         """
 
         if build_mode:
             base_query += """
-                AND commit_title LIKE ? || '%'
+                AND t.commit_title LIKE ? || '%'
             """
             params = (f"#{build_mode}_req#", limit)
         else:
@@ -114,16 +127,46 @@ class Task:
                 + """
             ORDER BY 
                 CASE 
-                    WHEN completed_at IS NULL THEN 1
+                    WHEN t.completed_at IS NULL THEN 1
                     ELSE 0
                 END,
-                completed_at DESC
+                t.completed_at DESC
             LIMIT ?
         """
         )
 
         cursor.execute(query, params)
-        return [cls(**dict(row)) for row in cursor.fetchall()]
+        tasks = []
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            # 提取元数据字段
+            metadata = None
+            if row_dict.get("package_name"):
+                metadata = {
+                    "package_name": row_dict.pop("package_name"),
+                    "version_name": row_dict.pop("version_name"),
+                    "version_code": row_dict.pop("version_code"),
+                    "build_type": row_dict.pop("build_type"),
+                    "flavor": row_dict.pop("flavor"),
+                    "build_date": row_dict.pop("build_date"),
+                    "file_size": row_dict.pop("file_size"),
+                    "md5": row_dict.pop("md5"),
+                }
+            else:
+                row_dict.pop("package_name")
+                row_dict.pop("version_name")
+                row_dict.pop("version_code")
+                row_dict.pop("build_type")
+                row_dict.pop("flavor")
+                row_dict.pop("build_date")
+                row_dict.pop("file_size")
+                row_dict.pop("md5")
+
+            task = cls(**row_dict)
+            task.metadata = metadata
+            tasks.append(task)
+        logger.info(f"数据: {tasks}")
+        return tasks
 
     @classmethod
     def get_tasks_statistics(cls) -> list[dict]:
@@ -234,4 +277,5 @@ class Task:
             "status": self.status,
             "error": self.error,
             "commit_hash": self.commit_hash,
+            "metadata": self.metadata,
         }

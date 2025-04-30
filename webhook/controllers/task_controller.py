@@ -38,17 +38,11 @@ def get_queue_status():
     # 修正返回的数据格式
     formatted_status = {
         "running_task": (
-            format_task_info(queue_status["running_task"])
-            if queue_status["running_task"]
-            else None
+            format_task_info(queue_status["running_task"]) if queue_status["running_task"] else None
         ),
-        "pending_tasks": [
-            format_task_info(task) for task in queue_status["pending_tasks"]
-        ],
+        "pending_tasks": [format_task_info(task) for task in queue_status["pending_tasks"]],
         "queue_size": queue_status["queue_size"],
-        "recent_tasks": [
-            format_task_info(task) for task in queue_status["recent_tasks"]
-        ],
+        "recent_tasks": [format_task_info(task) for task in queue_status["recent_tasks"]],
     }
 
     return jsonify(formatted_status), 200
@@ -60,9 +54,7 @@ def replay_webhook(task_id):
     logging.info(f"重放webhook请求: {task_id}")
 
     # 获取原始请求数据
-    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(
-        task_id
-    )
+    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(task_id)
     if not request_data:
         return jsonify({"error": headers}), status_code
 
@@ -71,14 +63,10 @@ def replay_webhook(task_id):
         webhook_url = f"http://localhost:{current_app.config['PORT']}/webhook"
 
         # 发送请求到webhook接口
-        response = requests.post(
-            webhook_url, json=request_data, headers=headers, timeout=30
-        )
+        response = requests.post(webhook_url, json=request_data, headers=headers, timeout=30)
 
         if response.status_code == 200:
-            return jsonify(
-                {"message": "Webhook请求重放成功", "response": response.json()}
-            ), 200
+            return jsonify({"message": "Webhook请求重放成功", "response": response.json()}), 200
         else:
             return (
                 jsonify(
@@ -102,9 +90,7 @@ def stop_task(task_id):
     logging.info(f"停止任务: {task_id}")
     task, message, status_code = TaskService.stop_task(task_id)
     if task:
-        return jsonify(
-            {"message": message, "task": format_task_info(task.to_dict())}
-        ), status_code
+        return jsonify({"message": message, "task": format_task_info(task.to_dict())}), status_code
     return jsonify({"error": message}), status_code
 
 
@@ -125,4 +111,5 @@ def format_task_info(task_dict):
         "completed_at": task_dict["completed_at"],
         "status": task_dict["status"],
         "error": task_dict["error"],
+        "metadata": task_dict["metadata"],
     }
