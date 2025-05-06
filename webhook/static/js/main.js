@@ -227,14 +227,17 @@ function createTaskItem(task, isRunning = false) {
 
     return `
         <div class="task-item ${task.error ? 'warning' : ''}">
-            <h6 class="task-title">
-                <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
-                ${isRunning ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
-                    <i class="bi bi-stop-circle"></i> 停止
-                </button>` : ''}
-                ${task.error ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
-                    <i class="bi bi-arrow-repeat"></i> 重播
-                </button>` : ''}
+            <h6 class="task-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
+                    ${isRunning ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
+                        <i class="bi bi-stop-circle"></i> 停止
+                    </button>` : ''}
+                    ${task.error ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
+                        <i class="bi bi-arrow-repeat"></i> 重播
+                    </button>` : ''}
+                </div>
+                ${isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
             </h6>
             <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
             <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${getReqTypeBadge(task.commit_title)}${formatCommitTitle(task.commit_title)}</p>
@@ -246,6 +249,17 @@ function createTaskItem(task, isRunning = false) {
             ${resourceLinks}
         </div>
     `;
+}
+
+/**
+ * 标记任务为过期
+ * @param {*} taskId
+ */
+function outdatedTask(taskId) {
+    fetch(`/task/${taskId}`, {
+        method: 'DELETE'
+    })
+        .then(updateQueueStatus)
 }
 
 /**

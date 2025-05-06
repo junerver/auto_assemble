@@ -50,4 +50,5 @@ alwaysApply: true
   - JS 文件在 `static/js/`
   - CSS 文件在 `static/css/`
   - 字体等资源在 `static/css/fonts/`
+- 不允许修改 taskClickHandler 代码段的内容！
 

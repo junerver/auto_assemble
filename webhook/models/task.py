@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Optional
-from venv import logger
 
 from ..extensions.context import get_db
 
-TaskStatus = Literal["pending", "running", "completed", "failed"]
+# 任务状态，包含：pending（待处理）、running（运行中）、completed（已完成）、failed（失败）、outdated（过期）
+TaskStatus = Literal["pending", "running", "completed", "failed", "outdated"]
 
 
 @dataclass
@@ -87,7 +87,8 @@ class Task:
     @classmethod
     def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
         """
-        获取最近的任务
+        获取最近的任务（只检索未过期的任务，即 status 为 completed 或 failed 的任务），如果 build_mode 不为 None，则只返回 build_mode 对应的任务
+        如果 build_mode 为 None，则返回所有任务。
 
         Args:
             limit: 返回的任务数量限制

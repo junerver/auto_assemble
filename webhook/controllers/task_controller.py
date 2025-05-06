@@ -19,6 +19,13 @@ def get_task_info(task_id):
     return jsonify({"error": "Task not found"}), 404
 
 
+@task_bp.route("/task/<task_id>", methods=["DELETE"])
+def outdated_task(task_id):
+    """标记任务为过期"""
+    TaskService.update_task_status(task_id, "outdated")
+    return jsonify({"message": "Task outdated"}), 200
+
+
 @task_bp.route("/tasks/statistics", methods=["GET"])
 def get_tasks_statistics():
     """获取所有任务的统计情况"""
