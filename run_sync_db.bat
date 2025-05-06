@@ -33,3 +33,5 @@ if %errorlevel% neq 0 (
 
 :: 提示下载成功
 echo 文件已成功下载并覆盖到本地目录。
+
+pause
