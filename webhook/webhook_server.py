@@ -19,7 +19,7 @@ from .models.database import init_db
 
 def create_app():
     """创建Flask应用"""
-    app = Flask(__name__, template_folder="templates")
+    app = Flask(__name__, template_folder="templates", static_folder="static")
 
     # 配置数据库文件路径
     app.config["DB_FILE"] = DB_FILE
