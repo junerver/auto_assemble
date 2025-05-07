@@ -272,6 +272,60 @@
             </div>
         </div>
 
+        <!-- 派生任务的模态窗口 -->
+        <div class="modal fade" id="forkTaskModal" tabindex="-1" aria-labelledby="forkTaskModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="forkTaskModalLabel">派生任务</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="forkTaskForm">
+                            <div class="mb-3">
+                                <label class="form-label">源任务ID</label>
+                                <input type="text" class="form-control" id="sourceTaskId" name="source_task_id"
+                                       required>
+                            </div>
+                            <!-- 源任务分支-隐藏字段 -->
+                            <input type="hidden" id="sourceBranch" name="source_branch">
+                            <div class="mb-3">
+                                <label class="form-label">目标分支</label>
+                                <!-- master、test、release -->
+                                <select class="form-select" id="targetBranchSelect">
+                                    <option value="master">master</option>
+                                    <option value="test">test</option>
+                                    <option value="release">release</option>
+                                </select>
+                            </div>
+                            <!-- 版本名 -->
+                            <div class="mb-3">
+                                <label class="form-label">版本名</label>
+                                <input type="text" class="form-control" id="versionName" name="version_name" required>
+                            </div>
+                            <!-- 版本号 -->
+                            <div class="mb-3">
+                                <label class="form-label">版本号</label>
+                                <input type="text" class="form-control" id="versionCode" name="version_code" required>
+                            </div>
+                            <!-- commit message -->
+                            <div class="mb-3">
+                                <label class="form-label">commit message</label>
+                                <input type="text" class="form-control" id="commitMessage" name="commit_message"
+                                       required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="createForkTask">创建派生任务</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- 当前运行任务 -->
         <div class="card status-card">
             <div class="card-header">
@@ -322,6 +376,8 @@
 
     <script src="/static/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/polling.js"></script>
+    <script src="/static/js/project.js"></script>
     <script src="/static/js/third_party.js"></script>
     <script src="/static/js/replay.js"></script>
     <script src="/static/js/buildmode.js"></script>

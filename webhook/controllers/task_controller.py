@@ -119,4 +119,5 @@ def format_task_info(task_dict):
         "status": task_dict["status"],
         "error": task_dict["error"],
         "metadata": task_dict["metadata"],
+        "source_task_id": task_dict["source_task_id"],
     }

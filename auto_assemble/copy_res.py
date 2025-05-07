@@ -342,7 +342,7 @@ def main(prod_name: str = None, task_dir: str = None):
             config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
-            response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/{config.cur_task_id}")
+            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
             if response.status_code == 200:
                 task_info = response.json()["task"]
                 logging.info(f"获取到提交信息: {task_info}")
@@ -529,7 +529,7 @@ def main(prod_name: str = None, task_dir: str = None):
 
 
 if __name__ == "__main__":
-    _response = requests.get(f"{os.getenv('SERVER_HOST_URL')}/task/identify_field,202504071846")
+    _response = requests.get(f"{config.SERVER_HOST_URL}/task/identify_field,202504071846")
     if _response.status_code == 200:
         _task_info = _response.json()
         logging.info(f"获取到任务信息: {_task_info}")

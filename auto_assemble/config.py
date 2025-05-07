@@ -65,9 +65,7 @@ class Config:
     @property
     def APPS_DIRECTORY(self):
         if self._apps_directory is None:
-            self._apps_directory = (
-                f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/apps"
-            )
+            self._apps_directory = f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/apps"
         return self._apps_directory
 
     @property
@@ -81,7 +79,9 @@ class Config:
     @property
     def CONTROL_FILE_PATH(self):
         if self._control_file_path is None:
-            self._control_file_path = f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/data/dcloud_control.xml"
+            self._control_file_path = (
+                f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/data/dcloud_control.xml"
+            )
         return self._control_file_path
 
     @property
@@ -93,9 +93,7 @@ class Config:
     @property
     def VERSIONS_TOML_PATH(self):
         if self._versions_toml_path is None:
-            self._versions_toml_path = (
-                f"{self.ANDROID_UNI_BASE_PATH}/gradle/libs.versions.toml"
-            )
+            self._versions_toml_path = f"{self.ANDROID_UNI_BASE_PATH}/gradle/libs.versions.toml"
         return self._versions_toml_path
 
     @property

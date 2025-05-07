@@ -7,9 +7,9 @@ This module provides event-related endpoints for the webhook server.
 import json
 import logging
 
-from flask import Blueprint, current_app, Response
+from flask import current_app, Response
 
-events_bp = Blueprint("events", __name__)
+from . import events_bp
 
 
 @events_bp.route("/events")

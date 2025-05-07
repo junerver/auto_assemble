@@ -11,6 +11,7 @@ from .controllers import (
     auth_bp,
     events_bp,
     metadata_bp,
+    fork_task_bp,
 )
 from .extensions.context import init_app
 from .extensions.sse import ServerSentEvents
@@ -42,6 +43,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(events_bp)
     app.register_blueprint(metadata_bp, url_prefix="/api/metadata")
+    app.register_blueprint(fork_task_bp, url_prefix="/api")
 
     # 打印所有注册的路由
     logging.info("已注册的路由:")

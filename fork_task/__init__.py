@@ -1,8 +1,8 @@
 """
-WebHook - gitlab 的 webhook 服务器
+fork_task - 派生任务创建工具
 """
 
 __author__ = "Junerver"
 __email__ = "junerver@gmail.com"
 
-# webhook package
+# fork_task package

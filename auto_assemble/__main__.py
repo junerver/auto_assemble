@@ -59,6 +59,7 @@ def main():
             print(f"ANDROID_UNI_BASE_PATH: {os.getenv('ANDROID_UNI_BASE_PATH')}")
             print(f"SERVER_HOST_URL: {os.getenv('SERVER_HOST_URL')}")
             print("已从环境变量中加载相关变量，不再从.env文件中加载。")
+            config.SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
         else:
             # 加载指定的 .env 文件
             load_dotenv(env_file)

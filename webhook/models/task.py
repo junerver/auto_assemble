@@ -43,6 +43,8 @@ class Task:
     commit_hash: Optional[str] = None
     # 元数据
     metadata: Optional[dict] = None
+    # 派生任务源任务ID
+    source_task_id: Optional[str] = None
 
     def __lt__(self, other):
         """比较两个任务的优先级
@@ -52,15 +54,93 @@ class Task:
             return self.priority > other.priority
         return self.created_at < other.created_at
 
+    def save(self) -> None:
+        """保存任务"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO tasks 
+            (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
+             priority, retries, created_at, started_at, completed_at, status, error, commit_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                self.id,
+                self.prod_name,
+                self.task_name,
+                self.author,
+                self.commit_title,
+                self.commit_message,
+                self.commit_url,
+                self.priority,
+                self.retries,
+                self.created_at,
+                self.started_at,
+                self.completed_at,
+                self.status,
+                self.error,
+                self.commit_hash,
+            ),
+        )
+        db.commit()
+
     @classmethod
     def get_by_id(cls, task_id: str) -> Optional["Task"]:
         """根据ID获取任务"""
         db = get_db()
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+        cursor.execute(
+            """
+            SELECT t.*,
+                   btm.package_name,
+                   btm.version_name,
+                   btm.version_code,
+                   btm.build_type,
+                   btm.flavor,
+                   btm.build_date,
+                   btm.file_size,
+                   btm.md5,
+                   ft.source_task_id
+            FROM tasks t
+                     LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
+                     LEFT JOIN fork_tasks ft ON t.id = ft.source_task_id
+            WHERE t.id = ?
+            """,
+            (task_id,),
+        )
         row = cursor.fetchone()
         if row:
-            return cls(**dict(row))
+            row_dict = dict(row)
+            # 提取元数据字段
+            metadata = None
+            if row_dict.get("package_name"):
+                metadata = {
+                    "package_name": row_dict.pop("package_name"),
+                    "version_name": row_dict.pop("version_name"),
+                    "version_code": row_dict.pop("version_code"),
+                    "build_type": row_dict.pop("build_type"),
+                    "flavor": row_dict.pop("flavor"),
+                    "build_date": row_dict.pop("build_date"),
+                    "file_size": row_dict.pop("file_size"),
+                    "md5": row_dict.pop("md5"),
+                }
+            else:
+                row_dict.pop("package_name")
+                row_dict.pop("version_name")
+                row_dict.pop("version_code")
+                row_dict.pop("build_type")
+                row_dict.pop("flavor")
+                row_dict.pop("build_date")
+                row_dict.pop("file_size")
+                row_dict.pop("md5")
+
+            source_task_id = row_dict.pop("source_task_id")
+
+            task = cls(**row_dict)
+            task.metadata = metadata
+            task.source_task_id = source_task_id
+            return task
         return None
 
     @classmethod
@@ -109,9 +189,11 @@ class Task:
                             btm.flavor,
                             btm.build_date,
                             btm.file_size,
-                            btm.md5
+                            btm.md5,
+                            ft.source_task_id
                      FROM tasks t
                               LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
+                              LEFT JOIN fork_tasks ft ON t.id = ft.id
                      WHERE t.status IN ('completed', 'failed')
         """
 
@@ -163,8 +245,11 @@ class Task:
                 row_dict.pop("file_size")
                 row_dict.pop("md5")
 
+            source_task_id = row_dict.pop("source_task_id")
+
             task = cls(**row_dict)
             task.metadata = metadata
+            task.source_task_id = source_task_id
             tasks.append(task)
         return tasks
 
@@ -188,37 +273,6 @@ class Task:
         cursor = db.cursor()
         cursor.execute("SELECT author, COUNT(*) FROM tasks GROUP BY author")
         return [{"author": row[0], "count": row[1]} for row in cursor.fetchall()]
-
-    def save(self) -> None:
-        """保存任务"""
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO tasks 
-            (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
-             priority, retries, created_at, started_at, completed_at, status, error, commit_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                self.id,
-                self.prod_name,
-                self.task_name,
-                self.author,
-                self.commit_title,
-                self.commit_message,
-                self.commit_url,
-                self.priority,
-                self.retries,
-                self.created_at,
-                self.started_at,
-                self.completed_at,
-                self.status,
-                self.error,
-                self.commit_hash,
-            ),
-        )
-        db.commit()
 
     def update_status(self, status: str, error: Optional[str] = None) -> None:
         """更新任务状态"""
@@ -278,4 +332,5 @@ class Task:
             "error": self.error,
             "commit_hash": self.commit_hash,
             "metadata": self.metadata,
+            "source_task_id": self.source_task_id,
         }

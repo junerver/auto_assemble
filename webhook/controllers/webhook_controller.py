@@ -2,8 +2,7 @@ import logging
 import os
 import subprocess
 from datetime import datetime
-from queue import PriorityQueue
-from threading import Thread, Lock
+from threading import Thread
 
 from flask import jsonify, request, current_app
 
@@ -14,11 +13,13 @@ from ..config import TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
 from ..utils.notifications import show_build_toast
-
-# 任务队列（使用优先级队列）
-task_queue = PriorityQueue()
-# 队列锁
-queue_lock = Lock()
+from ..utils.task_lock import (
+    acquire_task_lock,
+    release_task_lock,
+    add_task_to_queue,
+    get_queue_size,
+    TaskType,
+)
 
 # 添加调试日志
 logging.info("正在注册webhook路由...")
@@ -62,8 +63,7 @@ def execute_task(task: Task, app):
                         if task.retries < MAX_RETRIES:
                             task.retries += 1
                             task.priority += 1
-                            with queue_lock:
-                                task_queue.put(task)
+                            add_task_to_queue(task, TaskType.BUILD)
                 except subprocess.TimeoutExpired:
                     process.kill()
                     task.status = "failed"
@@ -72,11 +72,18 @@ def execute_task(task: Task, app):
                     show_build_toast(task, False)
                 finally:
                     task.save()
-                    # 检查队列中是否有下一个任务
-                    with queue_lock:
-                        if not task_queue.empty():
-                            next_task = task_queue.get()
+                    # 释放任务锁并获取下一个任务
+                    next_task_info = release_task_lock()
+                    if next_task_info:
+                        next_task_type, next_task = next_task_info
+                        if next_task_type == TaskType.BUILD:
                             Thread(target=execute_task, args=(next_task, app), daemon=True).start()
+                        else:
+                            from ..controllers.fork_task_controller import fork_task_worker
+
+                            Thread(
+                                target=fork_task_worker, args=(next_task, app), daemon=True
+                            ).start()
 
         Thread(target=cleanup, daemon=True).start()
 
@@ -109,18 +116,17 @@ def webhook():
             # 记录缓存请求 replay_count+1
             WebhookRequestService.update_replay_count(task.id)
 
-        # 检查是否有正在运行的任务
-        running_task = TaskService.get_running_task()
-        if running_task:
-            logging.info("检测到正在进行的构建，将任务加入队列")
-            with queue_lock:
-                task_queue.put(task)
+        # 是否有正在执行的任务
+        if not acquire_task_lock(TaskType.BUILD):
+            # 将任务加入队列
+            logging.info("无法获取任务锁，将任务加入队列")
+            add_task_to_queue(task, TaskType.BUILD)
             return (
                 jsonify(
                     {
                         "message": "Task added to queue",
                         "task": task.to_dict(),
-                        "position": task_queue.qsize(),
+                        "position": get_queue_size(TaskType.BUILD),
                     }
                 ),
                 202,

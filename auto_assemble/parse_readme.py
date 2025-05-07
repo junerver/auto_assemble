@@ -21,9 +21,7 @@ def parse_uni_modules(content: str) -> list[str]:
     """
     try:
         # 使用正则表达式匹配模块信息部分
-        modules_section = re.search(
-            r"9\. 模块信息：\n\n(.*?)(?=\n\n|$)", content, re.DOTALL
-        )
+        modules_section = re.search(r"9\. 模块信息：\n\n(.*?)(?=\n\n|$)", content, re.DOTALL)
         if not modules_section:
             logging.warning("未找到模块信息部分")
             return []
@@ -141,7 +139,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
         # 解析第三方配置
         # todo: 重构第三方配置读取，修改为从服务器接口读取，不再解析yaml代码块
         response = requests.get(
-            f"{os.getenv('SERVER_HOST_URL')}/api/config/project?name={config.PROD_NAME}"
+            f"{config.SERVER_HOST_URL}/api/config/project?name={config.PROD_NAME}"
         )
         if response.status_code == 200:
             data = response.json()
@@ -160,9 +158,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
 
         # 普通项目正常读取
         abi_filters = (
-            abi_filters_match.group(1)
-            if abi_filters_match
-            else '"armeabi-v7a", "arm64-v8a"'
+            abi_filters_match.group(1) if abi_filters_match else '"armeabi-v7a", "arm64-v8a"'
         )
         # 识田间项目使用armeabi-v7a，arm64-v8a
         if config.PROD_NAME == "identify_field":

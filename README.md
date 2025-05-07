@@ -92,6 +92,16 @@ PORT=5005
 SERVER_HOST_URL=http://localhost:5005
 ```
 
+### 数据库说明
+
+- build_task_metadata **元数据表**
+- project_config **项目配置表**
+- tasks **构建任务表**
+- third_party_config **第三方配置表**
+- third_party_dict **第三方配置字典**，第三方厂商的配置项字典
+- webhook_requests **钩子请求表**，临时存储webhook的请求内容，方便构建失败时重试
+- fork_task **派生任务表**，记录派生操作
+
 ## Docker部署说明
 
 ### 环境要求
@@ -146,11 +156,11 @@ SERVER_HOST_URL=http://localhost:5005
 
 3. 更新服务：
    ```bash
-   # 拉取最新代码
-   git pull
+   # 拉取最新镜像
+   docker-compose pull
    
-   # 重新构建并启动
-   docker-compose up -d --build
+   # 启动镜像
+   docker-compose up -d
    ```
 
 4. 查看日志：

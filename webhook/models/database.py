@@ -115,5 +115,22 @@ def init_db():
     """
     )
 
+    # 创建派生任务表
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS fork_tasks
+        (
+            id                    TEXT PRIMARY KEY,
+            source_task_id        TEXT      NOT NULL,
+            source_branch TEXT NOT NULL,
+            target_branch         TEXT      NOT NULL,
+            target_version_name   TEXT      NOT NULL,
+            target_version_code   TEXT      NOT NULL,
+            commit_message        TEXT      NOT NULL,
+            created_at            TIMESTAMP NOT NULL,
+            FOREIGN KEY (source_task_id) REFERENCES tasks (id)
+        )
+        """
+    )
     conn.commit()
     conn.close()
