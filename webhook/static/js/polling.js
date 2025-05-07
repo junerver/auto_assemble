@@ -154,6 +154,18 @@ function updateStatus(data) {
     }
 }
 
+function reinitTooltips() {
+    // 先销毁所有已存在的 tooltip 实例
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        const instance = bootstrap.Tooltip.getInstance(el);
+        if (instance) instance.dispose();
+    });
+    // 再重新初始化
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+    });
+}
+
 /**
  * 更新队列状态
  */
@@ -161,6 +173,7 @@ function updateQueueStatus() {
     fetch('/queue?build_mode=' + currentBuildMode)
         .then(response => response.json())
         .then(data => updateStatus(data))
+        .then(reinitTooltips)
         .catch(error => console.error('Error:', error));
 }
 
@@ -206,3 +219,10 @@ document.addEventListener('visibilitychange', () => {
         startPolling();
     }
 });
+
+document.addEventListener('mouseleave', function (e) {
+    if (e.target.matches('[data-bs-toggle="tooltip"]')) {
+        const instance = bootstrap.Tooltip.getInstance(e.target);
+        if (instance) instance.hide();
+    }
+}, true);

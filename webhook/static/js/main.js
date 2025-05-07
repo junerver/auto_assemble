@@ -4,6 +4,10 @@ let isAuthorizedIP = false;
 // 分发仓库地址
 const distributionUrl = "http://192.168.187.232:28088/rdcenter/app-distribution/"
 
+// 初始化tooltip
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
 // 检查IP授权状态
 function checkIPAuthorization() {
     fetch('/check-ip')
@@ -235,7 +239,9 @@ function createTaskItem(task, isRunning = false) {
             <h6 class="task-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
-                    ${source_task_id && isAuthorizedIP ? `<i class="bi bi-link-45deg" style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')"></i>` : ''}
+                    ${source_task_id && isAuthorizedIP ? `<i class="bi bi-link-45deg" 
+                    style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')" 
+                    data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip" data-bs-title="${source_task_id}"></i>` : ''}
                     ${isRunning && isAuthorizedIP ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
                         <i class="bi bi-stop-circle"></i> 停止
                     </button>` : ''}

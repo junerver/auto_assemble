@@ -250,12 +250,15 @@ body {
     0% {
         opacity: 0;
     }
+
     10% {
         opacity: 1;
     }
+
     90% {
         opacity: 1;
     }
+
     100% {
         opacity: 0;
     }
@@ -324,4 +327,10 @@ body {
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
-} 
+}
+
+.custom-tooltip {
+    --bs-tooltip-bg: #343a40;
+    --bs-tooltip-color: #fff;
+    --bs-tooltip-arrow-bg: #343a40;
+}
