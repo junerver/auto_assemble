@@ -11,6 +11,7 @@ RUN git config --global credential.helper store && \
 COPY --chown=appuser:appuser auto_assemble ./auto_assemble
 COPY --chown=appuser:appuser webhook ./webhook
 COPY --chown=appuser:appuser cbr ./cbr
+COPY --chown=appuser:appuser fork_task ./fork_task
 COPY --chown=appuser:appuser manager_client ./manager_client
 COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
@@ -22,6 +23,7 @@ COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
 ENV FLASK_APP=webhook/__main__.py \
     FLASK_ENV=production \
     GRADLE_USER_HOME=/home/appuser/.gradle
+
 # 删除文件中的回车符并设置权限
 RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && \
     sed -i 's/\r$//' /app/cleanup.sh && \

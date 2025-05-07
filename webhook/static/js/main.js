@@ -193,12 +193,14 @@ function createTaskItem(task, isRunning = false) {
 
     const source_task_id = task.source_task_id;
 
+    const isCompleted = task.status === 'completed';
+
     // 构建完成时间显示（仅对已完成的任务显示）
-    const completedTimeInfo = !isRunning && task.status !== 'pending' && task.completed_at ?
+    const completedTimeInfo = isCompleted && task.completed_at ?
         `<p class="mb-1 time-info"><i class="bi bi-calendar-check"></i> 完成时间: ${formatDateTime(task.completed_at)}</p>` : '';
 
     // 为已完成的任务标题添加点击事件
-    const taskClickHandler = !isRunning && task.status !== 'pending' ?
+    const taskClickHandler = isCompleted ?
         `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
 
     // 项目名称点击事件
@@ -214,7 +216,7 @@ function createTaskItem(task, isRunning = false) {
     const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
 
     // 资源链接部分（仅对已完成的任务显示）
-    const resourceLinks = !isRunning && task.status === 'completed' ? `
+    const resourceLinks = isCompleted ? `
             <div class="resource-links">
                 <a href="${reqReadme}" class="resource-link" target="_blank">
                     <i class="bi bi-file-text"></i>打包请求说明
@@ -242,8 +244,8 @@ function createTaskItem(task, isRunning = false) {
                     </button>` : ''}
                 </div>
                 <div>
-                    ${isAuthorizedIP ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
-                    ${isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
+                    ${isCompleted && isAuthorizedIP ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
+                    ${isCompleted && isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
                 </div>
             </h6>
             <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
