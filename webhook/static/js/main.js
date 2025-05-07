@@ -233,11 +233,11 @@ function createTaskItem(task, isRunning = false) {
             <h6 class="task-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <span ${projectClickHandler}>${task.project}</span> - <span ${taskClickHandler}>${task.task}</span>
-                    ${source_task_id ? `<i class="bi bi-link-45deg" style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')"></i>` : ''}
-                    ${isRunning ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
+                    ${source_task_id && isAuthorizedIP ? `<i class="bi bi-link-45deg" style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')"></i>` : ''}
+                    ${isRunning && isAuthorizedIP ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
                         <i class="bi bi-stop-circle"></i> 停止
                     </button>` : ''}
-                    ${task.error ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
+                    ${task.error && isAuthorizedIP ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
                         <i class="bi bi-arrow-repeat"></i> 重播
                     </button>` : ''}
                 </div>
