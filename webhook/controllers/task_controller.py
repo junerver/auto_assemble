@@ -15,7 +15,7 @@ def get_task_info(task_id):
     task = TaskService.get_task(task_id)
     if task:
         logging.info(f"获取任务详细信息: {task.to_dict()}")
-        return jsonify({"task": format_task_info(task)}), 200
+        return jsonify({"task": format_task_info(task.to_dict())}), 200
     return jsonify({"error": "Task not found"}), 404
 
 
