@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto_assemble"
+version = "0.3.6"
+description = "自动化打包工具"
+authors = [
+    { name = "Junerver", email = "junerver@gmail.com" }
+]
+dependencies = [
+    "pyyaml>=6.0.2",
+    "patool>=4.0.0",
+    "rarfile>=4.2",
+    "python-dotenv>=1.0.1",
+    "json5>=0.10.0",
+    "requests>=2.31.0",
+    "waitress>=3.0.0",
+    "colorlog>=6.8.0",
+    "Flask~=3.1.0",
+    "toml~=0.10.2",
+]
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.12.0",
+    "pyinstaller-hooks-contrib>=2025.2",
+    "win11toast>=0.35",
+    "aiohttp>=3.11.18",
+]
+
+[project.scripts]
+auto-assemble = "auto_assemble.__main__:main"
+webhook = "webhook.__main__:main"
+fork-task = "fork_task.__main__:main"
+
+[tool.setuptools]
+packages = ["auto_assemble", "webhook", "fork_task", "common"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3 
+
