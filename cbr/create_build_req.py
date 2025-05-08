@@ -38,9 +38,7 @@ def create_build_req():
             description="Load environment variables from a specified .env file and execute the program."
         )
         # 配置 UniApp 项目地址
-        parser.add_argument(
-            "-u", "--uni", type=str, help="Path to the uniapp project root"
-        )
+        parser.add_argument("-u", "--uni", type=str, help="Path to the uniapp project root")
         # 提交消息参数，配置此参数时，通过cli模式运行，不需要用户确认
         parser.add_argument("-m", "--message", type=str, help="Commit message")
         # 构建模式参数
@@ -78,30 +76,22 @@ def create_build_req():
             logging.error("没有执行UniApp项目路径，请追加 `--uni ${projectDir}`")
             return 1
 
-        # 校验通过，检查
+        # 扫描uni项目，获取项目配置。此操作同时会赋值config.DISTRIBUTION_PATH
         try:
             env_vars, third_party_configs = scan_uni_project(args.uni, os.getcwd())
         except Exception as e:
-            logging.error(
-                f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}"
-            )
+            logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
             return 1
 
-        is_ready, manifest_info, resources_dir = check_uni_project(
-            env_vars, third_party_configs
-        )
+        is_ready, manifest_info, resources_dir = check_uni_project(env_vars, third_party_configs)
         if not is_ready:
-            logging.error(
-                "本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！"
-            )
+            logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
             return 1
         # 美观的打印manifest_info，但排除permissions字段
         manifest_info_without_permissions = manifest_info.copy()
         manifest_info_without_permissions.pop("permissions", {})
         manifest_info_without_permissions.pop("permissions_content", {})
-        logging.info(
-            f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}"
-        )
+        logging.info(f"manifest_info: {json.dumps(manifest_info_without_permissions, indent=4)}")
 
         # 更新UNI_APP_ID
         config.UNI_APP_ID = manifest_info["uniapp_id"]
@@ -132,19 +122,26 @@ def create_build_req():
         if not config.PROD_NAME:
             logging.error("配置错误: PROD_NAME 未设置或为空")
             return 1
+
+        # 检查lfs是否正确配置，否则阻止执行
+        if not check_git_lfs_installed(config.DISTRIBUTION_PATH):
+            logging.error(
+                "Git LFS未正确配置，请先以管理员身份运行PowerShell进入仓库根目录下，执行命令：.\.build_req\git-lfs.ps1"
+            )
+            return 1
+
         # 同步仓库
         if not sync_repository(config.DISTRIBUTION_PATH):
             logging.error("Git仓库同步失败，终止执行")
             return 1
-        if req_mode == "dev":
-            check_git_branch(config.DISTRIBUTION_PATH, "master")
-        else:
-            check_git_branch(config.DISTRIBUTION_PATH, req_mode)
+
+        target_branch = "master" if req_mode == "dev" else req_mode
+        if not check_git_branch(config.DISTRIBUTION_PATH, target_branch):
+            logging.error("Git切换失败，终止执行")
+            return 1
 
         # 在分发目录的PROD_NAME目录下创建req_date目录
-        req_date_dir = os.path.join(
-            config.DISTRIBUTION_PATH, config.PROD_NAME, req_date
-        )
+        req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
         config.cur_task_id = f"{config.PROD_NAME},{req_date}"
         config.cur_task_dir = req_date_dir
         logging.info(f"本次请求id:{config.cur_task_id}")
@@ -152,9 +149,7 @@ def create_build_req():
         # 复制zip文件到指定目录
         shutil.copy(zip_file_path, str(req_date_dir))
         os.remove(zip_file_path)
-        logging.info(
-            f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下"
-        )
+        logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
         create_readme_file(str(req_date_dir), manifest_info)
         # 在分发目录执行git add
         os.chdir(config.DISTRIBUTION_PATH)
@@ -226,9 +221,7 @@ def rolling_req_build_status():
     dots = ""  # 用于存储进度点
     while True:
         try:
-            response = requests.get(
-                f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}"
-            )
+            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
             if response.status_code == 200:
                 task_info = response.json().get("task", {})
                 status = task_info.get("status")
@@ -269,6 +262,20 @@ def rolling_req_build_status():
         except Exception as e:
             logging.error(f"轮询任务状态时发生错误: {str(e)}")
             break
+
+
+def check_git_lfs_installed(repo_path=".") -> bool:
+    """
+    检查git lfs是否安装，检查.git/hooks目录下的pre-push文件是否存在git-lfs
+    """
+    hooks_path = os.path.join(repo_path, ".git", "hooks")
+    pre_push_hook = os.path.join(hooks_path, "pre-push")
+    if os.path.exists(pre_push_hook):
+        with open(pre_push_hook, "r") as f:
+            content = f.read()
+            if "git-lfs" in content:
+                return True
+    return False
 
 
 if __name__ == "__main__":
