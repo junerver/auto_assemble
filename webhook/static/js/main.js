@@ -204,7 +204,7 @@ function createTaskItem(task, isRunning = false) {
         `<p class="mb-1 time-info"><i class="bi bi-calendar-check"></i> 完成时间: ${formatDateTime(task.completed_at)}</p>` : '';
 
     // 为已完成的任务标题添加点击事件
-    const taskClickHandler = isCompleted ?
+    const taskClickHandler = !isRunning && task.status !== 'pending' ?
         `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
 
     // 项目名称点击事件
