@@ -22,8 +22,6 @@ dependencies = [
     "toml~=0.10.2",
 ]
 requires-python = ">=3.10"
-readme = "README.md"
-license = { text = "MIT" }
 
 [project.optional-dependencies]
 dev = [
