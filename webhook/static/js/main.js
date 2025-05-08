@@ -283,7 +283,9 @@ function forkTask(taskId) {
             document.getElementById('targetBranchSelect').value = getBranchName(sourceTask.commit_title);
             document.getElementById('versionName').value = sourceTask.metadata?.version_name || '';
             document.getElementById('versionCode').value = sourceTask.metadata?.version_code || '';
-            document.getElementById('commitMessage').value = sourceTask.commit_message || '';
+            document.getElementById('commitMessage').value = formatCommitTitle(sourceTask.commit_message).substring(0) || '';
+            // 操作人，原始作者为sourceTask.author
+            document.getElementById('operator').value = sourceTask.author || 'assemble_bot';
             document.getElementById('createForkTask').onclick = () => createForkTask();
             // 弹出模态窗口
             const modal = new bootstrap.Modal(document.getElementById('forkTaskModal'));
@@ -305,6 +307,7 @@ function createForkTask() {
     const versionName = document.getElementById('versionName').value;
     const versionCode = document.getElementById('versionCode').value;
     const commitMessage = document.getElementById('commitMessage').value;
+    const operator = document.getElementById('operator').value;
     console.log(sourceTaskId, sourceBranch, targetBranch, versionName, versionCode, commitMessage);
     fetch(`/api/fork_task`, {
         method: 'POST',
@@ -317,7 +320,8 @@ function createForkTask() {
             target_branch: targetBranch,
             target_version_name: versionName,
             target_version_code: versionCode,
-            commit_message: commitMessage
+            commit_message: commitMessage,
+            operator: operator,
         }),
     })
         .then(response => response.json())

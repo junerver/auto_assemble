@@ -64,6 +64,7 @@ def fork_task():
     target_version_name = data.get("target_version_name")
     target_version_code = data.get("target_version_code")
     commit_message_raw = data.get("commit_message")
+    operator = data.get("operator") or "assemble_bot"
 
     if target_branch != "master":
         label = f"#{target_branch}_req#"
@@ -81,6 +82,7 @@ def fork_task():
         target_version_name,
         target_version_code,
         commit_message,
+        operator,
     )
 
     # 尝试获取任务锁
