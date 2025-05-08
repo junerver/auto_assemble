@@ -328,6 +328,7 @@ def main(prod_name: str, task_dir: str):
     Returns:
         int: 返回0表示成功，返回1表示失败
     """
+    global temp_dir
     try:
         # 配置日志
         setup_logging(clear_log_file=True, task_name="执行资源同步流程")
@@ -526,6 +527,9 @@ def main(prod_name: str, task_dir: str):
             return 10005
         logging.error(f"执行过程中发生错误: {e}")
         return 1
+    finally:
+        if temp_dir is not None and os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
 
 
 if __name__ == "__main__":
