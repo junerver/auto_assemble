@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Slash Command to Action Maps
+
+
+- /sync_doc 仔细阅读并理解/common/err_code.py中 `ERROR_CODES` 字典中声明的错误码与错误信息，并更新/README.md 文件中 *## 错误码说明* 章节
