@@ -3,7 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-from cbr.types import ManifestInfo
+from common.types import ManifestInfo
 
 
 def prettify_xml(elem):

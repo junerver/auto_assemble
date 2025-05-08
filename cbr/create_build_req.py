@@ -12,8 +12,12 @@ from dotenv import load_dotenv
 from win11toast import toast
 
 from auto_assemble.build import get_build_req_label
-from auto_assemble.config import config
-from auto_assemble.git import (
+from auto_assemble.log import setup_logging
+from auto_assemble.push import confirm_push, has_changes
+from cbr.check_uni_project import check_uni_project, scan_uni_project
+from cbr.create_readme_file import create_readme_file
+from common.config import config
+from common.git import (
     check_git_branch,
     get_staged_files,
     get_untracked_files,
@@ -22,10 +26,6 @@ from auto_assemble.git import (
     git_push,
     sync_repository,
 )
-from auto_assemble.log import setup_logging
-from auto_assemble.push import confirm_push, has_changes
-from cbr.check_uni_project import check_uni_project, scan_uni_project
-from cbr.create_readme_file import create_readme_file
 
 
 def create_build_req():

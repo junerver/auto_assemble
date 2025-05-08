@@ -11,9 +11,9 @@ import textwrap
 from dotenv import load_dotenv
 
 from auto_assemble.auto_flow import main as auto_flow
-from auto_assemble.config import config
-from auto_assemble.err_code import unified_error_code
 from auto_assemble.welcome import welcome
+from common.config import config
+from common.err_code import unified_error_code
 
 
 def main():

@@ -10,11 +10,11 @@ from datetime import datetime
 import requests
 
 from auto_assemble.check_uni_base import check_uni_base
-from auto_assemble.config import config
-from auto_assemble.git import git_push, git_reset_and_clean
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 from auto_assemble.types import BuildMetadata
+from common.config import config
+from common.git import git_push, git_reset_and_clean
 
 
 def get_build_req_label(build_mode: str, req_resp: str = "req"):

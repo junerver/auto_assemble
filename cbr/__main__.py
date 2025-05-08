@@ -1,8 +1,8 @@
 import sys
 import time
 
-from auto_assemble.config import config
 from cbr.create_build_req import create_build_req, rolling_req_build_status
+from common.config import config
 
 
 def main():

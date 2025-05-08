@@ -5,10 +5,10 @@ import re
 import requests
 import yaml
 
-from auto_assemble.config import config
 from auto_assemble.parse_permissions import parse_and_merge_permissions
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
-from cbr.types import ManifestInfo
+from common.config import config
+from common.types import ManifestInfo
 
 
 def parse_uni_modules(content: str) -> list[str]:

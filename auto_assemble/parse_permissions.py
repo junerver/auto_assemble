@@ -1,7 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 
-from cbr.types import PermissionsFeatures, ManifestPermissions
+from common.types import PermissionsFeatures, ManifestPermissions
 
 """
 文件名称: parse_permissions.py

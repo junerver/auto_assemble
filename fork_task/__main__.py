@@ -2,8 +2,8 @@ import argparse
 import logging
 import sys
 
-from auto_assemble.err_code import unified_error_code
-from auto_assemble.error import BusinessException
+from common.err_code import unified_error_code
+from common.error import BusinessException
 from fork_task.copy_source import copy_source
 from fork_task.modify_uni_res import modify_uni_res
 from fork_task.re_req import re_req

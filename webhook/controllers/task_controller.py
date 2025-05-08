@@ -118,6 +118,7 @@ def format_task_info(task_dict):
         "completed_at": task_dict["completed_at"],
         "status": task_dict["status"],
         "error": task_dict["error"],
+        "commit_hash": task_dict["commit_hash"],
         "metadata": task_dict["metadata"],
         "source_task_id": task_dict["source_task_id"],
     }

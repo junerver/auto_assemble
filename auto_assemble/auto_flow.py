@@ -9,7 +9,7 @@
 import logging
 import sys
 
-from auto_assemble.config import config
+from common.config import config
 
 
 def main(task_id: str = None):

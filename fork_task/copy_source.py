@@ -6,8 +6,8 @@ import shutil
 import patoolib
 import requests
 
-from auto_assemble.error import BusinessException
-from auto_assemble.git import check_git_branch
+from common.error import BusinessException
+from common.git import check_git_branch
 from fork_task.config import SERVER_HOST_URL, DISTRIBUTION_PATH
 
 

@@ -1,7 +1,7 @@
 import logging
 import os
 
-from auto_assemble.config import config
+from common.config import config
 
 
 def check_uni_base():

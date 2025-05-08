@@ -1,4 +1,4 @@
-from auto_assemble.err_code import ERROR_CODES
+from common.err_code import ERROR_CODES
 
 
 class BusinessException(Exception):

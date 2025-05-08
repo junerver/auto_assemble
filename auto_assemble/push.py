@@ -4,15 +4,15 @@ import re
 import subprocess
 from datetime import datetime
 
-from auto_assemble.config import config
-from auto_assemble.git import (
+from auto_assemble.log import setup_logging
+from common.config import config
+from common.git import (
     get_untracked_files,
     get_staged_files,
     git_commit,
     git_add,
     git_push,
 )
-from auto_assemble.log import setup_logging
 
 
 def validate_timestamp_format(timestamp) -> bool:

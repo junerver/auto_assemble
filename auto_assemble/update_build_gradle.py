@@ -1,7 +1,7 @@
 import logging
 
-from auto_assemble.config import config
-from cbr.types import ManifestInfo
+from common.config import config
+from common.types import ManifestInfo
 
 # 模块依赖映射字典
 MODULE_DEPENDENCY_MAP = {

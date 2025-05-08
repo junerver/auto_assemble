@@ -4,7 +4,7 @@ import logging
 import os
 
 from cbr.parse_uni_manifest import parse_uni_manifest
-from cbr.types import CbrEnvVars, ManifestInfo
+from common.types import CbrEnvVars, ManifestInfo
 
 
 def scan_uni_project(
@@ -49,7 +49,7 @@ def scan_uni_project(
 
         # 2. 调用API获取项目配置
         import requests
-        from auto_assemble.config import config
+        from common.config import config
 
         api_url = f"{config.SERVER_HOST_URL}/api/config/project"
         params = {"url": project_url}

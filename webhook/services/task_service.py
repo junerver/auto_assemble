@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 
-from auto_assemble.err_code import format_error
+from common.err_code import format_error
 from ..models.task import Task
 from ..utils.notifications import show_toast
 from ..utils.validators import is_valid_build_task, parse_build_task

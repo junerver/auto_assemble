@@ -2,9 +2,9 @@ import logging
 import os
 import shutil
 
-from auto_assemble.error import BusinessException
-from auto_assemble.git import check_git_branch
-from auto_assemble.git import git_add, git_commit, git_push
+from common.error import BusinessException
+from common.git import check_git_branch
+from common.git import git_add, git_commit, git_push
 from fork_task.config import DISTRIBUTION_PATH
 
 

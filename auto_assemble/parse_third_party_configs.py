@@ -1,4 +1,4 @@
-from cbr.types import ThirdPartyConfig
+from common.types import ThirdPartyConfig
 
 
 def parse_third_party_configs(

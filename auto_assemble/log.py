@@ -4,7 +4,7 @@ from datetime import datetime
 
 import colorlog
 
-from auto_assemble.config import config
+from common.config import config
 
 
 def setup_logging(clear_log_file: bool = False, task_name: str = "任务"):

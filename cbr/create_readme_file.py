@@ -2,7 +2,7 @@ import logging
 import os
 from textwrap import dedent
 
-from cbr.types import ManifestInfo
+from common.types import ManifestInfo
 
 
 def create_readme_file(req_dir: str, manifest_info: ManifestInfo):

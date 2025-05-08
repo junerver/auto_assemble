@@ -6,7 +6,7 @@ from threading import Thread
 
 from flask import jsonify, request, current_app
 
-from auto_assemble.err_code import format_error
+from common.err_code import format_error
 from webhook.models.task import Task
 from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
@@ -53,7 +53,7 @@ def execute_task(task: Task, app):
                         task.error = None
                         show_build_toast(task, True)
                         # 删除成功的webhook请求记录
-                        WebhookRequestService.delete_webhook_request(task.id)
+                        # WebhookRequestService.delete_webhook_request(task.id)
                     else:
                         task.status = "failed"
                         # 使用错误码映射格式化错误信息

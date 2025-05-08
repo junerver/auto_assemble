@@ -4,7 +4,7 @@ import subprocess
 import textwrap
 from collections import namedtuple
 
-from auto_assemble.config import config
+from common.config import config
 
 GitCommitInfo = namedtuple("GitCommitInfo", ["commit_date", "author", "message", "commit_hash"])
 
