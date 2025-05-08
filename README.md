@@ -243,6 +243,7 @@ SERVER_HOST_URL=http://localhost:5005
 
 ## Changelog
 
+- `v0.3.7` 打包机启用lfs
 - `v0.3.6` 增加派生打包功能
 - `v0.3.5` 增加手动标记过期任务的功能
 - `v0.3.4` 首页的css、js资源本地存储
