@@ -52,7 +52,7 @@ RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|
     sed -i 's|http://security.ubuntu.com/ubuntu|http://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y \
-    passwd login adduser wget git curl \
+    passwd login adduser wget git git-lfs curl \
     tzdata && \
     # 设置时区
     ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime && \

@@ -19,6 +19,7 @@ echo "uni-base build done"
 echo "--------------------------------"
 echo "start cleanup app-distribution"
 cd /app/distribution
+git lfs install
 git reset --hard HEAD
 git clean -fd
 git pull
