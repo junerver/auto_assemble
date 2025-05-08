@@ -51,11 +51,12 @@ def get_git_info(repo_path: str) -> GitCommitInfo | None:
     return None
 
 
-def git_fetch(repo_path: str) -> bool:
+def git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
     """
     执行git fetch操作, 检查远程是否有更新, 如果本地代码已是最新, 则返回False, 否则返回True
     Args:
         repo_path: Git仓库路径
+        is_lfs: 是否为LFS仓库，默认False
     Returns:
         bool: 是否需要拉取更新
     """
@@ -71,6 +72,20 @@ def git_fetch(repo_path: str) -> bool:
         if fetch_result.returncode != 0:
             logging.error(f"Git fetch失败: {fetch_result.stderr}")
             return False
+
+        if is_lfs:
+            # LFS文件fetch
+            lfs_fetch = subprocess.run(
+                ["git", "lfs", "fetch", "--all"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+            )
+            if lfs_fetch.returncode != 0:
+                logging.error(f"Git LFS fetch失败: {lfs_fetch.stderr}")
+                return False
+            logging.info("Git LFS fetch成功")
 
         # 检查是否需要更新
         status = subprocess.run(
@@ -91,11 +106,12 @@ def git_fetch(repo_path: str) -> bool:
         return False
 
 
-def sync_repository(repo_path: str) -> bool:
+def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
     """
     同步Git仓库到最新状态
     Args:
         repo_path: Git仓库路径
+        is_lfs: 是否为LFS仓库，默认False
     Returns:
         bool: 同步是否成功
     """
@@ -119,13 +135,27 @@ def sync_repository(repo_path: str) -> bool:
             )
 
         # 检查远程是否有更新
-        if not git_fetch(repo_path):
+        if not git_fetch(repo_path, is_lfs):
             # 不需要拉取更新说明本地已经是最新
             return True
 
         # 执行更新
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
         if result.returncode == 0:
+            if is_lfs:
+                # LFS文件更新
+                lfs_pull = subprocess.run(
+                    ["git", "lfs", "pull"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    cwd=repo_path,
+                )
+                if lfs_pull.returncode != 0:
+                    logging.error(f"Git LFS pull失败: {lfs_pull.stderr}")
+                    return False
+                logging.info("Git LFS pull成功")
+
             # 获取更新后的提交信息
             after_commit_info = get_git_info(repo_path)
             if after_commit_info:
@@ -200,11 +230,28 @@ def git_clean_fd(repo_path: str) -> bool:
         return False
 
 
-def git_reset_and_clean(repo_path: str) -> bool:
+def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
     """
     执行git reset --hard HEAD和git clean -fd操作，重置当前分支最后一次提交并删除所有未跟踪的文件
+    Args:
+        repo_path: Git仓库路径
+        is_lfs: 是否为LFS仓库，默认False
     """
     try:
+        if is_lfs:
+            # 清理LFS缓存
+            lfs_clean = subprocess.run(
+                ["git", "lfs", "clean"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+            )
+            if lfs_clean.returncode != 0:
+                logging.error(f"Git LFS clean失败: {lfs_clean.stderr}")
+                return False
+            logging.info("Git LFS clean成功")
+
         if not git_reset_hard_head(repo_path):
             return False
         if not git_clean_fd(repo_path):
@@ -216,7 +263,7 @@ def git_reset_and_clean(repo_path: str) -> bool:
         return False
 
 
-def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
+def check_git_branch(repo_path: str, target_branch: str = None, is_lfs: bool = False) -> bool:
     """
     检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
 
@@ -234,6 +281,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
     Args:
         repo_path: Git项目路径
         target_branch: 指定的工作分支，如果为空，则使用config.PROD_BRANCH
+        is_lfs: 是否为LFS仓库，默认False
     Returns:
         bool: 是否在目标分支或可以安全切换到目标分支
     """
@@ -252,6 +300,21 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
         if fetch_proc.returncode != 0:
             logging.error(f"获取远程更新失败: {fetch_proc.stderr}")
             return False
+
+        if is_lfs:
+            # LFS文件fetch
+            lfs_fetch = subprocess.run(
+                ["git", "lfs", "fetch", "--all"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=30,
+            )
+            if lfs_fetch.returncode != 0:
+                logging.error(f"Git LFS fetch失败: {lfs_fetch.stderr}")
+                return False
+            logging.info("Git LFS fetch成功")
 
         # 2. 检查当前分支与远程分支的差异
         diff_proc = subprocess.run(
@@ -347,8 +410,8 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
             logging.error(f"检查工作区状态失败: {status_proc.stderr}")
             return False
 
-        if status_proc.stdout.strip():
-            logging.error("存在未提交的更改，无法安全切换分支")
+        if out := status_proc.stdout.strip():
+            logging.error(f"存在未提交的更改，无法安全切换分支: {out}")
             return False
 
         try:
@@ -568,12 +631,28 @@ def git_commit(commit_message: str, repo_path: str, author: str = None):
         return False
 
 
-def git_push(repo_path: str):
+def git_push(repo_path: str, is_lfs: bool = False):
     """
     执行git push操作
     当远程分支领先于本地分支时,自动执行rebase操作
+    Args:
+        repo_path: Git仓库路径
+        is_lfs: 是否为LFS仓库，默认False
     """
     try:
+        if is_lfs:
+            # 先推送LFS文件
+            lfs_push = subprocess.run(
+                ["git", "lfs", "push", "--all", "origin"],
+                capture_output=True,
+                text=True,
+                cwd=repo_path,
+            )
+            if lfs_push.returncode != 0:
+                logging.error(f"Git LFS push失败: {lfs_push.stderr}")
+                return False
+            logging.info("Git LFS push成功")
+
         # 首先尝试push
         result = subprocess.run(
             ["git", "push"],
