@@ -128,9 +128,44 @@ def init_db():
             target_version_code   TEXT      NOT NULL,
             commit_message        TEXT      NOT NULL,
             created_at            TIMESTAMP NOT NULL,
+            operator TEXT NULL,
             FOREIGN KEY (source_task_id) REFERENCES tasks (id)
         )
         """
     )
+    # 25.05.08 迁移添加operator字段为可空
+    migrate_add_operator_to_fork_tasks_nullable(cursor)
     conn.commit()
     conn.close()
+
+
+def column_exists(cursor: sqlite3.Cursor, table_name: str, column_name: str) -> bool:
+    """
+    检查表中是否存在指定列
+
+    Args:
+        cursor (sqlite3.Cursor): 数据库游标
+        table_name (str): 表名
+        column_name (str): 列名
+
+    Returns:
+        bool: 是否存在
+    """
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = [row[1] for row in cursor.fetchall()]  # 使用索引 1 获取列名
+    return column_name in columns
+
+
+def migrate_add_operator_to_fork_tasks_nullable(cursor: sqlite3.Cursor):
+    """
+    迁移添加operator字段为可空
+    """
+    if column_exists(cursor, "fork_tasks", "operator"):
+        return
+    # 直接添加可空字段
+    cursor.execute(
+        """
+        ALTER TABLE fork_tasks
+            ADD COLUMN operator TEXT NULL
+        """
+    )

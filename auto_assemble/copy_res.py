@@ -304,7 +304,7 @@ def get_prod_name(distribution_path: str) -> tuple[str, str]:
         raise
 
 
-def main(prod_name: str = None, task_dir: str = None):
+def main(prod_name: str, task_dir: str):
     """
     主函数：执行整个更新流程
     1. 配置日志系统

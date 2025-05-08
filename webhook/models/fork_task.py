@@ -25,13 +25,15 @@ class ForkTask:
     commit_message: Optional[str] = None
     # 创建时间
     created_at: Optional[datetime] = None
+    # 操作人
+    operator: Optional[str] = None
 
     def save(self) -> None:
         """保存派生任务"""
         db = get_db()
         cursor = db.cursor()
         cursor.execute(
-            "INSERT INTO fork_tasks (id, source_task_id, source_branch, target_branch, target_version_name, target_version_code, commit_message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO fork_tasks (id, source_task_id, source_branch, target_branch, target_version_name, target_version_code, commit_message, created_at, operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 self.id,
                 self.source_task_id,
@@ -41,6 +43,7 @@ class ForkTask:
                 self.target_version_code,
                 self.commit_message,
                 self.created_at,
+                self.operator,
             ),
         )
         db.commit()
@@ -67,4 +70,5 @@ class ForkTask:
             "target_version_code": self.target_version_code,
             "commit_message": self.commit_message,
             "created_at": self.created_at,
+            "operator": self.operator,
         }

@@ -28,7 +28,7 @@ def main(task_id: str = None):
         # 执行copy_res.py
         prod_name = None
         task_dir = None
-        if task_id:
+        if task_id is not None:
             prod_name, task_dir = task_id.split(",")
             config.cur_task_id = task_id
 

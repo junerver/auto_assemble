@@ -322,7 +322,7 @@ def check_git_branch(repo_path: str, target_branch: str = None) -> bool:
         logging.info(f"当前分支: {current_branch}")
 
         # 5. 如果已经在目标分支，直接返回True
-        if not target_branch:
+        if target_branch is None:
             # 如果未指定目标分支，则使用config.PROD_BRANCH
             if current_branch == config.PROD_BRANCH:
                 logging.info(f"已在目标分支 {config.PROD_BRANCH} 上")
@@ -531,20 +531,27 @@ def git_add(repo_path: str):
         return False
 
 
-def git_commit(commit_message, repo_path):
+def git_commit(commit_message: str, repo_path: str, author: str = None):
     """
     执行git commit操作，默认工作目录为config.DISTRIBUTION_PATH
 
-    parameters:
+    Args:
     - commit_message: 提交信息
-    - cwd: 当前工作目录
-    return:
+    - repo_path: 当前工作目录
+    - author: 提交作者，git要求的格式为 "名字 <邮箱>"，例如 "John Doe <john@example.com>"，
+              这里固定使用 <assemble_bot@jkr.com> 作为邮箱
+    Return:
     - True: 执行成功
     - False: 执行失败
     """
     try:
+        cmd = ["git", "commit"]
+        if author is not None:
+            cmd.extend(["--author", f"{author} <assemble_bot@jkr.com>"])
+        cmd.extend(["-m", commit_message])
+
         result = subprocess.run(
-            ["git", "commit", "-m", commit_message],
+            cmd,
             capture_output=True,
             text=True,
             cwd=repo_path,

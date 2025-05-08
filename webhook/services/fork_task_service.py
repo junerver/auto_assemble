@@ -12,9 +12,10 @@ class ForkTaskService:
             target_version_name: str,
             target_version_code: str,
             commit_message: str,
+            operator: str = "assemble_bot",
     ) -> ForkTask:
         """
-        创建派生任务,从原始任务中获取项目名称，并生成任务名称
+        创建派生任务,从原始任务中获取项目名称，并生成任务名称，默认操作人为assemble_bot
         """
         prod_name = source_task_id.split(",")[0]
         task_name = datetime.now().strftime("%Y%m%d%H%M")
@@ -27,6 +28,7 @@ class ForkTaskService:
             target_version_code=target_version_code,
             commit_message=commit_message,
             created_at=datetime.now(),
+            operator=operator,
         )
         fork_task.save()
         return fork_task

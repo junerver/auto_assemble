@@ -177,7 +177,7 @@ class Task:
         db = get_db()
         cursor = db.cursor()
 
-        if build_mode and build_mode not in ["dev", "test", "release"]:
+        if build_mode is not None and build_mode not in ["dev", "test", "release"]:
             raise ValueError("build_mode must be one of: dev, test, release")
 
         base_query = """

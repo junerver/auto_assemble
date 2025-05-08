@@ -325,7 +325,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         # 获取从release目录读取构建产物名称
         apk_name = get_build_output_name(release)
         # 没有传递时，指向分发目录
-        if not target_dir:
+        if target_dir is None:
             target_dir = get_distribution_target_dir(apk_name)
 
         # 复制构建产物，返回是否成功和apk文件名
