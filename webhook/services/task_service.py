@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from common.err_code import format_error
 from ..models.task import Task
@@ -11,7 +11,7 @@ from ..utils.validators import is_valid_build_task, parse_build_task
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data) -> tuple[list[Optional["Task"]], str, int]:
+    def handle_webhook_request(data: dict[str, Any]) -> tuple[list[Optional["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         Args:
@@ -35,7 +35,7 @@ class TaskService:
         if not valid_commits:
             return None, "No valid build task", 200
 
-        def build_task(commit):
+        def build_task(commit) -> Optional["Task"]:
             prod_name, task_name = parse_build_task(commit)
             return TaskService.create_task(
                 prod_name=prod_name,
@@ -44,14 +44,39 @@ class TaskService:
             )
 
         tasks = [build_task(vc) for vc in valid_commits]
+        tasks = [task for task in tasks if task is not None]
 
         return tasks, "Task created successfully", 200
 
     @staticmethod
-    def create_task(prod_name, task_name, commit_info=None, priority=0, retries=0):
-        """创建任务"""
+    def create_task(
+        prod_name, task_name, commit_info=None, priority=0, retries=0
+    ) -> Optional["Task"]:
+        """创建任务
+
+        首先检查任务是否存在，如果存在则根据状态决定是否创建新任务：
+        - 如果状态为running/pending/completed/outdated，不创建新任务
+        - 如果状态为failed，更新状态为pending并返回
+        - 如果任务不存在，创建新任务
+
+        Args:
+            prod_name: 产品名称
+            task_name: 任务名称
+            commit_info: 提交信息
+            priority: 优先级
+            retries: 重试次数
+        """
+        task_id = f"{prod_name},{task_name}"
+        task = Task.get_by_id(task_id)
+        if task:
+            if task.status == "failed":
+                task.update_status("pending")
+                return task
+            else:
+                return None
+
         task = Task(
-            id=f"{prod_name},{task_name}",
+            id=task_id,
             prod_name=prod_name,
             task_name=task_name,
             priority=priority,
@@ -72,34 +97,68 @@ class TaskService:
                 if timestamp:
                     task.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
             except (ValueError, TypeError):
+                logging.error(f"解析时间戳失败: {timestamp}")
                 pass
 
         task.save()
         return task
 
     @staticmethod
-    def get_task(task_id):
-        """通过任务id获取任务详情"""
+    def get_task(task_id: str) -> Optional["Task"]:
+        """通过任务id获取任务详情
+
+        Args:
+            task_id: 任务ID
+
+        Returns:
+            Optional[Task]: 任务对象，如果未找到则返回None
+        """
         return Task.get_by_id(task_id)
 
     @staticmethod
-    def get_running_task():
-        """获取正在执行的任务"""
+    def get_running_task() -> Optional["Task"]:
+        """获取正在执行的任务
+
+        Returns:
+            Optional[Task]: 正在执行的任务对象，如果未找到则返回None
+        """
         return Task.get_running_task()
 
     @staticmethod
-    def get_pending_tasks():
-        """获取待执行任务"""
+    def get_pending_tasks() -> list["Task"]:
+        """获取待执行任务
+
+        Returns:
+            list[Task]: 待执行任务列表
+        """
         return Task.get_pending_tasks()
 
     @staticmethod
-    def get_recent_tasks(limit=5):
-        """获取最近任务"""
+    def get_recent_tasks(limit: int = 5) -> list["Task"]:
+        """获取最近任务
+
+        Args:
+            limit: 返回的任务数量限制，默认为5
+
+        Returns:
+            list[Task]: 最近任务列表
+        """
         return Task.get_recent_tasks(limit)
 
     @staticmethod
-    def update_task_status(task_id, status, error=None):
-        """更新任务状态"""
+    def update_task_status(
+        task_id: str, status: str, error: Optional[str] = None
+    ) -> Optional["Task"]:
+        """更新任务状态
+
+        Args:
+            task_id: 任务ID
+            status: 新状态
+            error: 错误信息
+
+        Returns:
+            Optional[Task]: 更新后的任务对象，如果任务不存在则返回None
+        """
         task = Task.get_by_id(task_id)
         if task:
             task.update_status(status, error)
@@ -107,7 +166,7 @@ class TaskService:
         return None
 
     @staticmethod
-    def get_queue_status(limit: int = 5, build_mode: str | None = None):
+    def get_queue_status(limit: int = 5, build_mode: str | None = None) -> dict[str, Any]:
         """
         获取队列状态
 
