@@ -440,13 +440,22 @@ def main(prod_name: str, task_dir: str):
                     obfuscator_cmd = "javascript-obfuscator.cmd"
                 else:
                     obfuscator_cmd = "javascript-obfuscator"
+
+                # 获取混淆等级
+                preset_map = {
+                    "default": "default",
+                    "low": "low-obfuscation",
+                    "medium": "medium-obfuscation",
+                    "high": "high-obfuscation",
+                }
+                preset = os.getenv("OBFUSCATOR_PRESET", "low")
                 cmd = [
                     obfuscator_cmd,
                     obfuscated_dir,
                     "--output",
                     obfuscated_dir,
                     "--options-preset",
-                    "low-obfuscation",
+                    preset_map[preset],
                 ]
                 logging.info(f"执行javascript-obfuscator命令: {cmd}")
                 result = subprocess.run(cmd, check=True)
@@ -454,8 +463,6 @@ def main(prod_name: str, task_dir: str):
                     logging.info(
                         f"javascript-obfuscator命令执行成功，混淆后的目录: {obfuscated_dir}"
                     )
-                    # 删除原目录
-                    shutil.rmtree(temp_dir)
                     # 将混淆后的目录压缩为zip文件，作为留痕
                     zip_file = os.path.join(
                         config.cur_task_dir, f"{latest_dir_name}_obfuscated.bak"
@@ -467,6 +474,9 @@ def main(prod_name: str, task_dir: str):
                                 arcname = os.path.relpath(file_path, obfuscated_dir)
                                 zipf.write(file_path, arcname)
                     logging.info(f"混淆后的目录压缩为zip文件: {zip_file}")
+                    # 删除原目录
+                    shutil.rmtree(temp_dir)
+                    # 将混淆后的目录作为临时目录
                     temp_dir = obfuscated_dir
                     config.is_obfuscated = True
                 else:

@@ -21,6 +21,7 @@ services:
       - SERVER_HOST_URL=http://localhost:5005
       - PORT=5005
       - FLASK_DEBUG=false
+      - OBFUSCATOR_PRESET=low
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5005/health"]
       interval: 30s
