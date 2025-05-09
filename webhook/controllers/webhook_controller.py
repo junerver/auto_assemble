@@ -104,42 +104,79 @@ def webhook():
             return jsonify({"message": f"Ignored non-push event: {event_type}"}), 200
 
         # 处理webhook请求
-        task, message, status_code = TaskService.handle_webhook_request(data)
-        if not task:
+        tasks, message, status_code = TaskService.handle_webhook_request(data)
+
+        if tasks is None:
+            # 没有有效的构建任务
             return jsonify({"message": message}), status_code
 
-        # 保存webhook请求记录，如果请求头中包含X-Webhook-Request-Cache，则表示这是一个缓存的请求，
-        # 则不保存
         if not request.headers.get("X-Webhook-Request-Cache"):
-            WebhookRequestService.save_webhook_request(task.id, data, dict(request.headers))
-        else:
-            # 记录缓存请求 replay_count+1
-            WebhookRequestService.update_replay_count(task.id)
+            # 保存webhook请求记录
+            WebhookRequestService.save_webhook_requests(tasks, data, dict(request.headers))
 
-        # 是否有正在执行的任务
-        if not acquire_task_lock(TaskType.BUILD):
-            # 将任务加入队列
-            logging.info("无法获取任务锁，将任务加入队列")
-            add_task_to_queue(task, TaskType.BUILD)
-            return (
-                jsonify(
-                    {
-                        "message": "Task added to queue",
-                        "task": task.to_dict(),
-                        "position": get_queue_size(TaskType.BUILD),
-                    }
-                ),
-                202,
-            )
-        else:
-            # 直接执行构建
-            Thread(
-                target=execute_task,
-                args=(task, current_app._get_current_object()),
-                daemon=True,
-            ).start()
-            return jsonify({"message": "Build started successfully", "task": task.to_dict()}), 200
+        if len(tasks) == 1:
+            # 单条任务
+            task = tasks[0]
+            if request.headers.get("X-Webhook-Request-Cache"):
+                # 如果请求头中包含X-Webhook-Request-Cache，则表示这是一个缓存的请求
+                # 记录缓存请求 replay_count+1
+                WebhookRequestService.update_replay_count(task.id)
 
+            # 是否有正在执行的任务
+            if not acquire_task_lock(TaskType.BUILD):
+                # 将任务加入队列
+                logging.info("无法获取任务锁，将任务加入队列")
+                add_task_to_queue(task, TaskType.BUILD)
+                return (
+                    jsonify(
+                        {
+                            "message": "Task added to queue",
+                            "task": task.to_dict(),
+                            "position": get_queue_size(TaskType.BUILD),
+                        }
+                    ),
+                    202,
+                )
+            else:
+                # 直接执行构建
+                Thread(
+                    target=execute_task,
+                    args=(task, current_app._get_current_object()),
+                    daemon=True,
+                ).start()
+                return (
+                    jsonify({"message": "Build started successfully", "task": task.to_dict()}),
+                    200,
+                )
+        else:
+            # 多条任务 需要将任务加入队列
+            if not acquire_task_lock(TaskType.BUILD):
+                # 将所有任务加入队列
+                for task in tasks:
+                    add_task_to_queue(task, TaskType.BUILD)
+                return (
+                    jsonify(
+                        {
+                            "message": "Tasks added to queue",
+                            "tasks": [task.to_dict() for task in tasks],
+                        }
+                    ),
+                    200,
+                )
+            else:
+                # 构建第一个任务，其他任务加入队列
+                task = tasks[0]
+                Thread(
+                    target=execute_task,
+                    args=(task, current_app._get_current_object()),
+                    daemon=True,
+                ).start()
+                for task in tasks[1:]:
+                    add_task_to_queue(task, TaskType.BUILD)
+                return (
+                    jsonify({"message": "Build started successfully", "task": task.to_dict()}),
+                    200,
+                )
     except Exception as e:
         logging.error(f"处理webhook请求时发生错误: {str(e)}")
         return jsonify({"error": str(e)}), 500

@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from typing import Optional
 
 from common.err_code import format_error
 from ..models.task import Task
@@ -10,15 +11,15 @@ from ..utils.validators import is_valid_build_task, parse_build_task
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data):
+    def handle_webhook_request(data) -> tuple[list[Optional["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         Args:
             data: webhook请求数据
 
         Returns:
-            tuple: (task, message, status_code)
-            - task: 创建的任务对象，如果没有创建则为None
+            tuple: (tasks, message, status_code)
+            - tasks: 创建的任务对象列表，如果没有创建则为None
             - message: 处理结果消息
             - status_code: HTTP状态码
         """
@@ -27,32 +28,24 @@ class TaskService:
         if not commits:
             return None, "No file changes in commit", 200
 
-        added_files = commits[0].get("added", [])
-        if not is_valid_build_task(added_files):
-            logging.warning(
-                f"收到无效的构建请求:\n {json.dumps(commits, ensure_ascii=False, indent=2)}"
+        logging.info(
+            f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}"
+        )
+        valid_commits = [commit for commit in commits if is_valid_build_task(commit)]
+        if not valid_commits:
+            return None, "No valid build task", 200
+
+        def build_task(commit):
+            prod_name, task_name = parse_build_task(commit)
+            return TaskService.create_task(
+                prod_name=prod_name,
+                task_name=task_name,
+                commit_info=commit,
             )
-            return None, "Not a valid build task", 200
 
-        # 解析任务信息
-        commit_info = commits[0]
-        prod_name, task_name = parse_build_task(added_files)
+        tasks = [build_task(vc) for vc in valid_commits]
 
-        # 显示收到构建请求的toast提示
-        show_toast(
-            "📜收到构建请求",
-            f"🗃️项目: {prod_name}\n🏗️任务: {task_name}\n🧑‍💻作者: {commit_info.get('author', {}).get('name', '未知')}\n📝标题: {commit_info.get('title', '无标题')}",
-        )
-
-        # 创建任务
-        task = TaskService.create_task(
-            prod_name=prod_name,
-            task_name=task_name,
-            commit_info=commit_info,
-            priority=0,
-        )
-
-        return task, "Task created successfully", 200
+        return tasks, "Task created successfully", 200
 
     @staticmethod
     def create_task(prod_name, task_name, commit_info=None, priority=0, retries=0):
@@ -77,9 +70,7 @@ class TaskService:
             try:
                 timestamp = commit_info.get("timestamp")
                 if timestamp:
-                    task.created_at = datetime.strptime(
-                        timestamp, "%Y-%m-%dT%H:%M:%S%z"
-                    )
+                    task.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
             except (ValueError, TypeError):
                 pass
 

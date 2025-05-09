@@ -7,12 +7,16 @@ from ..models.webhook_request import WebhookRequest
 class WebhookRequestService:
     @staticmethod
     def save_webhook_request(task_id, request_data, headers=None):
-        """保存webhook请求记录"""
+        """
+        保存webhook请求记录
+        Args:
+            task_id: 任务id
+            request_data: 请求体
+            headers: 请求头
+        """
         try:
             request_body = (
-                json.dumps(request_data)
-                if isinstance(request_data, dict)
-                else request_data
+                json.dumps(request_data) if isinstance(request_data, dict) else request_data
             )
             # 向header中插入自定义标头，表示这是一个缓存的请求
             headers["X-Webhook-Request-Cache"] = "true"
@@ -26,6 +30,20 @@ class WebhookRequestService:
         except Exception as e:
             logging.error(f"保存webhook请求记录失败: {str(e)}")
             return False
+
+    @staticmethod
+    def save_webhook_requests(tasks, request_data, headers=None):
+        """
+        保存多个webhook请求记录，多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id，
+        即保存的request_data中只包含当前任务的commit，这样才能实现多任务处理的同时，还能针对单任务进行重播
+        """
+        for task in tasks:
+            logging.info(f"保存\清洗webhook请求记录，task_id: {task.id}")
+            # 多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id
+            request_data["commits"] = [
+                commit for commit in request_data["commits"] if commit["id"] == task.commit_hash
+            ]
+            WebhookRequestService.save_webhook_request(task.id, request_data, headers)
 
     @staticmethod
     def get_webhook_request(task_id):

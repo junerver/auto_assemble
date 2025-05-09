@@ -1,8 +1,28 @@
 import re
 
 
-def is_valid_build_task(added_files):
-    """验证是否是有效的构建任务"""
+def is_valid_build_task(commit):
+    """
+    验证是否是有效的构建任务，有效的任务需要满足：
+    1. 提交信息以 #(.*)_req# 格式开头
+    2. 添加的文件数量为2个
+    3. 添加的文件中包含压缩包和markdown文件
+
+    Args:
+        commit: 提交信息
+
+    Returns:
+        bool: 是否是有效的构建任务
+    """
+    # 获取提交信息，正则匹配是否为 #(.*)_req# 格式开头
+    commit_title = commit.get("title", "")
+    if not commit_title or not re.match(r"#\w+_req#", commit_title):
+        return False
+    # 获取添加的文件
+    added_files = commit.get("added", [])
+    if not added_files:
+        return False
+
     if len(added_files) != 2:
         return False
 
@@ -27,8 +47,19 @@ def is_valid_build_task(added_files):
     return has_archive and has_md
 
 
-def parse_build_task(added_files):
-    """解析构建任务信息"""
+def parse_build_task(commit):
+    """
+    解析构建任务信息
+    Args:
+        commit: 提交信息
+
+    Returns:
+        tuple: 构建任务信息
+    """
+    added_files = commit.get("added", [])
+    if not added_files:
+        return None, None
+
     file_path = added_files[0]
     parts = file_path.split("/")
     prod_name = parts[0]
