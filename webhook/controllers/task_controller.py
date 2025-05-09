@@ -11,10 +11,8 @@ from ..services.webhook_request_service import WebhookRequestService
 @task_bp.route("/task/<task_id>", methods=["GET"])
 def get_task_info(task_id):
     """获取任务详细信息"""
-    logging.info(f"获取任务详细信息: {task_id}")
     task = TaskService.get_task(task_id)
     if task:
-        logging.info(f"获取任务详细信息: {task.to_dict()}")
         return jsonify({"task": format_task_info(task.to_dict())}), 200
     return jsonify({"error": "Task not found"}), 404
 
