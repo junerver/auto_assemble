@@ -250,8 +250,8 @@ function createTaskItem(task, isRunning = false) {
                     </button>` : ''}
                 </div>
                 <div>
-                    ${isCompleted && isAuthorizedIP ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
-                    ${isCompleted && isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
+                    ${!isRunning && isAuthorizedIP ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
+                    ${!isRunning && isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
                 </div>
             </h6>
             <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
