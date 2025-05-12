@@ -172,7 +172,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
 
 
 def extract_compressed_file(
-    compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
+        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
@@ -413,7 +413,7 @@ def main(prod_name: str, task_dir: str):
             return 11005
 
         # 检查Git分支
-        if not check_git_branch(config.ANDROID_UNI_BASE_PATH):
+        if not check_git_branch(config.ANDROID_UNI_BASE_PATH, config.PROD_BRANCH):
             logging.error("Git分支检查失败，终止执行")
             return 12001
 
@@ -503,9 +503,9 @@ def main(prod_name: str, task_dir: str):
         # 更新build.gradle
         try:
             if not update_build_gradle(
-                config.BUILD_GRADLE_PATH,
-                latest_dir_name,
-                readme_info,
+                    config.BUILD_GRADLE_PATH,
+                    latest_dir_name,
+                    readme_info,
             ):
                 logging.error("更新build.gradle失败，终止执行")
                 return 12005
@@ -515,9 +515,9 @@ def main(prod_name: str, task_dir: str):
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
-            config.CONTROL_FILE_PATH,
-            readme_info["uniapp_id"],
-            config.build_mode == "dev",
+                config.CONTROL_FILE_PATH,
+                readme_info["uniapp_id"],
+                config.build_mode == "dev",
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 12006

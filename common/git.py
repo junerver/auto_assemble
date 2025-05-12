@@ -263,7 +263,7 @@ def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
         return False
 
 
-def check_git_branch(repo_path: str, target_branch: str = None, is_lfs: bool = False) -> bool:
+def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -> bool:
     """
     检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
 
@@ -385,17 +385,9 @@ def check_git_branch(repo_path: str, target_branch: str = None, is_lfs: bool = F
         logging.info(f"当前分支: {current_branch}")
 
         # 5. 如果已经在目标分支，直接返回True
-        if target_branch is None:
-            # 如果未指定目标分支，则使用config.PROD_BRANCH
-            if current_branch == config.PROD_BRANCH:
-                logging.info(f"已在目标分支 {config.PROD_BRANCH} 上")
-                return True
-            target_branch = config.PROD_BRANCH
-        else:
-            # 如果指定目标分支，则检查是否在目标分支上
-            if current_branch == target_branch:
-                logging.info(f"已在指定分支 {target_branch} 上")
-                return True
+        if current_branch == target_branch:
+            logging.info(f"已在指定分支 {target_branch} 上")
+            return True
         logging.info(f"开始准备切换到目标分支: {target_branch}")
         # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）
         status_proc = subprocess.run(
@@ -411,8 +403,9 @@ def check_git_branch(repo_path: str, target_branch: str = None, is_lfs: bool = F
             return False
 
         if out := status_proc.stdout.strip():
-            logging.error(f"{repo_path} 存在未提交的更改，无法安全切换分支: {out}")
-            return False
+            logging.warn(f"{repo_path} 存在未提交的更改，无法安全切换分支: {out}，丢弃")
+            if not git_reset_and_clean(repo_path):
+                return False
 
         try:
             # 7. 检查分支是否存在（包括本地和远程）
