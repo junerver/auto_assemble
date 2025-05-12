@@ -15,8 +15,8 @@ function showProjectConfig(projectName) {
             // 填充表单数据
             const form = document.getElementById('projectConfigForm');
             form.querySelectorAll('input, select').forEach(input => {
-                input.readOnly = !isAuthorizedIP;
-                input.disabled = !isAuthorizedIP;
+                input.readOnly = !isAuthorizedIP || !permissionsConfig.updateProjectConfigEnabled;
+                input.disabled = !isAuthorizedIP || !permissionsConfig.updateProjectConfigEnabled;
             });
 
             document.getElementById('projectUrl').value = data.project_config.project_url;
@@ -36,10 +36,10 @@ function showProjectConfig(projectName) {
                             <label class="form-label">${config.provider} - ${config.description}</label>
                             <input type="text" class="form-control" name="third_party_configs" 
                                    data-key="${config.dict_key}" value="${config.config_value}"
-                                   ${!isAuthorizedIP ? 'readonly disabled' : ''}>
+                                   ${isAuthorizedIP && permissionsConfig.updateProjectConfigEnabled ? '' : 'readonly disabled'}>
                         </div>
                         <button type="button" class="btn btn-sm btn-danger ms-2" 
-                                style="height: fit-content; margin-top: 28px; ${!isAuthorizedIP ? 'display: none;' : ''}"
+                                style="height: fit-content; margin-top: 28px; ${isAuthorizedIP && permissionsConfig.updateProjectConfigEnabled ? 'display: block;' : 'display: none;'}"
                                 onclick="deleteThirdPartyConfig('${config.dict_key}')">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -54,9 +54,16 @@ function showProjectConfig(projectName) {
             // 更新保存按钮显示状态
             const saveButton = document.getElementById('saveProjectConfig');
             if (saveButton) {
-                saveButton.style.display = isAuthorizedIP ? 'block' : 'none';
+                saveButton.style.display = (isAuthorizedIP && permissionsConfig.updateProjectConfigEnabled) ? 'block' : 'none';
                 saveButton.onclick = function () {
                     saveProjectConfig(data.project_config.id);
+                };
+            }
+            const addThirdPartyConfigBtn = document.getElementById('addThirdPartyConfigBtn');
+            if (addThirdPartyConfigBtn) {
+                addThirdPartyConfigBtn.style.display = (isAuthorizedIP && permissionsConfig.updateProjectConfigEnabled) ? 'block' : 'none';
+                addThirdPartyConfigBtn.onclick = function () {
+                    showAddThirdPartyConfig();
                 };
             }
         })
@@ -240,7 +247,8 @@ let titleClickCount = 0;
  * 监听页面标题点击事件，如果点击次数达到3次，则显示项目列表
  */
 document.getElementById('pageTitle').addEventListener('click', function () {
-    if (isAuthorizedIP) {
+    // 管理员可以随时查看项目列表
+    if (isAuthorizedIP && isAdmin()) {
         titleClickCount++;
         if (titleClickCount >= 3) {
             showProjects();

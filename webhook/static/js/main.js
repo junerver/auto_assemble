@@ -1,5 +1,26 @@
 // 添加IP校验状态变量
 let isAuthorizedIP = false;
+// 权限列表
+let permissions = [];
+let role = "";
+
+const isAdmin = () => {
+    return role === "admin";
+}
+
+let permissionsConfig = {
+    // 修改项目配置
+    updateProjectConfigEnabled: false,
+    // 删除项目配置
+    deleteProjectConfigEnabled: false,
+    // 重播任务
+    replayTaskEnabled: false,
+    showProjectDetailEnabled: false,
+    stopTaskEnabled: false,
+    forkTaskEnabled: false,
+    deleteTaskEnabled: false,
+}
+
 
 // 分发仓库地址
 const distributionUrl = "http://192.168.187.232:28088/rdcenter/app-distribution/"
@@ -14,6 +35,17 @@ function checkIPAuthorization() {
         .then(response => response.json())
         .then(data => {
             isAuthorizedIP = data.authorized;
+            permissions = data.permissions;
+            role = data.role;
+            permissionsConfig = {
+                "showProjectDetailEnabled": data.permissions.includes("show_project_detail"),
+                "updateProjectConfigEnabled": data.permissions.includes("update_project"),
+                "deleteProjectConfigEnabled": data.permissions.includes("delete_project"),
+                "replayTaskEnabled": data.permissions.includes("replay_task"),
+                "stopTaskEnabled": data.permissions.includes("stop_task"),
+                "forkTaskEnabled": data.permissions.includes("fork_task"),
+                "deleteTaskEnabled": data.permissions.includes("delete_task"),
+            }
             // 更新UI状态
             updateUIAuthorization();
         })
@@ -208,7 +240,7 @@ function createTaskItem(task, isRunning = false) {
         `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
 
     // 项目名称点击事件
-    const projectClickHandler = `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"`;
+    const projectClickHandler = permissionsConfig.showProjectDetailEnabled ? `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"` : '';
 
     //获取资源文件地址
     const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.project}/${task.task}/${file}`
@@ -242,16 +274,16 @@ function createTaskItem(task, isRunning = false) {
                     ${source_task_id && isAuthorizedIP ? `<i class="bi bi-link-45deg" 
                     style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')" 
                     data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip" data-bs-title="${source_task_id}"></i>` : ''}
-                    ${isRunning && isAuthorizedIP ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
+                    ${isRunning && isAuthorizedIP && permissionsConfig.stopTaskEnabled ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
                         <i class="bi bi-stop-circle"></i> 停止
                     </button>` : ''}
-                    ${task.error && isAuthorizedIP ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
+                    ${task.error && isAuthorizedIP && permissionsConfig.replayTaskEnabled ? `<button class="btn btn-sm btn-outline-danger ms-2 replay-btn" data-task-id="${task.id}">
                         <i class="bi bi-arrow-repeat"></i> 重播
                     </button>` : ''}
                 </div>
                 <div>
-                    ${!isRunning && isAuthorizedIP ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
-                    ${!isRunning && isAuthorizedIP ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
+                    ${!isRunning && isAuthorizedIP && permissionsConfig.forkTaskEnabled ? `<i class="bi bi-arrow-repeat" style="font-size: 1.1rem; color: DarkGreen; cursor: pointer;" onclick="forkTask('${task.id}')"></i>` : ''}
+                    ${!isRunning && isAuthorizedIP && permissionsConfig.deleteTaskEnabled ? `<i id="outdated-task" class="bi bi-trash3-fill" style="font-size: 1rem; color: IndianRed; cursor: pointer;" onclick="outdatedTask('${task.id}')"></i>` : ''}
                 </div>
             </h6>
             <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
