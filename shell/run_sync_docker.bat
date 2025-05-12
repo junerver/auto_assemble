@@ -1,3 +1,5 @@
+:: 该脚本用于同步Docker镜像到服务器并启动容器，适用于本地registry已经更新完毕的情况
+
 @echo off
 :: 设置代码页为 UTF-8（如果需要支持 UTF-8 编码）
 chcp 65001 >nul
