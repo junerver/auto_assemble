@@ -8,6 +8,7 @@ from flask import Flask, current_app, request, jsonify
 from webhook.config import TASK_TIMEOUT
 from webhook.models.fork_task import ForkTask
 from webhook.services.fork_task_service import ForkTaskService
+from webhook.utils.notifications import show_toast
 from webhook.utils.task_lock import (
     acquire_task_lock,
     release_task_lock,
@@ -23,6 +24,11 @@ def fork_task_worker(fork_task: ForkTask, app: Flask):
     派生任务处理函数
     """
     with app.app_context():
+        show_toast(
+            "📜开始创建派生任务",
+            f"操作人：{fork_task.operator}\n源任务: {fork_task.source_task_id}\n源分支: {fork_task.source_branch}\n目标分支: {fork_task.target_branch}\n目标版本名: {fork_task.target_version_name}\n目标版本号: {fork_task.target_version_code}\n提交信息: {fork_task.commit_message}",
+        )
+
         process = subprocess.Popen(
             ["fork-task", "--fork", fork_task.id],
             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -34,6 +40,10 @@ def fork_task_worker(fork_task: ForkTask, app: Flask):
             with app.app_context():
                 try:
                     process.wait(timeout=TASK_TIMEOUT)
+                    if process.returncode == 0:
+                        show_toast("派生任务创建成功")
+                    else:
+                        show_toast("派生任务创建失败")
                 except subprocess.TimeoutExpired:
                     process.kill()
                 finally:

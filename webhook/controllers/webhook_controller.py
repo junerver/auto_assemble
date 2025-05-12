@@ -12,7 +12,7 @@ from . import webhook_bp
 from ..config import TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
-from ..utils.notifications import show_build_toast
+from ..utils.notifications import show_build_toast, show_toast
 from ..utils.task_lock import (
     acquire_task_lock,
     release_task_lock,
@@ -35,7 +35,10 @@ def execute_task(task: Task, app):
         task.started_at = datetime.now()
         task.status = "running"
         task.save()
-
+        show_toast(
+            "📜开始执行构建",
+            f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}",
+        )
         process = subprocess.Popen(
             ["auto-assemble", "--fn", "1", "--task", task.id],
             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -47,19 +50,16 @@ def execute_task(task: Task, app):
             with app.app_context():
                 try:
                     process.wait(timeout=TASK_TIMEOUT)
+                    task.completed_at = datetime.now()
+                    task.status = "completed" if process.returncode == 0 else "failed"
+                    show_build_toast(task, process.returncode == 0)
                     if process.returncode == 0:
-                        task.status = "completed"
-                        task.completed_at = datetime.now()
                         task.error = None
-                        show_build_toast(task, True)
                         # 删除成功的webhook请求记录
                         # WebhookRequestService.delete_webhook_request(task.id)
                     else:
-                        task.status = "failed"
                         # 使用错误码映射格式化错误信息
                         task.error = format_error(process.returncode)
-                        task.completed_at = datetime.now()
-                        show_build_toast(task, False)
                         if task.retries < MAX_RETRIES:
                             task.retries += 1
                             task.priority += 1
