@@ -17,6 +17,7 @@ def re_req(temp_dir: str, fork_task_info: dict) -> None:
     target_branch = fork_task_info["target_branch"]
     target_task_id = fork_task_info["id"]
     commit_message = fork_task_info["commit_message"]
+    operator = fork_task_info["operator"]
     prod_name, target_task = target_task_id.split(",")
     logging.info(f"切换到的目标分支：{DISTRIBUTION_PATH}/{target_branch}")
     check_git_branch(DISTRIBUTION_PATH, target_branch)
@@ -33,7 +34,7 @@ def re_req(temp_dir: str, fork_task_info: dict) -> None:
     # git add ,commit,push
     if not git_add(repo_path=DISTRIBUTION_PATH):
         raise BusinessException(13004)
-    if not git_commit(commit_message, repo_path=DISTRIBUTION_PATH):
+    if not git_commit(commit_message, repo_path=DISTRIBUTION_PATH, author=operator):
         raise BusinessException(13005)
     if not git_push(repo_path=DISTRIBUTION_PATH):
         raise BusinessException(13006)
