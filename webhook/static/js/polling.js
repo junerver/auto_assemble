@@ -1,7 +1,32 @@
-/**
- * 添加轮询间隔
- */
-const POLL_INTERVAL = 10000; // 5秒
+// polling.js 顶部添加
+const runningTaskTimers = {};
+
+// 新增函数
+function startRunningTaskTimer(task) {
+    const timeInfoId = `time-info-${task.id}`;
+    // 先清理旧定时器
+    if (runningTaskTimers[task.id]) {
+        clearInterval(runningTaskTimers[task.id]);
+    }
+    runningTaskTimers[task.id] = setInterval(() => {
+        const el = document.getElementById(timeInfoId);
+        if (el) {
+            const duration = formatDuration(task.started_at, new Date());
+            el.innerHTML = `<i class="bi bi-hourglass-split"></i> 已运行: ${duration}`;
+        } else {
+            // DOM 不存在时自动清理定时器
+            clearInterval(runningTaskTimers[task.id]);
+            delete runningTaskTimers[task.id];
+        }
+    }, 1000);
+}
+
+function stopAllRunningTaskTimers() {
+    Object.values(runningTaskTimers).forEach(timer => clearInterval(timer));
+    Object.keys(runningTaskTimers).forEach(id => delete runningTaskTimers[id]);
+}
+
+
 
 /**
  * 更新前端UI状态
@@ -40,6 +65,8 @@ function updateStatus(data) {
             }
 
             runningTaskDiv.appendChild(taskElement);
+
+            startRunningTaskTimer(data.running_task);
         } else {
             // 如果no-running-task元素不存在，我们需要创建它
             let noRunningTaskElement = document.getElementById('no-running-task');
@@ -57,6 +84,8 @@ function updateStatus(data) {
             if (taskContent) {
                 taskContent.remove();
             }
+
+            stopAllRunningTaskTimers();
         }
 
         // 更新队列大小和等待中的任务
@@ -182,49 +211,66 @@ function updateQueueStatus() {
         .catch(error => console.error('Error:', error));
 }
 
-
-let pollTimer = null;
-
 /**
- * 开始轮询
+ * 创建sse连接
  */
-function startPolling() {
-    if (pollTimer) {
-        clearInterval(pollTimer);
-    }
-    updateQueueStatus(); // 立即执行一次
-    pollTimer = setInterval(updateQueueStatus, POLL_INTERVAL);
+function createSSEConnection() {
+    const eventSource = new EventSource('/events');
+    eventSource.addEventListener('toast', function (event) {
+        updateQueueStatus();
+    });
 }
 
-/**
- * 停止轮询
- */
-function stopPolling() {
-    if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-    }
-}
+
+// let pollTimer = null;
+
+// /**
+//  * 开始轮询
+//  */
+// function startPolling() {
+//     if (pollTimer) {
+//         clearInterval(pollTimer);
+//     }
+//     updateQueueStatus(); // 立即执行一次
+//     pollTimer = setInterval(updateQueueStatus, POLL_INTERVAL);
+// }
+
+// /**
+//  * 停止轮询
+//  */
+// function stopPolling() {
+//     if (pollTimer) {
+//         clearInterval(pollTimer);
+//         pollTimer = null;
+//     }
+// }
 
 /**
  * 页面加载完成后开始轮询
  */
-document.addEventListener('DOMContentLoaded', startPolling);
+document.addEventListener('DOMContentLoaded', createSSEConnection);
+
+// /**
+//  * 页面隐藏时停止轮询，显示时重新开始
+//  */
+// document.addEventListener('visibilitychange', () => {
+//     if (document.hidden) {
+//         stopPolling();
+//     } else {
+//         startPolling();
+//     }
+// });
 
 /**
- * 页面隐藏时停止轮询，显示时重新开始
+ * 鼠标离开时隐藏 tooltip
  */
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        stopPolling();
-    } else {
-        startPolling();
-    }
-});
-
 document.addEventListener('mouseleave', function (e) {
-    if (e.target.matches('[data-bs-toggle="tooltip"]')) {
-        const instance = bootstrap.Tooltip.getInstance(e.target);
-        if (instance) instance.hide();
+    try {
+        if (e && e.target && typeof e.target.matches === 'function' && e.target.matches('[data-bs-toggle="tooltip"]')) {
+            const instance = bootstrap.Tooltip.getInstance(e.target);
+            if (instance) instance.hide();
+        }
+    } catch (error) {
+        console.error('处理 tooltip 隐藏时发生错误:', error);
     }
 }, true);

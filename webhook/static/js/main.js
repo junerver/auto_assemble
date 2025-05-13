@@ -87,7 +87,6 @@ function updateUIAuthorization() {
 // 在页面加载时检查IP授权
 document.addEventListener('DOMContentLoaded', function () {
     checkIPAuthorization();
-    startPolling();
 });
 
 /**
@@ -204,12 +203,12 @@ function formatFileSize(fileSize) {
 
 /**
  * 创建任务项
- * @param {*} task 
- * @param {*} isRunning 
+ * @param {*} task
+ * @param {*} isRunning 是否创建的是运行中任务
  * @returns 
  */
 function createTaskItem(task, isRunning = false) {
-
+    // 运行时长
     const duration = isRunning ?
         formatDuration(task.started_at, new Date()) :
         formatDuration(task.started_at, task.completed_at);
@@ -288,8 +287,9 @@ function createTaskItem(task, isRunning = false) {
             </h6>
             <p class="mb-1"><i class="bi bi-person"></i> 提交人: ${task.author || '未知'}</p>
             <p class="mb-1"><i class="bi bi-chat-text"></i> 提交信息: ${getReqTypeBadge(task.commit_title)}${formatCommitTitle(task.commit_title)}</p>
-            <p class="mb-1 time-info"><i class="bi bi-clock"></i> ${isRunning ? '开始时间' : '提交时间'}: ${formatDateTime(isRunning ? task.started_at : task.created_at)}</p>
-            <p class="mb-1 time-info"><i class="bi bi-hourglass-split"></i> ${isRunning ? '已运行' : '构建耗时'}: ${duration}</p>
+            <p class="mb-1 time-info" id="time-info-${task.id}">
+                <i class="bi bi-hourglass-split"></i> ${isRunning ? '已运行' : '构建耗时'}: ${duration}
+            </p>
             ${completedTimeInfo}
             <p class="mb-1">状态: ${statusBadge} ${releaseMetaDataStatus}</p>
             ${task.error ? `<p class="mb-1 text-danger"><i class="bi bi-exclamation-triangle"></i> 错误: ${task.error}</p>` : ''}
