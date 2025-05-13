@@ -51,7 +51,7 @@ if %errorlevel% neq 0 (
 
 :: 部署到服务器并清理旧镜像
 echo 开始部署到服务器...
-ssh root@192.168.189.243 -t "cd /opt/auto_assemble && docker-compose down && docker-compose pull && docker-compose up -d"
+ssh root@192.168.189.243 -t "cd /opt/auto_assemble && docker-compose down && docker-compose pull && docker-compose up -d && LATEST_ID=$(docker images 192.168.172.110:5000/auto_assemble-webhook:multi_task --format '{{.ID}}') && docker images 192.168.172.110:5000/auto_assemble-webhook --format '{{.ID}}' | grep -v $LATEST_ID | xargs -r docker rmi -f"
 if %errorlevel% neq 0 (
     echo 服务器部署失败
     exit /b 1
