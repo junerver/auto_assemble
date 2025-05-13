@@ -20,17 +20,12 @@ def show_toast(title, message):
 
 def show_build_toast(task: Task, success: bool):
     """显示构建结果toast通知"""
-    try:
-        if success:
-            title = "✅构建成功"
-            message = f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n⏱️耗时: {format_duration(task.started_at, task.completed_at)}"
-        else:
-            title = "❌构建失败"
-            message = f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n⏱️耗时: {format_duration(task.started_at, task.completed_at)}\n❌错误: {task.error}"
+    title = "✅构建成功" if success else "❌构建失败"
+    message = f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n⏱️耗时: {format_duration(task.started_at, task.completed_at)}"
+    if not success:
+        message += f"\n❌错误: {task.error}"
 
-        show_toast(title, message)
-    except Exception as e:
-        logging.error(f"显示构建结果toast通知时发生错误: {str(e)}")
+    show_toast(title, message)
 
 
 def format_duration(start_time, end_time):
