@@ -12,13 +12,13 @@ from queue import Queue
 from threading import Lock, Event
 from typing import Dict, Set
 
-from flask import Response, stream_with_context
+from flask import Flask, Response, current_app, stream_with_context
 
 
 class ServerSentEvents:
     """Server-Sent Events 扩展"""
 
-    def __init__(self, app=None):
+    def __init__(self, app: Flask = None):
         self.app = app
         self.clients: Dict[str, Queue] = {}
         self.active_clients: Set[str] = set()
@@ -29,7 +29,7 @@ class ServerSentEvents:
         if app is not None:
             self.init_app(app)
 
-    def init_app(self, app):
+    def init_app(self, app: Flask):
         """初始化扩展"""
         app.extensions["sse"] = self
 
@@ -93,7 +93,9 @@ class ServerSentEvents:
                 while not self._stop_event.is_set():
                     try:
                         # 使用较短的超时时间
-                        message = client_queue.get(timeout=1)  # 使用更短的超时时间，更频繁地检查心跳
+                        message = client_queue.get(
+                            timeout=1
+                        )  # 使用更短的超时时间，更频繁地检查心跳
                         last_heartbeat = time.time()
                         yield message
                     except queue.Empty:
@@ -138,3 +140,19 @@ class ServerSentEvents:
         with self._lock:
             self.clients.clear()
             self.active_clients.clear()
+
+    @staticmethod
+    def publish_event(event_type: str, data: dict):
+        """发布事件"""
+        if hasattr(current_app, "extensions") and "sse" in current_app.extensions:
+            current_app.extensions["sse"].publish(event_type, data)
+        else:
+            raise RuntimeError("SSE extension not initialized")
+
+    @staticmethod
+    def get_stream():
+        """获取流"""
+        if hasattr(current_app, "extensions") and "sse" in current_app.extensions:
+            return current_app.extensions["sse"].stream()
+        else:
+            raise RuntimeError("SSE extension not initialized")

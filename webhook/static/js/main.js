@@ -360,7 +360,7 @@ function createForkTask() {
         .then(data => {
             const forkTask = data.fork_task;
             if (forkTask) {
-                alert('派生任务创建成功');
+                alert('派生任务创建成功，请稍等...');
                 // 关闭模态窗口
                 const modal = bootstrap.Modal.getInstance(document.getElementById('forkTaskModal'));
                 modal.hide();

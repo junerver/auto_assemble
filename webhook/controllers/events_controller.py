@@ -7,8 +7,9 @@ This module provides event-related endpoints for the webhook server.
 import json
 import logging
 
-from flask import current_app, Response
+from flask import Response
 
+from webhook.extensions.sse import ServerSentEvents
 from . import events_bp
 
 
@@ -16,7 +17,14 @@ from . import events_bp
 def stream():
     """SSE 流端点"""
     logging.info("New SSE connection established")
-    return current_app.extensions["sse"].stream()
+    try:
+        return ServerSentEvents.get_stream()
+    except RuntimeError as e:
+        logging.error(f"SSE extension not initialized: {e}")
+        return Response(
+            json.dumps({"status": "error", "message": str(e)}),
+            mimetype="application/json",
+        )
 
 
 @events_bp.route("/events/test")
@@ -29,7 +37,7 @@ def test():
     logging.info(f"Test data: {test_data}")
 
     # 发布事件
-    current_app.extensions["sse"].publish("toast", test_data)
+    ServerSentEvents.publish_event("toast", test_data)
 
     # 返回测试结果
     return Response(

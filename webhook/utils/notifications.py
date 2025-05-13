@@ -6,20 +6,14 @@ This module provides notification functionality for the webhook server.
 
 import logging
 
-from flask import current_app
-
+from webhook.extensions.sse import ServerSentEvents
 from ..models.task import Task
 
 
 def show_toast(title, message):
     """发送 toast 通知事件"""
     try:
-        if hasattr(current_app, "extensions") and "sse" in current_app.extensions:
-            current_app.extensions["sse"].publish(
-                "toast", {"title": title, "message": message}
-            )
-        else:
-            logging.warning("SSE extension not initialized")
+        ServerSentEvents.publish_event("toast", {"title": title, "message": message})
     except Exception as e:
         logging.error(f"发送通知事件时发生错误: {str(e)}")
 
