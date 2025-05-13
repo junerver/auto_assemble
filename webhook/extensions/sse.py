@@ -93,16 +93,19 @@ class ServerSentEvents:
                 while not self._stop_event.is_set():
                     try:
                         # 使用较短的超时时间
-                        message = client_queue.get(timeout=self._heartbeat_interval)
+                        message = client_queue.get(timeout=1)  # 使用更短的超时时间，更频繁地检查心跳
                         last_heartbeat = time.time()
                         yield message
                     except queue.Empty:
-                        # 检查心跳超时
-                        if time.time() - last_heartbeat > self._heartbeat_interval * 2:
-                            raise TimeoutError("Client heartbeat timeout")
-                        # 发送心跳保持连接
-                        yield ":\n\n"
-            except (GeneratorExit, TimeoutError):
+                        current_time = time.time()
+                        # 检查是否需要发送心跳
+                        if current_time - last_heartbeat >= self._heartbeat_interval:
+                            # 发送心跳保持连接
+                            yield ":\n\n"
+                            # 重置心跳时间戳
+                            last_heartbeat = current_time
+                            logging.debug(f"Sent heartbeat to client {client_id}")
+            except GeneratorExit:
                 logging.info(f"Client {client_id} disconnected")
             finally:
                 # 清理客户端
