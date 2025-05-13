@@ -62,15 +62,7 @@ def git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
     """
     try:
         # 检查远程是否有更新
-        fetch_result = subprocess.run(
-            ["git", "fetch"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-        )
-        if fetch_result.returncode != 0:
-            logging.error(f"{repo_path} Git fetch失败: {fetch_result.stderr}")
+        if not git_fetch_branch(repo_path):
             return False
 
         if is_lfs:
@@ -289,16 +281,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
         logging.info(f"开始检查Git分支: {repo_path}/{target_branch}")
 
         # 1. 获取远程更新
-        fetch_proc = subprocess.run(
-            ["git", "fetch", "origin"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if fetch_proc.returncode != 0:
-            logging.error(f"{repo_path} 获取远程更新失败: {fetch_proc.stderr}")
+        if not git_fetch_branch(repo_path):
             return False
 
         if is_lfs:
@@ -517,6 +500,36 @@ def git_checkout_branch(
         return False
 
 
+def git_fetch_branch(repo_path: str, branch: str = None):
+    """
+    获取指定分支的最新提交
+    Args:
+        repo_path: Git仓库路径
+        branch: 指定分支，如果为空，则获取所有分支
+    Returns:
+        bool: 获取指定分支最新提交是否成功
+    """
+    try:
+        cmd = ["git", "fetch", "origin"]
+        if branch is not None:
+            cmd.append(branch)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            logging.error(f"{repo_path} 获取指定分支最新提交失败: {result.stderr}")
+            return False
+        return True
+    except Exception as e:
+        logging.error(f"{repo_path} 获取指定分支最新提交失败: {e}")
+        return False
+
+
 def get_untracked_files(repo_path: str):
     """获取未跟踪的文件列表"""
     try:
@@ -663,14 +676,7 @@ def git_push(repo_path: str, is_lfs: bool = False):
             current_branch = branch_result.stdout.strip()
 
             # 执行fetch
-            fetch_result = subprocess.run(
-                ["git", "fetch", "origin", current_branch],
-                capture_output=True,
-                text=True,
-                cwd=repo_path,
-            )
-            if fetch_result.returncode != 0:
-                logging.error(f"{repo_path} git fetch 失败: {fetch_result.stderr}")
+            if not git_fetch_branch(repo_path, current_branch):
                 return False
 
             # 执行rebase
