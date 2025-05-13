@@ -1,4 +1,9 @@
 /**
+ * 添加轮询间隔
+ */
+const POLL_INTERVAL = 10000; // 5秒
+
+/**
  * 更新前端UI状态
  * @param {*} data
  */
@@ -177,10 +182,7 @@ function updateQueueStatus() {
         .catch(error => console.error('Error:', error));
 }
 
-/**
- * 添加轮询间隔
- */
-const POLL_INTERVAL = 5000; // 5秒
+
 let pollTimer = null;
 
 /**
