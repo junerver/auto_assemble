@@ -219,47 +219,22 @@ function createSSEConnection() {
     eventSource.addEventListener('toast', function (event) {
         updateQueueStatus();
     });
+    updateQueueStatus()
 }
-
-
-// let pollTimer = null;
-
-// /**
-//  * 开始轮询
-//  */
-// function startPolling() {
-//     if (pollTimer) {
-//         clearInterval(pollTimer);
-//     }
-//     updateQueueStatus(); // 立即执行一次
-//     pollTimer = setInterval(updateQueueStatus, POLL_INTERVAL);
-// }
-
-// /**
-//  * 停止轮询
-//  */
-// function stopPolling() {
-//     if (pollTimer) {
-//         clearInterval(pollTimer);
-//         pollTimer = null;
-//     }
-// }
 
 /**
  * 页面加载完成后开始轮询
  */
 document.addEventListener('DOMContentLoaded', createSSEConnection);
 
-// /**
-//  * 页面隐藏时停止轮询，显示时重新开始
-//  */
-// document.addEventListener('visibilitychange', () => {
-//     if (document.hidden) {
-//         stopPolling();
-//     } else {
-//         startPolling();
-//     }
-// });
+/**
+ * 页面隐藏时停止轮询，显示时重新开始
+ */
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        updateQueueStatus();
+    }
+});
 
 /**
  * 鼠标离开时隐藏 tooltip
