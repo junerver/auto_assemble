@@ -204,7 +204,7 @@ function reinitTooltips() {
  * 更新队列状态
  */
 function updateQueueStatus() {
-    fetch('/queue?build_mode=' + currentBuildMode)
+    fetch('/queue?build_mode=' + (currentBuildMode ?? 'all'))
         .then(response => response.json())
         .then(data => updateStatus(data))
         .then(reinitTooltips)
