@@ -5,12 +5,13 @@ This module provides notification functionality for the webhook server.
 """
 
 import logging
+from datetime import datetime
 
 from webhook.extensions.sse import ServerSentEvents
 from ..models.task import Task
 
 
-def show_toast(title, message):
+def show_toast(title: str, message: str):
     """发送 toast 通知事件"""
     try:
         ServerSentEvents.publish_event("toast", {"title": title, "message": message})
@@ -28,7 +29,7 @@ def show_build_toast(task: Task, success: bool):
     show_toast(title, message)
 
 
-def format_duration(start_time, end_time):
+def format_duration(start_time: datetime, end_time: datetime):
     """格式化时间间隔"""
     if not start_time or not end_time:
         return "未知"

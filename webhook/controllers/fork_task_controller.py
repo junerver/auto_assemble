@@ -19,18 +19,18 @@ from webhook.utils.task_lock import (
 from . import fork_task_bp
 
 
-def fork_task_worker(fork_task: ForkTask, app: Flask):
+def fork_task_worker(forked_task: ForkTask, app: Flask):
     """
     派生任务处理函数
     """
     with app.app_context():
         show_toast(
             "📜开始创建派生任务",
-            f"操作人：{fork_task.operator}\n源任务: {fork_task.source_task_id}\n源分支: {fork_task.source_branch}\n目标分支: {fork_task.target_branch}\n目标版本名: {fork_task.target_version_name}\n目标版本号: {fork_task.target_version_code}\n提交信息: {fork_task.commit_message}",
+            f"操作人：{forked_task.operator}\n源任务: {forked_task.source_task_id}\n源分支: {forked_task.source_branch}\n目标分支: {forked_task.target_branch}\n目标版本名: {forked_task.target_version_name}\n目标版本号: {forked_task.target_version_code}\n提交信息: {forked_task.commit_message}",
         )
 
         process = subprocess.Popen(
-            ["fork-task", "--fork", fork_task.id],
+            ["fork-task", "--fork", forked_task.id],
             cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             encoding="utf-8",
             env=os.environ.copy(),  # 传递当前环境变量
@@ -40,10 +40,10 @@ def fork_task_worker(fork_task: ForkTask, app: Flask):
             with app.app_context():
                 try:
                     process.wait(timeout=TASK_TIMEOUT)
-                    if process.returncode == 0:
-                        show_toast("派生任务创建成功")
+                    if err_code := process.returncode == 0:
+                        show_toast("派生任务创建成功", "")
                     else:
-                        show_toast("派生任务创建失败")
+                        show_toast("派生任务创建失败", f"错误码：{err_code}")
                 except subprocess.TimeoutExpired:
                     process.kill()
                 finally:
@@ -66,7 +66,6 @@ def fork_task_worker(fork_task: ForkTask, app: Flask):
 @fork_task_bp.route("/fork_task", methods=["POST"])
 def fork_task():
     """派生任务"""
-    global is_task_running
     data = request.json
     source_task_id = data.get("source_task_id")
     source_branch = data.get("source_branch")
@@ -85,7 +84,7 @@ def fork_task():
         f"{label} {commit_message_raw}\n\n源任务分支: {source_branch}\n源任务ID: {source_task_id}"
     )
 
-    fork_task = ForkTaskService.create_fork_task(
+    task = ForkTaskService.create_fork_task(
         source_task_id,
         source_branch,
         target_branch,
@@ -99,12 +98,12 @@ def fork_task():
     if not acquire_task_lock(TaskType.FORK):
         # 如果获取锁失败，将任务加入队列
         logging.info("无法获取任务锁，将任务加入队列")
-        add_task_to_queue(fork_task, TaskType.FORK)
+        add_task_to_queue(task, TaskType.FORK)
         return (
             jsonify(
                 {
                     "message": "Task added to queue",
-                    "fork_task": fork_task.to_dict(),
+                    "fork_task": task.to_dict(),
                     "position": get_queue_size(TaskType.FORK),
                 }
             ),
@@ -113,17 +112,17 @@ def fork_task():
     else:
         Thread(
             target=fork_task_worker,
-            args=(fork_task, current_app._get_current_object()),
+            args=(task, current_app._get_current_object()),
             daemon=True,
         ).start()
-        logging.info(f"派生任务 {fork_task.id} 开始执行")
+        logging.info(f"派生任务 {task.id} 开始执行")
 
-    return jsonify({"message": "派生任务创建成功", "fork_task": fork_task.to_dict()})
+    return jsonify({"message": "派生任务创建成功", "fork_task": task.to_dict()})
 
 
 @fork_task_bp.route("/fork_task/<string:fork_task_id>", methods=["GET"])
 def get_fork_task(fork_task_id):
     """获取派生任务"""
-    fork_task = ForkTaskService.get_fork_task(fork_task_id)
+    task = ForkTaskService.get_fork_task(fork_task_id)
 
-    return jsonify({"fork_task": fork_task.to_dict()}), 200
+    return jsonify({"fork_task": task.to_dict()}), 200

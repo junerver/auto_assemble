@@ -4,14 +4,14 @@ from datetime import datetime
 from typing import Any, Optional
 
 from common.err_code import format_error
+from webhook.types import Commit
 from ..models.task import Task
-from ..utils.notifications import show_toast
 from ..utils.validators import is_valid_build_task, parse_build_task
 
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data: dict[str, Any]) -> tuple[list[Optional["Task"]], str, int]:
+    def handle_webhook_request(data: dict[str, Any]) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         Args:
@@ -24,18 +24,18 @@ class TaskService:
             - status_code: HTTP状态码
         """
         # 验证提交信息
-        commits = data.get("commits", [])
+        commits: list[Commit] = data.get("commits", [])
         if not commits:
             return None, "No file changes in commit", 200
 
         logging.info(
             f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}"
         )
-        valid_commits = [commit for commit in commits if is_valid_build_task(commit)]
+        valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
         if not valid_commits:
             return None, "No valid build task", 200
 
-        def build_task(commit) -> Optional["Task"]:
+        def build_task(commit: Commit) -> Optional["Task"]:
             prod_name, task_name = parse_build_task(commit)
             return TaskService.create_task(
                 prod_name=prod_name,
@@ -50,7 +50,7 @@ class TaskService:
 
     @staticmethod
     def create_task(
-        prod_name, task_name, commit_info=None, priority=0, retries=0
+            prod_name, task_name, commit_info: Commit = None, priority=0, retries=0
     ) -> Optional["Task"]:
         """创建任务
 
@@ -91,7 +91,7 @@ class TaskService:
             task.commit_message = commit_info.get("message")
             task.commit_url = commit_info.get("url")
             task.commit_hash = commit_info.get("id")
-
+            timestamp = None
             try:
                 timestamp = commit_info.get("timestamp")
                 if timestamp:
@@ -147,7 +147,7 @@ class TaskService:
 
     @staticmethod
     def update_task_status(
-        task_id: str, status: str, error: Optional[str] = None
+            task_id: str, status: str, error: Optional[str] = None
     ) -> Optional["Task"]:
         """更新任务状态
 

@@ -1,7 +1,9 @@
 import re
 
+from webhook.types import Commit
 
-def is_valid_build_task(commit):
+
+def is_valid_build_task(commit: Commit):
     """
     验证是否是有效的构建任务，有效的任务需要满足：
     1. 提交信息以 #(.*)_req# 格式开头
@@ -47,7 +49,7 @@ def is_valid_build_task(commit):
     return has_archive and has_md
 
 
-def parse_build_task(commit):
+def parse_build_task(commit: Commit):
     """
     解析构建任务信息
     Args:
