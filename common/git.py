@@ -434,16 +434,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
 
             if local_branch_exists:
                 # 8. 如果本地分支存在，直接切换
-                switch_proc = subprocess.run(
-                    ["git", "checkout", target_branch],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    cwd=repo_path,
-                    timeout=30,
-                )
-                if switch_proc.returncode != 0:
-                    logging.error(f"{repo_path} 切换到目标分支失败: {switch_proc.stderr}")
+                if not git_checkout_branch(repo_path, target_branch):
                     return False
 
                 logging.info(f"{repo_path} 成功切换到目标分支: {target_branch}")
@@ -451,18 +442,12 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
             elif remote_branch_exists:
                 # 9. 如果远程分支存在，从远程分支创建本地分支
                 logging.info(f"{repo_path} 从远程分支创建本地分支: {target_branch}")
-                create_branch_proc = subprocess.run(
-                    ["git", "checkout", "-b", target_branch, f"origin/{target_branch}"],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    cwd=repo_path,
-                    timeout=30,
-                )
-                if create_branch_proc.returncode != 0:
-                    logging.error(
-                        f"{repo_path} 从远程分支创建本地分支失败: {create_branch_proc.stderr}"
-                    )
+                if not git_checkout_branch(
+                        repo_path,
+                        target_branch,
+                        original_branch=f"origin/{target_branch}",
+                        create_new=True,
+                ):
                     return False
 
                 logging.info(f"{repo_path} 成功创建并切换到新分支: {target_branch}")
@@ -471,66 +456,64 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 # 10. 如果本地和远程都不存在，从master创建新分支
                 logging.info(f"{repo_path} 目标分支不存在，准备从master创建新分支")
 
-                # 先切换到master分支
-                switch_master_proc = subprocess.run(
-                    ["git", "checkout", "master"],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    cwd=repo_path,
-                    timeout=30,
-                )
-                if switch_master_proc.returncode != 0:
-                    logging.error(f"{repo_path} 切换到master分支失败: {switch_master_proc.stderr}")
-                    return False
-
-                logging.info(f"{repo_path} 成功切换到master分支")
-
                 # 从master创建新分支
-                create_branch_proc = subprocess.run(
-                    ["git", "checkout", "-b", target_branch],
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    cwd=repo_path,
-                    timeout=30,
-                )
-                if create_branch_proc.returncode != 0:
-                    logging.error(
-                        f"{repo_path} 从master创建新分支失败: {create_branch_proc.stderr}"
-                    )
+                if not git_checkout_branch(
+                        repo_path, target_branch, original_branch="master", create_new=True
+                ):
                     return False
 
-                logging.info(f"{repo_path} 成功创建并切换到新分支: {target_branch}")
+                logging.info(f"{repo_path} 成功从master创建并切换到新分支: {target_branch}")
                 return True
 
         except subprocess.TimeoutExpired as e:
             logging.error(f"{repo_path} Git命令执行超时: {e}")
             # 尝试切回原分支
-            subprocess.run(
-                ["git", "checkout", original_branch],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=repo_path,
-                timeout=30,
-            )
+            git_checkout_branch(repo_path, original_branch)
             return False
         except Exception as e:
             logging.error(f"{repo_path} 分支操作过程中发生错误: {e}")
             # 尝试切回原分支
-            subprocess.run(
-                ["git", "checkout", original_branch],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=repo_path,
-                timeout=30,
-            )
+            git_checkout_branch(repo_path, original_branch)
             return False
 
     except Exception as e:
         logging.error(f"{repo_path} 检查Git分支时发生错误: {e}")
+        return False
+
+
+def git_checkout_branch(
+        repo_path: str, target_branch: str, original_branch: str = None, create_new: bool = False
+):
+    """
+    切换到目标分支，如果目标分支不存在，则创建新分支
+    Args:
+        repo_path: Git仓库路径
+        target_branch: 目标分支
+        original_branch: 原始分支
+        create_new: 是否创建新分支，默认False
+    """
+    try:
+        logging.info(f"开始切换到目标分支: {repo_path}/{target_branch}")
+        cmd = ["git", "checkout"]
+        if create_new:
+            cmd.append("-b")
+        cmd.append(target_branch)
+        if original_branch is not None:
+            cmd.append(original_branch)
+        error_code = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=repo_path,
+            timeout=30,
+        )
+        if error_code.returncode != 0:
+            logging.error(f"{repo_path} 切换到目标分支失败: {error_code.stderr}")
+            return False
+        return True
+    except Exception as e:
+        logging.error(f"{repo_path} 切换到目标分支失败: {e}")
         return False
 
 
