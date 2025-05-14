@@ -39,8 +39,10 @@ class Task:
     status: Optional[TaskStatus] = None
     # 错误信息
     error: Optional[str] = None
-    # 提交哈希（分发仓库）
+    # 提交哈希（前端任务提交哈希）
     commit_hash: Optional[str] = None
+    # 响应哈希（后端构建响应哈希）
+    response_hash: Optional[str] = None
     # 元数据
     metadata: Optional[dict] = None
     # 派生任务源任务ID
@@ -62,8 +64,8 @@ class Task:
             """
             INSERT OR REPLACE INTO tasks 
             (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
-             priority, retries, created_at, started_at, completed_at, status, error, commit_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             priority, retries, created_at, started_at, completed_at, status, error, commit_hash, response_hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 self.id,
@@ -81,6 +83,7 @@ class Task:
                 self.status,
                 self.error,
                 self.commit_hash,
+                self.response_hash,
             ),
         )
         db.commit()
@@ -274,6 +277,13 @@ class Task:
         cursor.execute("SELECT author, COUNT(*) FROM tasks GROUP BY author")
         return [{"author": row[0], "count": row[1]} for row in cursor.fetchall()]
 
+    def update_response_hash(self, response_hash: str) -> None:
+        """更新任务响应哈希"""
+        db = get_db()
+        cursor = db.cursor()
+        cursor.execute("UPDATE tasks SET response_hash = ? WHERE id = ?", (response_hash, self.id))
+        db.commit()
+
     def update_status(self, status: str, error: Optional[str] = None) -> None:
         """更新任务状态"""
         db = get_db()
@@ -331,6 +341,7 @@ class Task:
             "status": self.status,
             "error": self.error,
             "commit_hash": self.commit_hash,
+            "response_hash": self.response_hash,
             "metadata": self.metadata,
             "source_task_id": self.source_task_id,
         }

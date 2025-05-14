@@ -1,9 +1,39 @@
 import re
+from typing import Optional
 
 from webhook.types import Commit
 
 
-def is_valid_build_task(commit: Commit):
+def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
+    """
+    验证是否是有效的组装响应
+    1. 提交信息以 #(.*)_resp# 格式开头
+    2. 添加的文件数量为4个
+    3. 添加的文件中包含apk文件、markdown文件、bak混淆备份文件、MD5文件(无文件尾缀)
+
+    Args:
+        commit: 提交信息
+
+    Returns:
+        tuple[bool, str]: 是否是有效的组装响应, 如果有效，返回组装响应的hash值
+    """
+    commit_title = commit.get("title", "")
+    if not commit_title or not re.match(r"#\w+_resp#", commit_title):
+        return False, None
+    added_files = commit.get("added", [])
+    if not added_files:
+        return False, None
+    if len(added_files) != 4:
+        return False, None
+    pattern = r"^([^/]+)/([^/]+)/([^/]+\.apk|[^/]+\.bak|[^/]+\.md|[^/]+)$"
+    for file_path in added_files:
+        match = re.match(pattern, file_path)
+        if not match:
+            return False, None
+    return True, commit.get("id", "")
+
+
+def is_valid_build_task(commit: Commit) -> bool:
     """
     验证是否是有效的构建任务，有效的任务需要满足：
     1. 提交信息以 #(.*)_req# 格式开头

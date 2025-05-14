@@ -103,7 +103,7 @@ def webhook():
             logging.info(f"忽略非push事件: {event_type}")
             return jsonify({"message": f"Ignored non-push event: {event_type}"}), 200
 
-        # 处理webhook请求
+        # 处理webhook请求，提取构建任务
         tasks, message, status_code = TaskService.handle_webhook_request(data)
         if tasks is None:
             return jsonify({"message": message}), status_code

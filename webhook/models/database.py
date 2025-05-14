@@ -135,11 +135,13 @@ def init_db():
     )
     # 25.05.08 迁移添加operator字段为可空
     migrate_add_operator_to_fork_tasks_nullable(cursor)
+    # 25.05.14 迁移添加response_hash字段
+    migrate_add_response_hash_to_tasks_nullable(cursor)
     conn.commit()
     conn.close()
 
 
-def column_exists(cursor: sqlite3.Cursor, table_name: str, column_name: str) -> bool:
+def _column_exists(cursor: sqlite3.Cursor, table_name: str, column_name: str) -> bool:
     """
     检查表中是否存在指定列
 
@@ -160,12 +162,27 @@ def migrate_add_operator_to_fork_tasks_nullable(cursor: sqlite3.Cursor):
     """
     迁移添加operator字段为可空
     """
-    if column_exists(cursor, "fork_tasks", "operator"):
+    if _column_exists(cursor, "fork_tasks", "operator"):
         return
     # 直接添加可空字段
     cursor.execute(
         """
         ALTER TABLE fork_tasks
             ADD COLUMN operator TEXT NULL
+        """
+    )
+
+
+def migrate_add_response_hash_to_tasks_nullable(cursor: sqlite3.Cursor):
+    """
+    迁移添加response_hash字段为可空
+    """
+    if _column_exists(cursor, "tasks", "response_hash"):
+        return
+    # 直接添加可空字段
+    cursor.execute(
+        """
+        ALTER TABLE tasks
+            ADD COLUMN response_hash TEXT NULL
         """
     )

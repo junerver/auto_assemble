@@ -103,20 +103,12 @@ def format_task_info(task_dict):
     """格式化任务信息，确保返回正确的字段名称"""
     if not task_dict:
         return None
-    return {
-        "id": task_dict["id"],
-        "project": task_dict["prod_name"],  # 修改字段名以匹配前端期望
-        "task": task_dict["task_name"],  # 修改字段名以匹配前端期望
-        "author": task_dict["author"],
-        "commit_title": task_dict["commit_title"],
-        "commit_message": task_dict["commit_message"],
-        "commit_url": task_dict["commit_url"],
-        "created_at": task_dict["created_at"],
-        "started_at": task_dict["started_at"],
-        "completed_at": task_dict["completed_at"],
-        "status": task_dict["status"],
-        "error": task_dict["error"],
-        "commit_hash": task_dict["commit_hash"],
-        "metadata": task_dict["metadata"],
-        "source_task_id": task_dict["source_task_id"],
-    }
+
+    field_mapping = {"prod_name": "project", "task_name": "task"}
+
+    result = task_dict.copy()
+    for old_key, new_key in field_mapping.items():
+        if old_key in result:
+            result[new_key] = result.pop(old_key)
+
+    return result

@@ -6,7 +6,7 @@ from typing import Any, Optional
 from common.err_code import format_error
 from webhook.types import Commit
 from ..models.task import Task
-from ..utils.validators import is_valid_build_task, parse_build_task
+from ..utils.validators import is_valid_assemble_response, is_valid_build_task, parse_build_task
 
 
 class TaskService:
@@ -33,6 +33,13 @@ class TaskService:
         )
         valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
         if not valid_commits:
+            is_resp, resp_hash = is_valid_assemble_response(commits[0])
+            if is_resp:
+                # 更新任务响应哈希
+                prod_name, task_name = parse_build_task(commits[0])
+                task_id = f"{prod_name},{task_name}"
+                TaskService.update_response_hash(task_id, resp_hash)
+                return None, "This's a assemble response, not a build task", 200
             return None, "No valid build task", 200
 
         def build_task(commit: Commit) -> Optional["Task"]:
@@ -144,6 +151,15 @@ class TaskService:
             list[Task]: 最近任务列表
         """
         return Task.get_recent_tasks(limit)
+
+    @staticmethod
+    def update_response_hash(task_id: str, response_hash: str) -> Optional["Task"]:
+        """更新任务响应哈希"""
+        task = Task.get_by_id(task_id)
+        if task:
+            task.update_response_hash(response_hash)
+            return task
+        return None
 
     @staticmethod
     def update_task_status(
