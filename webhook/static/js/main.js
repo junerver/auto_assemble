@@ -225,10 +225,12 @@ function createTaskItem(task, isRunning = false) {
         <span class="badge text-bg-secondary">${formatFileSize(task.metadata.file_size)}</span>
         ` :
         ``;
-
+    // 源任务id
     const source_task_id = task.source_task_id;
-
+    // 是否完成
     const isCompleted = task.status === 'completed';
+    // 目标url，如果有响应hash，则指向响应hash，否则指向分支
+    const targetUrl = task.response_hash ? task.response_hash : getBranchName(task.commit_title);
 
     // 构建完成时间显示（仅对已完成的任务显示）
     const completedTimeInfo = isCompleted && task.completed_at ?
@@ -236,13 +238,13 @@ function createTaskItem(task, isRunning = false) {
 
     // 为已完成的任务标题添加点击事件
     const taskClickHandler = !isRunning && task.status !== 'pending' ?
-        `onclick="window.open('${distributionUrl}-/tree/${getBranchName(task.commit_title)}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
+        `onclick="window.open('${distributionUrl}-/tree/${targetUrl}/${task.project}/${task.task}', '_blank')" style="cursor: pointer;"` : '';
 
     // 项目名称点击事件
     const projectClickHandler = permissionsConfig.showProjectDetailEnabled ? `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"` : '';
 
     //获取资源文件地址
-    const rawUrl = (file) => `${distributionUrl}-/raw/${getBranchName(task.commit_title)}/${task.project}/${task.task}/${file}`
+    const rawUrl = (file) => `${distributionUrl}-/raw/${targetUrl}/${task.project}/${task.task}/${file}`
     // 打包请求说明
     const reqReadme = rawUrl("README.md")
     // 构建产物元数据
@@ -375,11 +377,13 @@ function createForkTask() {
  * @param {*} sourceTaskId
  */
 function openSourceTask(sourceTaskId) {
+
     fetch(`/task/${sourceTaskId}`)
         .then(response => response.json())
         .then(data => {
             const sourceTask = data.task;
-            window.open(`${distributionUrl}-/tree/${getBranchName(sourceTask.commit_title)}/${sourceTask.project}/${sourceTask.task}`, '_blank');
+            const targetUrl = sourceTask.response_hash ? sourceTask.response_hash : getBranchName(sourceTask.commit_title);
+            window.open(`${distributionUrl}-/tree/${targetUrl}/${sourceTask.project}/${sourceTask.task}`, '_blank');
         })
         .catch(error => {
             console.error('Error showing fork task:', error);
