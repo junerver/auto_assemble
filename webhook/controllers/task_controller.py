@@ -10,7 +10,21 @@ from ..services.webhook_request_service import WebhookRequestService
 
 @task_bp.route("/task/<task_id>", methods=["GET"])
 def get_task_info(task_id):
-    """获取任务详细信息"""
+    """获取任务详细信息
+    ---
+    tags:
+      - Task
+    parameters:
+      - name: task_id
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: 任务详细信息
+      404:
+        description: 任务id不存在
+    """
     task = TaskService.get_task(task_id)
     if task:
         return jsonify({"task": format_task_info(task.to_dict())}), 200
@@ -19,14 +33,33 @@ def get_task_info(task_id):
 
 @task_bp.route("/task/<task_id>", methods=["DELETE"])
 def outdated_task(task_id):
-    """标记任务为过期"""
+    """标记任务为过期
+    ---
+    tags:
+      - Task
+    parameters:
+      - name: task_id
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: 操作成功
+    """
     TaskService.update_task_status(task_id, "outdated")
     return jsonify({"message": "Task outdated"}), 200
 
 
 @task_bp.route("/tasks/statistics", methods=["GET"])
 def get_tasks_statistics():
-    """获取所有任务的统计情况"""
+    """获取所有任务的统计情况
+    ---
+    tags:
+      - Task
+    responses:
+      200:
+        description: 构建统计
+    """
     tasks = TaskService.get_tasks_statistics()
     packer_usage = TaskService.get_packer_usage_statistics()
     return jsonify({"tasks": tasks, "packer_usage": packer_usage}), 200
@@ -34,7 +67,21 @@ def get_tasks_statistics():
 
 @task_bp.route("/queue", methods=["GET"])
 def get_queue_status():
-    """获取队列状态"""
+    """获取队列状态
+    ---
+    tags:
+      - Task
+    parameters:
+      - name: build_mode
+        in: query
+        type: string
+        enum: ['all', 'dev', 'test', 'release']
+        required: true
+        default: all
+    responses:
+      200:
+        description: 任务队列
+    """
     build_mode = request.args.get("build_mode", "all")
     if build_mode == "all":
         build_mode = None
@@ -55,7 +102,19 @@ def get_queue_status():
 
 @task_bp.route("/task/<task_id>/replay", methods=["POST"])
 def replay_webhook(task_id):
-    """重放webhook请求"""
+    """重放webhook请求
+    ---
+    tags:
+      - Task
+    parameters:
+      - name: task_id
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: 重放成功
+    """
     logging.info(f"重放webhook请求: {task_id}")
 
     # 获取原始请求数据
@@ -91,7 +150,19 @@ def replay_webhook(task_id):
 
 @task_bp.route("/task/<task_id>/stop", methods=["POST"])
 def stop_task(task_id):
-    """停止运行中的任务"""
+    """停止运行中的任务
+    ---
+    tags:
+      - Task
+    parameters:
+      - name: task_id
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: 停止任务成功
+    """
     logging.info(f"停止任务: {task_id}")
     task, message, status_code = TaskService.stop_task(task_id)
     if task:

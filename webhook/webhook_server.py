@@ -1,5 +1,6 @@
 import logging
 
+from flasgger import Swagger
 from flask import Flask, render_template
 
 from .config import PORT, DEBUG, DB_FILE
@@ -53,6 +54,9 @@ def create_app():
     # 配置热更新
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
+    # 接入 flagger
+    swagger = Swagger(app)
 
     @app.route("/")
     def index():
