@@ -1,7 +1,14 @@
+"""
+Description:
+Author: 侯文君
+Date: 2025-05-12 15:20:50
+LastEditors: 侯文君
+LastEditTime: 2025-05-15 18:06:21
+"""
+
+import sqlite3
 from dataclasses import dataclass
 from typing import Optional
-
-from ..extensions.context import get_db
 
 
 @dataclass
@@ -19,9 +26,8 @@ class Project:
     updated_at: Optional[str] = None
 
     @classmethod
-    def get_by_id(cls, project_id: str) -> Optional["Project"]:
+    def get_by_id(cls, project_id: str, db: sqlite3.Connection) -> Optional["Project"]:
         """根据ID获取项目"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM project_config WHERE id = ?", (project_id,))
         row = cursor.fetchone()
@@ -30,22 +36,18 @@ class Project:
         return None
 
     @classmethod
-    def get_by_url(cls, project_url: str) -> Optional["Project"]:
+    def get_by_url(cls, project_url: str, db: sqlite3.Connection) -> Optional["Project"]:
         """根据URL获取项目"""
-        db = get_db()
         cursor = db.cursor()
-        cursor.execute(
-            "SELECT * FROM project_config WHERE project_url = ?", (project_url,)
-        )
+        cursor.execute("SELECT * FROM project_config WHERE project_url = ?", (project_url,))
         row = cursor.fetchone()
         if row:
             return cls(**dict(row))
         return None
 
     @classmethod
-    def get_by_name(cls, prod_name: str) -> Optional["Project"]:
+    def get_by_name(cls, prod_name: str, db: sqlite3.Connection) -> Optional["Project"]:
         """根据产品名称获取项目"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM project_config WHERE prod_name = ?", (prod_name,))
         row = cursor.fetchone()
@@ -54,16 +56,14 @@ class Project:
         return None
 
     @classmethod
-    def get_all(cls) -> list["Project"]:
+    def get_all(cls, db: sqlite3.Connection) -> list["Project"]:
         """获取所有项目"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM project_config ORDER BY prod_name")
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
-    def save(self) -> None:
+    def save(self, db: sqlite3.Connection) -> None:
         """保存项目配置"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -86,9 +86,8 @@ class Project:
         )
         db.commit()
 
-    def update(self, **kwargs) -> None:
+    def update(self, db: sqlite3.Connection, **kwargs) -> None:
         """更新项目配置"""
-        db = get_db()
         cursor = db.cursor()
 
         update_fields = []

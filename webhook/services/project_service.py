@@ -1,3 +1,4 @@
+import sqlite3
 import uuid
 
 from ..models.project import Project
@@ -12,6 +13,7 @@ class ProjectService:
             uniapp_id=None,
             uniapp_appkey=None,
             uniapp_is_cli=False,
+            db: sqlite3.Connection = None,
     ):
         project = Project(
             id=str(uuid.uuid4()),
@@ -22,37 +24,39 @@ class ProjectService:
             uniapp_appkey=uniapp_appkey,
             uniapp_is_cli=uniapp_is_cli,
         )
-        project.save()
+        project.save(db)
         return project
 
     @staticmethod
-    def get_project(project_id=None, project_url=None, prod_name=None):
+    def get_project(
+            project_id=None, project_url=None, prod_name=None, db: sqlite3.Connection = None
+    ):
         if project_id:
-            return Project.get_by_id(project_id)
+            return Project.get_by_id(project_id, db)
         elif project_url:
-            return Project.get_by_url(project_url)
+            return Project.get_by_url(project_url, db)
         elif prod_name:
-            return Project.get_by_name(prod_name)
+            return Project.get_by_name(prod_name, db)
         return None
 
     @staticmethod
-    def get_all_projects():
-        return Project.get_all()
+    def get_all_projects(db: sqlite3.Connection = None):
+        return Project.get_all(db)
 
     @staticmethod
-    def update_project(project_id, **kwargs):
+    def update_project(project_id, db: sqlite3.Connection, **kwargs):
         """更新项目"""
-        project = Project.get_by_id(project_id)
+        project = Project.get_by_id(project_id, db)
         if project:
-            project.update(**kwargs)
+            project.update(db, **kwargs)
             return project
         return None
 
     @staticmethod
-    def configure_project(project_data):
+    def configure_project(project_data, db: sqlite3.Connection = None):
         """配置项目"""
         # 检查项目是否已存在
-        project = Project.get_by_url(project_data.get("project_url"))
+        project = Project.get_by_url(project_data.get("project_url"), db)
         if not project:
             # 创建新项目
             project = ProjectService.create_project(
@@ -66,6 +70,7 @@ class ProjectService:
         else:
             # 更新现有项目
             project.update(
+                db=db,
                 prod_name=project_data.get("prod_name"),
                 hbx_version=project_data.get("hbx_version"),
                 uniapp_id=project_data.get("uniapp_id"),

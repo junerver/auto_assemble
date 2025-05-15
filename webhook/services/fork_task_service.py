@@ -1,3 +1,12 @@
+"""
+Description:
+Author: 侯文君
+Date: 2025-05-12 15:20:50
+LastEditors: 侯文君
+LastEditTime: 2025-05-15 18:06:00
+"""
+
+import sqlite3
 from datetime import datetime
 
 from webhook.models.fork_task import ForkTask
@@ -13,6 +22,7 @@ class ForkTaskService:
             target_version_code: str,
             commit_message: str,
             operator: str = "assemble_bot",
+            db: sqlite3.Connection = None,
     ) -> ForkTask:
         """
         创建派生任务,从原始任务中获取项目名称，并生成任务名称，默认操作人为assemble_bot
@@ -30,12 +40,12 @@ class ForkTaskService:
             created_at=datetime.now(),
             operator=operator,
         )
-        fork_task.save()
+        fork_task.save(db)
         return fork_task
 
     @staticmethod
-    def get_fork_task(fork_task_id: str) -> ForkTask:
+    def get_fork_task(fork_task_id: str, db: sqlite3.Connection = None) -> ForkTask:
         """
         获取派生任务
         """
-        return ForkTask.get_by_id(fork_task_id)
+        return ForkTask.get_by_id(fork_task_id, db)

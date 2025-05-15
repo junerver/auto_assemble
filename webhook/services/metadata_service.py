@@ -1,3 +1,4 @@
+import sqlite3
 from typing import Optional
 
 from webhook.models.metadata import BuildMetadata
@@ -15,10 +16,11 @@ class MetadataService:
             build_date: str,
             file_size: int,
             md5: str,
+            db: sqlite3.Connection = None,
     ) -> BuildMetadata:
         """创建构建任务产物元数据"""
         # 检查是否存在相同任务ID的元数据
-        existing_metadata = BuildMetadata.get_by_task_id(task_id)
+        existing_metadata = BuildMetadata.get_by_task_id(task_id, db)
         if existing_metadata:
             raise ValueError(f"任务ID {task_id} 已存在元数据")
 
@@ -33,10 +35,12 @@ class MetadataService:
             file_size=file_size,
             md5=md5,
         )
-        metadata.save()
+        metadata.save(db)
         return metadata
 
     @staticmethod
-    def get_metadata_by_task_id(task_id: str) -> Optional[BuildMetadata]:
+    def get_metadata_by_task_id(
+            task_id: str, db: sqlite3.Connection = None
+    ) -> Optional[BuildMetadata]:
         """根据任务ID获取构建任务产物元数据"""
-        return BuildMetadata.get_by_task_id(task_id)
+        return BuildMetadata.get_by_task_id(task_id, db)

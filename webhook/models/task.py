@@ -1,8 +1,7 @@
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Optional
-
-from ..extensions.context import get_db
 
 # 任务状态，包含：pending（待处理）、running（运行中）、completed（已完成）、failed（失败）、outdated（过期）
 TaskStatus = Literal["pending", "running", "completed", "failed", "outdated"]
@@ -56,9 +55,8 @@ class Task:
             return self.priority > other.priority
         return self.created_at < other.created_at
 
-    def save(self) -> None:
+    def save(self, db: sqlite3.Connection) -> None:
         """保存任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -89,9 +87,8 @@ class Task:
         db.commit()
 
     @classmethod
-    def get_by_id(cls, task_id: str) -> Optional["Task"]:
+    def get_by_id(cls, task_id: str, db: sqlite3.Connection) -> Optional["Task"]:
         """根据ID获取任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -147,9 +144,8 @@ class Task:
         return None
 
     @classmethod
-    def get_running_task(cls) -> Optional["Task"]:
+    def get_running_task(cls, db: sqlite3.Connection) -> Optional["Task"]:
         """获取正在运行的任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "SELECT * FROM tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1"
@@ -160,15 +156,16 @@ class Task:
         return None
 
     @classmethod
-    def get_pending_tasks(cls) -> list["Task"]:
+    def get_pending_tasks(cls, db: sqlite3.Connection = None) -> list["Task"]:
         """获取待处理的任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_recent_tasks(cls, limit: int = 5, build_mode: str | None = None) -> list["Task"]:
+    def get_recent_tasks(
+            cls, limit: int = 5, build_mode: str | None = None, db: sqlite3.Connection = None
+    ) -> list["Task"]:
         """
         获取最近的任务（只检索未过期的任务，即 status 为 completed 或 failed 的任务），如果 build_mode 不为 None，则只返回 build_mode 对应的任务
         如果 build_mode 为 None，则返回所有任务。
@@ -176,8 +173,8 @@ class Task:
         Args:
             limit: 返回的任务数量限制
             build_mode: 构建模式，可选值为 dev/test/release，为 None 时不进行筛选
+            db: 数据库连接
         """
-        db = get_db()
         cursor = db.cursor()
 
         if build_mode is not None and build_mode not in ["dev", "test", "release"]:
@@ -257,36 +254,34 @@ class Task:
         return tasks
 
     @classmethod
-    def get_tasks_statistics(cls) -> list[dict]:
+    def get_tasks_statistics(cls, db: sqlite3.Connection) -> list[dict]:
         """
         获取所有任务的统计情况，按照项目名称分组，最终返回一个数组，数组中每个元素是一个字典，字典中包含项目名称和任务数量
         """
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT prod_name, COUNT(*) FROM tasks GROUP BY prod_name")
         return [{"prod_name": row[0], "count": row[1]} for row in cursor.fetchall()]
 
     # 统计打包机使用人员
     @classmethod
-    def get_packer_usage_statistics(cls) -> list[dict]:
+    def get_packer_usage_statistics(cls, db: sqlite3.Connection) -> list[dict]:
         """
         统计打包机使用人员
         """
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT author, COUNT(*) FROM tasks GROUP BY author")
         return [{"author": row[0], "count": row[1]} for row in cursor.fetchall()]
 
-    def update_response_hash(self, response_hash: str) -> None:
+    def update_response_hash(self, response_hash: str, db: sqlite3.Connection) -> None:
         """更新任务响应哈希"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("UPDATE tasks SET response_hash = ? WHERE id = ?", (response_hash, self.id))
         db.commit()
 
-    def update_status(self, status: str, error: Optional[str] = None) -> None:
+    def update_status(
+            self, status: str, error: Optional[str] = None, db: sqlite3.Connection = None
+    ) -> None:
         """更新任务状态"""
-        db = get_db()
         cursor = db.cursor()
 
         if status == "running":

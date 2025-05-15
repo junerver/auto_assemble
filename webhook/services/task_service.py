@@ -1,5 +1,6 @@
 import json
 import logging
+import sqlite3
 from datetime import datetime
 from typing import Any, Optional
 
@@ -11,11 +12,14 @@ from ..utils.validators import is_valid_assemble_response, is_valid_build_task, 
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data: dict[str, Any]) -> tuple[Optional[list["Task"]], str, int]:
+    def handle_webhook_request(
+            data: dict[str, Any], db: sqlite3.Connection
+    ) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         Args:
             data: webhook请求数据
+            db:
 
         Returns:
             tuple: (tasks, message, status_code)
@@ -43,11 +47,9 @@ class TaskService:
             return None, "No valid build task", 200
 
         def build_task(commit: Commit) -> Optional["Task"]:
-            prod_name, task_name = parse_build_task(commit)
+            prod, task = parse_build_task(commit)
             return TaskService.create_task(
-                prod_name=prod_name,
-                task_name=task_name,
-                commit_info=commit,
+                prod_name=prod, task_name=task, commit_info=commit, db=db
             )
 
         tasks = [build_task(vc) for vc in valid_commits]
@@ -57,7 +59,12 @@ class TaskService:
 
     @staticmethod
     def create_task(
-            prod_name, task_name, commit_info: Commit = None, priority=0, retries=0
+            prod_name,
+            task_name,
+            commit_info: Commit = None,
+            priority=0,
+            retries=0,
+            db: sqlite3.Connection = None,
     ) -> Optional["Task"]:
         """创建任务
 
@@ -72,9 +79,10 @@ class TaskService:
             commit_info: 提交信息
             priority: 优先级
             retries: 重试次数
+            db:
         """
         task_id = f"{prod_name},{task_name}"
-        task = Task.get_by_id(task_id)
+        task = Task.get_by_id(task_id, db)
         if task:
             if task.status == "failed":
                 task.update_status("pending")
@@ -107,63 +115,67 @@ class TaskService:
                 logging.error(f"解析时间戳失败: {timestamp}")
                 pass
 
-        task.save()
+        task.save(db)
         return task
 
     @staticmethod
-    def get_task(task_id: str) -> Optional["Task"]:
+    def get_task(task_id: str, db: sqlite3.Connection = None) -> Optional["Task"]:
         """通过任务id获取任务详情
 
         Args:
             task_id: 任务ID
+            db:
 
         Returns:
             Optional[Task]: 任务对象，如果未找到则返回None
         """
-        return Task.get_by_id(task_id)
+        return Task.get_by_id(task_id, db)
 
     @staticmethod
-    def get_running_task() -> Optional["Task"]:
+    def get_running_task(db: sqlite3.Connection = None) -> Optional["Task"]:
         """获取正在执行的任务
 
         Returns:
             Optional[Task]: 正在执行的任务对象，如果未找到则返回None
         """
-        return Task.get_running_task()
+        return Task.get_running_task(db)
 
     @staticmethod
-    def get_pending_tasks() -> list["Task"]:
+    def get_pending_tasks(db: sqlite3.Connection = None) -> list["Task"]:
         """获取待执行任务
 
         Returns:
             list[Task]: 待执行任务列表
         """
-        return Task.get_pending_tasks()
+        return Task.get_pending_tasks(db)
 
     @staticmethod
-    def get_recent_tasks(limit: int = 5) -> list["Task"]:
+    def get_recent_tasks(limit: int = 5, db: sqlite3.Connection = None) -> list["Task"]:
         """获取最近任务
 
         Args:
             limit: 返回的任务数量限制，默认为5
+            db: 数据库连接
 
         Returns:
             list[Task]: 最近任务列表
         """
-        return Task.get_recent_tasks(limit)
+        return Task.get_recent_tasks(limit, db=db)
 
     @staticmethod
-    def update_response_hash(task_id: str, response_hash: str) -> Optional["Task"]:
+    def update_response_hash(
+            task_id: str, response_hash: str, db: sqlite3.Connection = None
+    ) -> Optional["Task"]:
         """更新任务响应哈希"""
-        task = Task.get_by_id(task_id)
+        task = Task.get_by_id(task_id, db)
         if task:
-            task.update_response_hash(response_hash)
+            task.update_response_hash(response_hash, db)
             return task
         return None
 
     @staticmethod
     def update_task_status(
-            task_id: str, status: str, error: Optional[str] = None
+            task_id: str, status: str, error: Optional[str] = None, db: sqlite3.Connection = None
     ) -> Optional["Task"]:
         """更新任务状态
 
@@ -171,28 +183,32 @@ class TaskService:
             task_id: 任务ID
             status: 新状态
             error: 错误信息
+            db:
 
         Returns:
             Optional[Task]: 更新后的任务对象，如果任务不存在则返回None
         """
-        task = Task.get_by_id(task_id)
+        task = Task.get_by_id(task_id, db)
         if task:
-            task.update_status(status, error)
+            task.update_status(status, error, db=db)
             return task
         return None
 
     @staticmethod
-    def get_queue_status(limit: int = 5, build_mode: str | None = None) -> dict[str, Any]:
+    def get_queue_status(
+            limit: int = 5, build_mode: str | None = None, db: sqlite3.Connection = None
+    ) -> dict[str, Any]:
         """
         获取队列状态
 
         Args:
             limit: 返回的任务数量限制
             build_mode: 构建模式，可选值为 dev/test/release，为 None 时不进行筛选
+            db:
         """
-        running_task = Task.get_running_task()
-        pending_tasks = Task.get_pending_tasks()
-        recent_tasks = Task.get_recent_tasks(limit=limit, build_mode=build_mode)
+        running_task = Task.get_running_task(db)
+        pending_tasks = Task.get_pending_tasks(db)
+        recent_tasks = Task.get_recent_tasks(limit=limit, build_mode=build_mode, db=db)
 
         return {
             "running_task": running_task.to_dict() if running_task else None,
@@ -202,11 +218,12 @@ class TaskService:
         }
 
     @staticmethod
-    def stop_task(task_id):
+    def stop_task(task_id, db: sqlite3.Connection = None):
         """停止运行中的任务
 
         Args:
             task_id: 任务ID
+            db:
 
         Returns:
             tuple: (task, message, status_code)
@@ -214,22 +231,22 @@ class TaskService:
             - message: 处理结果消息
             - status_code: HTTP状态码
         """
-        task = Task.get_by_id(task_id)
+        task = Task.get_by_id(task_id, db)
         if not task:
             return None, "Task not found", 404
 
         if task.status != "running":
             return None, "Task is not running", 400
 
-        task.update_status("failed", format_error(10003))
+        task.update_status("failed", format_error(10003), db=db)
         return task, "Task stopped successfully", 200
 
     @staticmethod
-    def get_tasks_statistics():
+    def get_tasks_statistics(db: sqlite3.Connection = None):
         """获取所有任务的统计情况"""
-        return Task.get_tasks_statistics()
+        return Task.get_tasks_statistics(db)
 
     @staticmethod
-    def get_packer_usage_statistics():
+    def get_packer_usage_statistics(db: sqlite3.Connection = None):
         """获取打包机使用人员统计情况"""
-        return Task.get_packer_usage_statistics()
+        return Task.get_packer_usage_statistics(db)

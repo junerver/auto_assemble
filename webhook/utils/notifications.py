@@ -7,14 +7,14 @@ This module provides notification functionality for the webhook server.
 import logging
 from datetime import datetime
 
-from webhook.extensions.sse import ServerSentEvents
+from webhook.extensions.sse import sse
 from ..models.task import Task
 
 
 def show_toast(title: str, message: str):
     """发送 toast 通知事件"""
     try:
-        ServerSentEvents.publish_event("toast", {"title": title, "message": message})
+        sse.publish("toast", {"title": title, "message": message})
     except Exception as e:
         logging.error(f"发送通知事件时发生错误: {str(e)}")
 

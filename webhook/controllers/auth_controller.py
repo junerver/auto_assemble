@@ -1,6 +1,7 @@
-from flask import jsonify, request
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
-from . import auth_bp
+router = APIRouter(tags=["auth"])
 
 ROLE_MAP = {
     "admin": [
@@ -24,22 +25,21 @@ AUTHORIZED_IP_ROLE_MAP = {
 }
 
 
-@auth_bp.route("/check-ip", methods=["GET"])
-def check_ip():
+@router.get("/check-ip")
+async def check_ip(request: Request):
     """检查客户端IP是否授权"""
-    client_ip = request.remote_addr
-    is_authorized = client_ip in AUTHORIZED_IP_ROLE_MAP
-    role = AUTHORIZED_IP_ROLE_MAP[client_ip]
-    if is_authorized:
-        permissions = ROLE_MAP[role]
-    else:
-        permissions = []
+    client_ip = request.client.host
 
-    return jsonify(
-        {
+    is_authorized = client_ip in AUTHORIZED_IP_ROLE_MAP
+    role = AUTHORIZED_IP_ROLE_MAP.get(client_ip)
+    permissions = ROLE_MAP[role] if is_authorized else []
+
+    return JSONResponse(
+        status_code=200,
+        content={
             "authorized": is_authorized,
             "client_ip": client_ip,
             "role": role,
             "permissions": permissions,
-        }
+        },
     )

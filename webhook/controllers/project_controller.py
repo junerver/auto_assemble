@@ -1,96 +1,86 @@
-from flask import jsonify, request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from . import project_bp
+from webhook.extensions.db import get_db
 from ..models.third_party import ThirdPartyConfig
 from ..services.project_service import ProjectService
 from ..services.third_party_service import ThirdPartyService
 
+router = APIRouter(prefix="/api/config", tags=["project"])
 
-@project_bp.route("/project", methods=["POST"])
-def configure_project():
+
+@router.post("/project")
+async def configure_project(request: Request, db=Depends(get_db)):
     """配置项目信息"""
     try:
-        data = request.get_json()
+        data = await request.json()
         if not data:
-            return jsonify({"error": "No JSON data received"}), 400
+            raise HTTPException(status_code=400, detail="No JSON data received")
 
-        project = ProjectService.configure_project(data)
-        return (
-            jsonify(
-                {
-                    "message": "Project configured successfully",
-                    "project": project.to_dict(),
-                }
-            ),
-            200,
-        )
+        project = ProjectService.configure_project(data, db=db)
+        return {
+            "message": "Project configured successfully",
+            "project": project.to_dict(),
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@project_bp.route("/project", methods=["GET"])
-def get_project_config():
+@router.get("/project")
+async def get_project_config(
+        url: str = Query(default=None, description="项目URL"),
+        name: str = Query(default=None, description="项目名称"),
+        db=Depends(get_db),
+):
     """获取项目配置信息"""
     try:
         # 获取查询参数
-        project_url = request.args.get("url")
-        prod_name = request.args.get("name")
+        project_url = url
+        prod_name = name
 
         if not project_url and not prod_name:
-            return jsonify({"error": "Must provide either url or name parameter"}), 400
+            raise HTTPException(status_code=400, detail="Must provide either url or name parameter")
 
-        project = ProjectService.get_project(
-            project_url=project_url, prod_name=prod_name
-        )
+        project = ProjectService.get_project(project_url=project_url, prod_name=prod_name, db=db)
         if not project:
-            return jsonify({"error": "Project not found"}), 404
+            raise HTTPException(status_code=404, detail="Project not found")
 
         # 获取项目的第三方配置
-        third_party_configs = ThirdPartyService.get_project_configs(project.id)
+        third_party_configs = ThirdPartyService.get_project_configs(project.id, db=db)
 
-        return (
-            jsonify(
-                {
-                    "project_config": project.to_dict(),
-                    "third_party_configs": [
-                        config.to_dict() for config in third_party_configs
-                    ],
-                    "message": "获取项目配置成功",
-                }
-            ),
-            200,
-        )
+        return {
+            "project_config": project.to_dict(),
+            "third_party_configs": [config.to_dict() for config in third_party_configs],
+            "message": "获取项目配置成功",
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@project_bp.route("/project/<project_id>", methods=["PUT"])
-def update_project_config(project_id):
+@router.put("/project/{project_id}")
+async def update_project_config(project_id: str, request: Request, db=Depends(get_db)):
     """更新项目配置信息"""
     try:
-        data = request.get_json()
+        data = await request.json()
         if not data:
-            return jsonify({"error": "No JSON data received"}), 400
+            raise HTTPException(status_code=400, detail="No JSON data received")
 
         # 分离基础配置和第三方配置
-        base_config = {
-            k: v for k, v in data.items() if k not in ["third_party_configs"]
-        }
+        base_config = {k: v for k, v in data.items() if k not in ["third_party_configs"]}
         third_party_configs = data.get("third_party_configs", [])
 
         # 更新基础配置
-        project = ProjectService.update_project(project_id, **base_config)
+        project = ProjectService.update_project(project_id, db=db, **base_config)
         if not project:
-            return jsonify({"error": "Project not found"}), 404
+            raise HTTPException(status_code=404, detail="Project not found")
 
         # 更新第三方配置
         if third_party_configs:
             # 获取当前项目的所有第三方配置
             current_configs = {
                 config.dict_key: config.config_value
-                for config in ThirdPartyService.get_project_configs(project_id)
+                for config in ThirdPartyService.get_project_configs(project_id, db=db)
             }
 
             for config in third_party_configs:
@@ -100,58 +90,45 @@ def update_project_config(project_id):
                     continue
 
                 # 检查字典项是否存在
-                dict_item = ThirdPartyService.get_dict_item(dict_key)
+                dict_item = ThirdPartyService.get_dict_item(dict_key, db=db)
                 if not dict_item:
-                    return jsonify(
-                        {"error": f"Dictionary item {dict_key} not found"}
-                    ), 400
+                    raise HTTPException(
+                        status_code=400, detail=f"Dictionary item {dict_key} not found"
+                    )
 
                 # 只有当配置值发生变化时才更新
-                if (
-                        dict_key not in current_configs
-                        or current_configs[dict_key] != config_value
-                ):
+                if dict_key not in current_configs or current_configs[dict_key] != config_value:
                     third_party_config = ThirdPartyConfig(
                         project_id=project_id,
                         dict_key=dict_key,
                         config_value=config_value,
                     )
-                    if not third_party_config.save():
-                        return (
-                            jsonify(
-                                {
-                                    "error": f"Failed to save third party config for {dict_key}"
-                                }
-                            ),
-                            500,
+                    if not third_party_config.save(db=db):
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Failed to save third party config for {dict_key}",
                         )
 
         # 获取更新后的完整项目信息
         project_dict = project.to_dict()
         project_dict["third_party_configs"] = [
-            config.to_dict()
-            for config in ThirdPartyService.get_project_configs(project_id)
+            config.to_dict() for config in ThirdPartyService.get_project_configs(project_id, db=db)
         ]
 
-        return (
-            jsonify(
-                {
-                    "message": "Project configuration updated successfully",
-                    "project": project_dict,
-                }
-            ),
-            200,
-        )
+        return {
+            "message": "Project configuration updated successfully",
+            "project": project_dict,
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@project_bp.route("/projects", methods=["GET"])
-def get_projects():
+@router.get("/projects")
+async def get_projects(db=Depends(get_db)):
     """获取所有项目配置列表"""
     try:
-        projects = ProjectService.get_all_projects()
-        return jsonify({"projects": [project.to_dict() for project in projects]}), 200
+        projects = ProjectService.get_all_projects(db)
+        return {"projects": [project.to_dict() for project in projects]}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))

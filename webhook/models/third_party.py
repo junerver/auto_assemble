@@ -2,7 +2,6 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Optional
 
-from ..extensions.context import get_db
 
 
 @dataclass
@@ -16,9 +15,8 @@ class ThirdPartyDict:
     id: Optional[int] = None
 
     @classmethod
-    def get_all(cls) -> list["ThirdPartyDict"]:
+    def get_all(cls, db: sqlite3.Connection) -> list["ThirdPartyDict"]:
         """获取所有第三方配置字典项"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -30,9 +28,8 @@ class ThirdPartyDict:
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_by_key(cls, dict_key: str) -> Optional["ThirdPartyDict"]:
+    def get_by_key(cls, dict_key: str, db: sqlite3.Connection) -> Optional["ThirdPartyDict"]:
         """获取单个第三方配置字典项"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -47,9 +44,8 @@ class ThirdPartyDict:
             return cls(**dict(row))
         return None
 
-    def save(self) -> bool:
+    def save(self, db: sqlite3.Connection) -> bool:
         """保存字典项"""
-        db = get_db()
         cursor = db.cursor()
         try:
             cursor.execute(
@@ -65,9 +61,8 @@ class ThirdPartyDict:
             db.rollback()
             return False
 
-    def update(self) -> bool:
+    def update(self, db: sqlite3.Connection) -> bool:
         """更新字典项"""
-        db = get_db()
         cursor = db.cursor()
         try:
             cursor.execute(
@@ -93,9 +88,8 @@ class ThirdPartyDict:
             return False
 
     @classmethod
-    def delete(cls, dict_key: str) -> bool:
+    def delete(cls, dict_key: str, db: sqlite3.Connection) -> bool:
         """删除字典项"""
-        db = get_db()
         cursor = db.cursor()
         try:
             # 检查是否有项目正在使用这个字典项
@@ -146,9 +140,8 @@ class ThirdPartyConfig:
     dict_value: Optional[str] = None
 
     @classmethod
-    def get_by_project(cls, project_id: str) -> list["ThirdPartyConfig"]:
+    def get_by_project(cls, project_id: str, db: sqlite3.Connection) -> list["ThirdPartyConfig"]:
         """获取项目的所有第三方配置"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -163,9 +156,8 @@ class ThirdPartyConfig:
         return [cls(**dict(row)) for row in cursor.fetchall()]
 
     @classmethod
-    def get_unconfigured_dict_items(cls, project_id: str) -> list[ThirdPartyDict]:
+    def get_unconfigured_dict_items(cls, project_id: str, db: sqlite3.Connection) -> list[ThirdPartyDict]:
         """获取项目未配置的字典项"""
-        db = get_db()
         cursor = db.cursor()
         # 获取项目已配置的字典项
         cursor.execute(
@@ -191,9 +183,8 @@ class ThirdPartyConfig:
             if row["dict_key"] not in configured_keys
         ]
 
-    def save(self) -> bool:
+    def save(self, db: sqlite3.Connection) -> bool:
         """保存配置"""
-        db = get_db()
         cursor = db.cursor()
         try:
             # 检查配置是否已存在
@@ -232,9 +223,8 @@ class ThirdPartyConfig:
             db.rollback()
             return False
 
-    def update(self) -> bool:
+    def update(self, db: sqlite3.Connection) -> bool:
         """更新配置"""
-        db = get_db()
         cursor = db.cursor()
         try:
             cursor.execute(

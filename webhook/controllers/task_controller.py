@@ -1,44 +1,51 @@
 import logging
 
 import requests
-from flask import jsonify, current_app, request
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 
-from . import task_bp
+from webhook.config import PORT
+from webhook.extensions.db import get_db
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
 
+router = APIRouter(tags=["task"])
 
-@task_bp.route("/task/<task_id>", methods=["GET"])
-def get_task_info(task_id):
+
+@router.get("/task/{task_id}")
+async def get_task_info(task_id: str, db=Depends(get_db)):
     """获取任务详细信息"""
-    task = TaskService.get_task(task_id)
+    task = TaskService.get_task(task_id, db=db)
     if task:
-        return jsonify({"task": format_task_info(task.to_dict())}), 200
-    return jsonify({"error": "Task not found"}), 404
+        return {"task": format_task_info(task.to_dict())}
+    raise HTTPException(status_code=404, detail="Task not found")
 
 
-@task_bp.route("/task/<task_id>", methods=["DELETE"])
-def outdated_task(task_id):
+@router.delete("/task/{task_id}")
+async def outdated_task(task_id: str, db=Depends(get_db)):
     """标记任务为过期"""
-    TaskService.update_task_status(task_id, "outdated")
-    return jsonify({"message": "Task outdated"}), 200
+    if TaskService.update_task_status(task_id, "outdated", db=db) is not None:
+        return {"message": "Task outdated"}
+    raise HTTPException(status_code=404, detail="Task not found")
 
 
-@task_bp.route("/tasks/statistics", methods=["GET"])
-def get_tasks_statistics():
+@router.get("/tasks/statistics")
+async def get_tasks_statistics(db=Depends(get_db)):
     """获取所有任务的统计情况"""
-    tasks = TaskService.get_tasks_statistics()
-    packer_usage = TaskService.get_packer_usage_statistics()
-    return jsonify({"tasks": tasks, "packer_usage": packer_usage}), 200
+    tasks = TaskService.get_tasks_statistics(db)
+    packer_usage = TaskService.get_packer_usage_statistics(db)
+    return {"tasks": tasks, "packer_usage": packer_usage}
 
 
-@task_bp.route("/queue", methods=["GET"])
-def get_queue_status():
+@router.get("/queue")
+async def get_queue_status(
+        build_mode: str = Query(default="all", description="构建模式"),
+        db=Depends(get_db),
+):
     """获取队列状态"""
-    build_mode = request.args.get("build_mode", "all")
     if build_mode == "all":
         build_mode = None
-    queue_status = TaskService.get_queue_status(20, build_mode=build_mode)
+    queue_status = TaskService.get_queue_status(20, build_mode=build_mode, db=db)
 
     # 修正返回的数据格式
     formatted_status = {
@@ -50,53 +57,55 @@ def get_queue_status():
         "recent_tasks": [format_task_info(task) for task in queue_status["recent_tasks"]],
     }
 
-    return jsonify(formatted_status), 200
+    return formatted_status
 
 
-@task_bp.route("/task/<task_id>/replay", methods=["POST"])
-def replay_webhook(task_id):
+@router.post("/task/{task_id}/replay")
+async def replay_webhook(task_id: str, db=Depends(get_db)):
     """重放webhook请求"""
-    logging.info(f"重放webhook请求: {task_id}")
 
     # 获取原始请求数据
-    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(task_id)
+    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(
+        task_id, db=db
+    )
     if not request_data:
-        return jsonify({"error": headers}), status_code
+        raise HTTPException(status_code=404, detail="task request don't exists")
 
     try:
         # 获取webhook接口的URL
-        webhook_url = f"http://localhost:{current_app.config['PORT']}/webhook"
+        webhook_url = f"http://localhost:{PORT}/webhook"
 
         # 发送请求到webhook接口
         response = requests.post(webhook_url, json=request_data, headers=headers, timeout=30)
 
         if response.status_code == 200:
-            return jsonify({"message": "Webhook请求重放成功", "response": response.json()}), 200
+            return {"message": "Webhook请求重放成功", "response": response.json()}
         else:
-            return (
-                jsonify(
-                    {
-                        "error": "Webhook请求重放失败",
-                        "status_code": response.status_code,
-                        "response": response.json(),
-                    }
-                ),
-                response.status_code,
+            return JSONResponse(
+                status_code=response.status_code,
+                content={
+                    "error": "Webhook请求重放失败",
+                    "status_code": response.status_code,
+                    "response": response.json(),
+                },
             )
 
     except requests.exceptions.RequestException as e:
         logging.error(f"重放webhook请求时发生错误: {str(e)}")
-        return jsonify({"error": f"请求发送失败: {str(e)}"}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@task_bp.route("/task/<task_id>/stop", methods=["POST"])
-def stop_task(task_id):
+@router.post("/task/{task_id}/stop")
+async def stop_task(task_id: str, db=Depends(get_db)):
     """停止运行中的任务"""
     logging.info(f"停止任务: {task_id}")
-    task, message, status_code = TaskService.stop_task(task_id)
+    task, message, status_code = TaskService.stop_task(task_id, db=db)
     if task:
-        return jsonify({"message": message, "task": format_task_info(task.to_dict())}), status_code
-    return jsonify({"error": message}), status_code
+        return JSONResponse(
+            status_code=status_code,
+            content={"message": message, "task": format_task_info(task.to_dict())},
+        )
+    return JSONResponse(status_code=status_code, content={"error": message})
 
 
 def format_task_info(task_dict):

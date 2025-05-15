@@ -1,8 +1,8 @@
+import logging
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-
-from webhook.extensions.context import get_db
 
 
 @dataclass
@@ -32,10 +32,9 @@ class BuildMetadata:
     # 创建时间
     created_at: Optional[datetime] = None
 
-    def save(self):
+    def save(self, db: sqlite3.Connection):
         """保存构建任务产物元数据"""
         self.created_at = datetime.now()
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -60,9 +59,9 @@ class BuildMetadata:
         db.commit()
 
     @classmethod
-    def get_by_task_id(cls, task_id: str) -> Optional["BuildMetadata"]:
+    def get_by_task_id(cls, task_id: str, db: sqlite3.Connection) -> Optional["BuildMetadata"]:
         """根据任务id获取构建任务产物元数据"""
-        db = get_db()
+        logging.info(f"查询id{task_id}")
         cursor = db.cursor()
         cursor.execute(
             """

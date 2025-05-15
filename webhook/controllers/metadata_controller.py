@@ -1,11 +1,14 @@
-from flask import request, jsonify
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
+from webhook.extensions.db import get_db
 from webhook.services.metadata_service import MetadataService
-from . import metadata_bp
+
+router = APIRouter(prefix="/api/metadata", tags=["metadata"])
 
 
-@metadata_bp.route("/<task_id>", methods=["POST"])
-def create_metadata(task_id: str):
+@router.post("/{task_id}")
+async def create_metadata(task_id: str, request: Request, db=Depends(get_db)):
     """
     创建构建任务产物元数据
 
@@ -21,7 +24,7 @@ def create_metadata(task_id: str):
         "md5": "6c53fc10a93a0fee08a24e63957ad4f7"
     }
     """
-    data = request.get_json()
+    data = await request.json()
     try:
         metadata = MetadataService.create_metadata(
             task_id=task_id,
@@ -33,18 +36,22 @@ def create_metadata(task_id: str):
             build_date=data["build_date"],
             file_size=data["file_size"],
             md5=data["md5"],
+            db=db,
         )
-        return jsonify(metadata.to_dict()), 201
+        return JSONResponse(status_code=201, content=metadata.to_dict())
     except KeyError as e:
-        return jsonify({"error": f"Missing required field: {str(e)}"}), 400
+        raise HTTPException(status_code=400, detail=f"Missing required field: {str(e)}")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@metadata_bp.route("/<task_id>", methods=["GET"])
-def get_metadata(task_id: str):
+@router.get("/{task_id}")
+async def get_metadata(task_id: str, db=Depends(get_db)):
     """获取指定任务ID的构建任务产物元数据"""
-    metadata = MetadataService.get_metadata_by_task_id(task_id)
-    if metadata:
-        return jsonify(metadata.to_dict())
-    return jsonify({"error": "Metadata not found"}), 404
+    try:
+        metadata = MetadataService.get_metadata_by_task_id(task_id, db=db)
+        if metadata:
+            return metadata.to_dict()
+        raise HTTPException(status_code=404, detail="Metadata not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

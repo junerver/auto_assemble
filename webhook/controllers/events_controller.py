@@ -1,34 +1,26 @@
-"""
-Events Controller
-
-This module provides event-related endpoints for the webhook server.
-"""
-
-import json
 import logging
 
-from flask import Response
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
-from webhook.extensions.sse import ServerSentEvents
-from . import events_bp
+from webhook.extensions.sse import sse  # 单例实例
+
+router = APIRouter(prefix="/events", tags=["events"])
 
 
-@events_bp.route("/events")
+@router.get("")
 def stream():
     """SSE 流端点"""
     logging.info("New SSE connection established")
     try:
-        return ServerSentEvents.get_stream()
+        return sse.stream()
     except RuntimeError as e:
         logging.error(f"SSE extension not initialized: {e}")
-        return Response(
-            json.dumps({"status": "error", "message": str(e)}),
-            mimetype="application/json",
-        )
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
-@events_bp.route("/events/test")
-def test():
+@router.get("/test")
+def test_event():
     """测试端点"""
     logging.info("Test endpoint called")
 
@@ -37,10 +29,8 @@ def test():
     logging.info(f"Test data: {test_data}")
 
     # 发布事件
-    ServerSentEvents.publish_event("toast", test_data)
+    sse.publish("toast", test_data)
 
-    # 返回测试结果
-    return Response(
-        json.dumps({"status": "success", "message": "Event published"}),
-        mimetype="application/json",
+    return JSONResponse(
+        status_code=200, content={"status": "success", "message": "Event published"}
     )

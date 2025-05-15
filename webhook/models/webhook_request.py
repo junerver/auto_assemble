@@ -1,8 +1,7 @@
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
-
-from webhook.extensions.context import get_db
 
 
 @dataclass
@@ -30,9 +29,8 @@ class WebhookRequest:
         self.created_at = datetime.now()
         self.replay_count = 0
 
-    def save(self):
+    def save(self, db: sqlite3.Connection):
         """保存webhook请求记录"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -51,9 +49,8 @@ class WebhookRequest:
         db.commit()
 
     @staticmethod
-    def get_by_task_id(task_id):
+    def get_by_task_id(task_id, db: sqlite3.Connection):
         """根据task_id获取webhook请求记录"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -72,9 +69,8 @@ class WebhookRequest:
         return None
 
     @staticmethod
-    def delete_by_task_id(task_id):
+    def delete_by_task_id(task_id, db: sqlite3.Connection):
         """根据task_id删除webhook请求记录"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """
@@ -86,9 +82,8 @@ class WebhookRequest:
         db.commit()
 
     @staticmethod
-    def update_replay_count(task_id):
+    def update_replay_count(task_id, db: sqlite3.Connection):
         """更新webhook请求记录的replay_count"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             """

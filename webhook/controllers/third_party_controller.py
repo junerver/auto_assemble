@@ -1,111 +1,112 @@
-from flask import jsonify, request, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
-from . import third_party_bp
+from webhook.extensions.db import get_db
 from ..models.third_party import ThirdPartyDict
 from ..services.third_party_service import ThirdPartyService
 
+router = APIRouter(prefix="/api/config/third-party", tags=["third-party"])
 
-@third_party_bp.route("/dict", methods=["GET"])
-def get_third_party_dict():
+
+@router.get("/dict")
+async def get_third_party_dict(db=Depends(get_db)):
     """获取所有第三方配置字典"""
     try:
-        dict_items = ThirdPartyService.get_all_dict_items()
-        return jsonify({"items": [item.to_dict() for item in dict_items]}), 200
+        dict_items = ThirdPartyService.get_all_dict_items(db=db)
+        return {"items": [item.to_dict() for item in dict_items]}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-@third_party_bp.route("/dict", methods=["POST"])
-def add_third_party_dict():
+@router.post("/dict")
+async def add_third_party_dict(request: Request, db=Depends(get_db)):
     """添加新的第三方配置字典项"""
     try:
         try:
-            dict_item = parse_third_party_config_dict(request)
+            dict_item = await parse_third_party_config_dict(request)
         except Exception as e:
-            return jsonify({"error": str(e)}), 400
-        if ThirdPartyService.add_dict_item(dict_item):
-            return jsonify(
-                {"message": "Third party dictionary item added successfully"}
-            ), 201
+            raise HTTPException(status_code=400, detail=str(e))
+        if ThirdPartyService.add_dict_item(dict_item, db=db):
+            return JSONResponse(
+                content={"message": "Third party dictionary item added successfully"},
+                status_code=201,
+            )
         else:
-            return jsonify({"error": "Dictionary key already exists"}), 400
+            raise HTTPException(status_code=400, detail="Dictionary key already exists")
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@third_party_bp.route("/dict/<key>", methods=["GET"])
-def get_third_party_dict_item(key):
+@router.get("/dict/{key}")
+async def get_third_party_dict_item(key: str, db=Depends(get_db)):
     """获取单个第三方配置字典项"""
     try:
-        item = ThirdPartyService.get_dict_item(key)
+        item = ThirdPartyService.get_dict_item(key, db=db)
         if not item:
-            return jsonify({"error": "Dictionary item not found"}), 404
+            raise HTTPException(status_code=404, detail="Dictionary item not found")
 
-        return jsonify(item.to_dict()), 200
+        return item.to_dict()
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@third_party_bp.route("/dict/<key>", methods=["PUT"])
-def update_third_party_dict_item(key):
+@router.put("/dict/{key}")
+async def update_third_party_dict_item(key: str, request: Request, db=Depends(get_db)):
     """更新第三方配置字典项"""
     try:
         try:
-            dict_item = parse_third_party_config_dict(request)
+            dict_item = await parse_third_party_config_dict(request)
         except Exception as e:
-            return jsonify({"error": str(e)}), 400
-        if ThirdPartyService.update_dict_item(key, dict_item):
-            return jsonify(
-                {"message": "Third party dictionary item updated successfully"}
-            ), 200
+            raise HTTPException(status_code=500, detail=str(e))
+        if ThirdPartyService.update_dict_item(key, dict_item, db=db):
+            return {"message": "Third party dictionary item updated successfully"}
         else:
-            return jsonify(
-                {"error": "Dictionary item not found or key already exists"}
-            ), 404
+            raise HTTPException(
+                status_code=404, detail="Dictionary item not found or key already exists"
+            )
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@third_party_bp.route("/dict/<key>", methods=["DELETE"])
-def delete_third_party_dict_item(key):
+@router.delete("/dict/{key}")
+async def delete_third_party_dict_item(key: str, db=Depends(get_db)):
     """删除第三方配置字典项"""
     try:
-        if ThirdPartyService.delete_dict_item(key):
-            return jsonify(
-                {"message": "Third party dictionary item deleted successfully"}
-            ), 200
+        if ThirdPartyService.delete_dict_item(key, db=db):
+            return {"message": "Third party dictionary item deleted successfully"}
         else:
-            return jsonify({"error": "Dictionary item not found or is in use"}), 400
+            raise HTTPException(status_code=400, detail="Dictionary item not found or is in use")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@third_party_bp.route("/dict/unconfigured", methods=["GET"])
-def get_unconfigured_dict_items():
+@router.get("/dict/unconfigured")
+async def get_unconfigured_dict_items(
+        project_id: str = Query(default=None, description="项目URL"), db=Depends(get_db)
+):
     """获取项目未配置的字典项"""
     try:
-        project_id = request.args.get("project_id")
         if not project_id:
-            return jsonify({"error": "Project ID is required"}), 400
+            raise HTTPException(status_code=400, detail="Project ID is required")
 
-        unconfigured_items = ThirdPartyService.get_unconfigured_dict_items(project_id)
-        return jsonify({"items": [item.to_dict() for item in unconfigured_items]}), 200
+        unconfigured_items = ThirdPartyService.get_unconfigured_dict_items(project_id, db=db)
+        return {"items": [item.to_dict() for item in unconfigured_items]}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-def parse_third_party_config_dict(api_request: Request) -> ThirdPartyDict:
+async def parse_third_party_config_dict(api_request: Request) -> ThirdPartyDict:
     """解析第三方配置字典项"""
-    data = api_request.get_json()
+    data = await api_request.json()
     if not data:
-        raise ValueError("No JSON data received")
+        raise HTTPException(status_code=400, detail="No JSON data received")
 
     required_fields = ["provider", "dict_key", "dict_value", "description"]
     for field in required_fields:
         if field not in data:
-            raise ValueError(f"Missing required field: {field}")
+            raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
 
     dict_item = ThirdPartyDict(
         provider=data["provider"],

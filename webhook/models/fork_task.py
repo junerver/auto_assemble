@@ -1,8 +1,8 @@
+import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from webhook.extensions.context import get_db
 
 
 @dataclass
@@ -28,9 +28,8 @@ class ForkTask:
     # 操作人
     operator: Optional[str] = None
 
-    def save(self) -> None:
+    def save(self, db: sqlite3.Connection) -> None:
         """保存派生任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute(
             "INSERT INTO fork_tasks (id, source_task_id, source_branch, target_branch, target_version_name, target_version_code, commit_message, created_at, operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -49,9 +48,8 @@ class ForkTask:
         db.commit()
 
     @staticmethod
-    def get_by_id(fork_task_id: str) -> Optional["ForkTask"]:
+    def get_by_id(fork_task_id: str, db: sqlite3.Connection) -> Optional["ForkTask"]:
         """根据ID获取派生任务"""
-        db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT * FROM fork_tasks WHERE id = ?", (fork_task_id,))
         row = cursor.fetchone()
