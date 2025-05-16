@@ -120,11 +120,12 @@ async def webhook(event: PushEventModel, request: Request, db=Depends(get_db)):
 
         # 处理webhook请求，提取构建任务
         tasks, message, status_code = TaskService.handle_webhook_request(event, db=db)
+        if tasks is None:
+            return JSONResponse(content={"message": message}, status_code=status_code)
+
         logging.info(
             f"过滤后的任务（{len(tasks)}）：\n{json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)}"
         )
-        if tasks is None:
-            return JSONResponse(content={"message": message}, status_code=status_code)
 
         # 保存webhook请求记录
         if not request.headers.get("X-Webhook-Request-Cache"):

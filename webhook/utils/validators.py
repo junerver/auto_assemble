@@ -17,10 +17,10 @@ def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
     Returns:
         tuple[bool, str]: 是否是有效的组装响应, 如果有效，返回组装响应的hash值
     """
-    commit_title = commit.get("title", "")
+    commit_title = commit.title or ""
     if not commit_title or not re.match(r"#\w+_resp#", commit_title):
         return False, None
-    added_files = commit.get("added", [])
+    added_files = commit.added or []
     if not added_files:
         return False, None
     if len(added_files) != 4:
@@ -30,7 +30,7 @@ def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
         match = re.match(pattern, file_path)
         if not match:
             return False, None
-    return True, commit.get("id", "")
+    return True, commit.id or ""
 
 
 def is_valid_build_task(commit: Commit) -> bool:

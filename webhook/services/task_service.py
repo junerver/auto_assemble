@@ -49,7 +49,7 @@ class TaskService:
                 # 更新任务响应哈希
                 prod_name, task_name = parse_build_task(commits[0])
                 task_id = f"{prod_name},{task_name}"
-                TaskService.update_response_hash(task_id, resp_hash)
+                TaskService.update_response_hash(task_id, resp_hash, db=db)
                 return None, "This's a assemble response, not a build task", 200
             return None, "No valid build task", 200
 
