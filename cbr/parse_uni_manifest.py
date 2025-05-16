@@ -8,9 +8,9 @@ from common.types import CbrEnvVars, ManifestInfo
 
 
 def parse_uni_manifest(
-        manifest_path: str,
-        env_vars: CbrEnvVars | None = None,
-        third_party_configs: list[dict[str, str]] | None = None,
+    manifest_path: str,
+    env_vars: CbrEnvVars | None = None,
+    third_party_configs: list[dict[str, str]] | None = None,
 ) -> ManifestInfo:
     """
     解析uniapp的manifest.json文件
@@ -44,9 +44,7 @@ def parse_uni_manifest(
         uniapp_id: str = manifest_data.get("appid", "")
 
         # 提取第三方配置, {供应商-{供应商配置项}}
-        third_party_config: dict[str, dict] = parse_third_party_configs(
-            third_party_configs
-        )
+        third_party_config: dict[str, dict] = parse_third_party_configs(third_party_configs)
 
         # 构建权限处理的内容
         permissions_content = DEFAULT_PERMISSIONS + "\n\n"
@@ -77,9 +75,7 @@ def parse_uni_manifest(
                     # 添加abi_filters
                     if "abiFilters" in android_config:
                         # 取出的字符串数组需要补充 " " 包裹
-                        abi_filters = ", ".join(
-                            f'"{abi}"' for abi in android_config["abiFilters"]
-                        )
+                        abi_filters = ", ".join(f'"{abi}"' for abi in android_config["abiFilters"])
 
                     # 添加schemes
                     if "schemes" in android_config:

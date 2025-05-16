@@ -45,12 +45,8 @@ class EventManager:
                             await asyncio.sleep(RECONNECT_INTERVAL)
                             continue
 
-                        if "text/event-stream" not in response.headers.get(
-                                "Content-Type", ""
-                        ):
-                            logging.error(
-                                f"Unexpected content type: {response.headers.get('Content-Type')}"
-                            )
+                        if "text/event-stream" not in response.headers.get("Content-Type", ""):
+                            logging.error(f"Unexpected content type: {response.headers.get('Content-Type')}")
                             await asyncio.sleep(RECONNECT_INTERVAL)
                             continue
 
@@ -80,9 +76,7 @@ class EventManager:
                                         logging.info(f"Processing event: {event_type}")
                                         self.event_handlers[event_type](data)
                                     else:
-                                        logging.warning(
-                                            f"No handler registered for event type: {event_type}"
-                                        )
+                                        logging.warning(f"No handler registered for event type: {event_type}")
                             except Exception as e:
                                 logging.error(f"Error processing event: {e}")
                                 logging.exception("Full error details:")

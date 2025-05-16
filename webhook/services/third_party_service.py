@@ -31,9 +31,7 @@ class ThirdPartyService:
         return item.save(db)
 
     @staticmethod
-    def update_dict_item(
-            dict_key: str, item: ThirdPartyDict, db: sqlite3.Connection = None
-    ) -> bool:
+    def update_dict_item(dict_key: str, item: ThirdPartyDict, db: sqlite3.Connection = None) -> bool:
         """更新第三方配置字典项"""
         return item.update(db)
 
@@ -43,15 +41,11 @@ class ThirdPartyService:
         return ThirdPartyDict.delete(dict_key, db)
 
     @staticmethod
-    def get_project_configs(
-            project_id: str, db: sqlite3.Connection = None
-    ) -> list[ThirdPartyConfig]:
+    def get_project_configs(project_id: str, db: sqlite3.Connection = None) -> list[ThirdPartyConfig]:
         """获取项目的所有第三方配置"""
         return ThirdPartyConfig.get_by_project(project_id, db)
 
     @staticmethod
-    def get_unconfigured_dict_items(
-            project_id: str, db: sqlite3.Connection = None
-    ) -> list[ThirdPartyDict]:
+    def get_unconfigured_dict_items(project_id: str, db: sqlite3.Connection = None) -> list[ThirdPartyDict]:
         """获取项目未配置的字典项"""
         return ThirdPartyConfig.get_unconfigured_dict_items(project_id, db)

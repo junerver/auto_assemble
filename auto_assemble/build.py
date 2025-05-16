@@ -55,9 +55,7 @@ def get_build_output_name(release):
         str: APK文件名
     """
     # 查找构建输出目录下符合yyyyMMddHHmm格式的apk文件
-    for file in os.listdir(
-            config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
-    ):
+    for file in os.listdir(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR):
         if file.endswith(".apk"):
             return file
     raise FileNotFoundError("未找到符合yyyyMMddHHmm格式的APK文件")
@@ -176,9 +174,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
             shutil.copy2(source_metadata, target_metadata)
             # 在metadata末尾追加写入
             with open(target_metadata, "a", encoding="utf-8") as f:
-                f.write(
-                    f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}"
-                )
+                f.write(f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}")
             # 在目标目录下创建md5作为文件名的空白文件
             open(os.path.join(target_dir, md5), "w").close()
             logging.info("成功复制metadata文件")
@@ -340,9 +336,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
             commit_message = f"release_req: {apk_name}{config.last_commit_message}"
         else:
             # 本地构建只记录变更时间
-            commit_message = (
-                f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
-            )
+            commit_message = f"{'release' if release else 'debug'}: {datetime.now().strftime('%Y%m%d%H%M%S')}"
 
         if (git_code := update_git_info(commit_message)) != 0:
             logging.error("更新git信息失败，终止执行")

@@ -39,11 +39,11 @@ def main(task_id: str = None):
 
         # 执行build.py，只有dev模式时才打debug包，其他时候打release包，在copy_res_main执行完毕后cur_task_dir被赋值，可以使用
         if (
-                build_code := build_main(
-                    target_dir=config.cur_task_dir,
-                    release=False if config.build_mode == "dev" else True,
-                    is_distribution=True,
-                )
+            build_code := build_main(
+                target_dir=config.cur_task_dir,
+                release=False if config.build_mode == "dev" else True,
+                is_distribution=True,
+            )
         ) != 0:
             logging.warning("build.py执行中断")
             return build_code

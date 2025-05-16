@@ -1,0 +1,74 @@
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+# Same as Black.
+line-length = 120
+indent-width = 4
+
+# Assume Python 3.9
+target-version = "py39"
+
+[lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[format]
+# 类似 Black，使用双引号表示字符串
+quote-style = "double"
+
+# 类似 Black，使用空格缩进（而非 Tab）
+indent-style = "space"
+
+# 类似 Black，尊重魔法尾随逗号（即保留函数、列表等末尾的逗号）
+skip-magic-trailing-comma = false
+
+# 类似 Black，自动检测合适的换行符（LF 或 CRLF）
+line-ending = "auto"
+
+# 启用对 docstring 中代码示例的自动格式化。
+# 支持 Markdown、reStructuredText 的代码块和 doctest。
+#
+# 当前默认是禁用状态，但未来计划改为默认启用。
+docstring-code-format = false
+
+# 设置在格式化 docstring 中的代码片段时使用的行长度限制。
+#
+# 该设置只有在 `docstring-code-format` 被启用时才有效。
+docstring-code-line-length = "dynamic"

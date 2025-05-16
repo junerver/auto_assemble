@@ -15,14 +15,14 @@ from webhook.models.fork_task import ForkTask
 class ForkTaskService:
     @staticmethod
     def create_fork_task(
-            source_task_id: str,
-            source_branch: str,
-            target_branch: str,
-            target_version_name: str,
-            target_version_code: str,
-            commit_message: str,
-            operator: str = "assemble_bot",
-            db: sqlite3.Connection = None,
+        source_task_id: str,
+        source_branch: str,
+        target_branch: str,
+        target_version_name: str,
+        target_version_code: str,
+        commit_message: str,
+        operator: str = "assemble_bot",
+        db: sqlite3.Connection = None,
     ) -> ForkTask:
         """
         创建派生任务,从原始任务中获取项目名称，并生成任务名称，默认操作人为assemble_bot

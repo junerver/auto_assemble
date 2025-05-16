@@ -7,9 +7,7 @@ from cbr.parse_uni_manifest import parse_uni_manifest
 from common.types import CbrEnvVars, ManifestInfo
 
 
-def scan_uni_project(
-        project_root: str, cbr_dir: str
-) -> tuple[CbrEnvVars, list[dict[str, str]]]:
+def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[dict[str, str]]]:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -79,9 +77,7 @@ def scan_uni_project(
         )
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
-        logging.info(
-            f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars))}"
-        )
+        logging.info(f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars))}")
         return env_vars, third_party_configs
 
     except Exception as e:
@@ -90,7 +86,7 @@ def scan_uni_project(
 
 
 def check_uni_project(
-        env_vars: CbrEnvVars, third_party_configs: list[dict[str, str]]
+    env_vars: CbrEnvVars, third_party_configs: list[dict[str, str]]
 ) -> tuple[bool, ManifestInfo | None, str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
@@ -120,9 +116,7 @@ def check_uni_project(
 
         # 确定 manifest.json 文件位置
         manifest_path = (
-            os.path.join(workspace, "src", "manifest.json")
-            if is_cli
-            else os.path.join(workspace, "manifest.json")
+            os.path.join(workspace, "src", "manifest.json") if is_cli else os.path.join(workspace, "manifest.json")
         )
 
         if not os.path.exists(manifest_path):
@@ -130,9 +124,7 @@ def check_uni_project(
             return False, None, ""
 
         # 解析 manifest.json 文件
-        manifest_info: ManifestInfo = parse_uni_manifest(
-            manifest_path, env_vars, third_party_configs
-        )
+        manifest_info: ManifestInfo = parse_uni_manifest(manifest_path, env_vars, third_party_configs)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
             return False, manifest_info, ""
@@ -150,9 +142,7 @@ def check_uni_project(
             return False, manifest_info, ""
         for content in resources_contents:
             if content == manifest_info["uniapp_id"]:
-                logging.info(
-                    f"资源目录名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}"
-                )
+                logging.info(f"资源目录名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}")
                 return True, manifest_info, resources_dir
         logging.error(f"资源目录中不存在名称为{manifest_info['uniapp_id']}的目录")
         return False, manifest_info, ""

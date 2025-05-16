@@ -17,9 +17,7 @@ class WebhookRequestService:
             db:
         """
         try:
-            request_body = (
-                json.dumps(request_data) if isinstance(request_data, dict) else request_data
-            )
+            request_body = json.dumps(request_data) if isinstance(request_data, dict) else request_data
             # 向header中插入自定义标头，表示这是一个缓存的请求
             headers["X-Webhook-Request-Cache"] = "true"
 
@@ -42,9 +40,7 @@ class WebhookRequestService:
         for task in tasks:
             logging.info(f"保存\清洗webhook请求记录，task_id: {task.id}")
             # 多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id
-            request_data["commits"] = [
-                commit for commit in request_data["commits"] if commit["id"] == task.commit_hash
-            ]
+            request_data["commits"] = [commit for commit in request_data["commits"] if commit["id"] == task.commit_hash]
             WebhookRequestService.save_webhook_request(task.id, request_data, headers, db)
 
     @staticmethod

@@ -31,6 +31,4 @@ def test_event():
     # 发布事件
     sse.publish("toast", test_data)
 
-    return JSONResponse(
-        status_code=200, content={"status": "success", "message": "Event published"}
-    )
+    return JSONResponse(status_code=200, content={"status": "success", "message": "Event published"})

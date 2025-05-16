@@ -147,9 +147,7 @@ class Task:
     def get_running_task(cls, db: sqlite3.Connection) -> Optional["Task"]:
         """获取正在运行的任务"""
         cursor = db.cursor()
-        cursor.execute(
-            "SELECT * FROM tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1"
-        )
+        cursor.execute("SELECT * FROM tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1")
         row = cursor.fetchone()
         if row:
             return cls(**dict(row))
@@ -164,7 +162,10 @@ class Task:
 
     @classmethod
     def get_recent_tasks(
-            cls, limit: int = 5, build_mode: str | None = None, db: sqlite3.Connection = None
+        cls,
+        limit: int = 5,
+        build_mode: str | None = None,
+        db: sqlite3.Connection = None,
     ) -> list["Task"]:
         """
         获取最近的任务（只检索未过期的任务，即 status 为 completed 或 failed 的任务），如果 build_mode 不为 None，则只返回 build_mode 对应的任务
@@ -278,9 +279,7 @@ class Task:
         cursor.execute("UPDATE tasks SET response_hash = ? WHERE id = ?", (response_hash, self.id))
         db.commit()
 
-    def update_status(
-            self, status: str, error: Optional[str] = None, db: sqlite3.Connection = None
-    ) -> None:
+    def update_status(self, status: str, error: Optional[str] = None, db: sqlite3.Connection = None) -> None:
         """更新任务状态"""
         cursor = db.cursor()
 

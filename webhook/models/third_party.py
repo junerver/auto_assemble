@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-
 @dataclass
 class ThirdPartyDict:
     """第三方配置字典项"""
@@ -177,11 +176,7 @@ class ThirdPartyConfig:
             ORDER BY provider, dict_key
             """
         )
-        return [
-            ThirdPartyDict(**dict(row))
-            for row in cursor.fetchall()
-            if row["dict_key"] not in configured_keys
-        ]
+        return [ThirdPartyDict(**dict(row)) for row in cursor.fetchall() if row["dict_key"] not in configured_keys]
 
     def save(self, db: sqlite3.Connection) -> bool:
         """保存配置"""

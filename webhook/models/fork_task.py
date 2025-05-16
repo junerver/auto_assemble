@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Optional
 
 
-
 @dataclass
 class ForkTask:
     """派生任务"""

@@ -26,6 +26,7 @@ AUTHORIZED_IP_ROLE_MAP = {
     "172.18.0.1": "admin",
 }
 
+
 @router.get("/check-ip", response_model=AuthResponse)
 async def check_ip(request: Request):
     """检查客户端IP是否授权"""

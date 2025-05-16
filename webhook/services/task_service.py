@@ -7,14 +7,16 @@ from typing import Any, Optional
 from common.err_code import format_error
 from webhook.types import Commit
 from ..models.task import Task
-from ..utils.validators import is_valid_assemble_response, is_valid_build_task, parse_build_task
+from ..utils.validators import (
+    is_valid_assemble_response,
+    is_valid_build_task,
+    parse_build_task,
+)
 
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(
-            data: dict[str, Any], db: sqlite3.Connection
-    ) -> tuple[Optional[list["Task"]], str, int]:
+    def handle_webhook_request(data: dict[str, Any], db: sqlite3.Connection) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         支持多任务构建，会遍历commits中的提交，过滤有效的提交任务，返回提交任务列表
@@ -34,13 +36,9 @@ class TaskService:
         if not commits:
             return None, "No file changes in commit", 200
 
-        logging.info(
-            f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}"
-        )
+        logging.info(f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}")
         valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
-        logging.info(
-            f"有效提交（{len(valid_commits)}）：\n{json.dumps(valid_commits, ensure_ascii=False, indent=2)}"
-        )
+        logging.info(f"有效提交（{len(valid_commits)}）：\n{json.dumps(valid_commits, ensure_ascii=False, indent=2)}")
         if not valid_commits:
             is_resp, resp_hash = is_valid_assemble_response(commits[0])
             if is_resp:
@@ -53,9 +51,7 @@ class TaskService:
 
         def build_task(commit: Commit) -> Optional["Task"]:
             prod, task = parse_build_task(commit)
-            return TaskService.create_task(
-                prod_name=prod, task_name=task, commit_info=commit, db=db
-            )
+            return TaskService.create_task(prod_name=prod, task_name=task, commit_info=commit, db=db)
 
         tasks = [build_task(vc) for vc in valid_commits]
         tasks = [task for task in tasks if task is not None]
@@ -64,12 +60,12 @@ class TaskService:
 
     @staticmethod
     def create_task(
-            prod_name,
-            task_name,
-            commit_info: Commit = None,
-            priority=0,
-            retries=0,
-            db: sqlite3.Connection = None,
+        prod_name,
+        task_name,
+        commit_info: Commit = None,
+        priority=0,
+        retries=0,
+        db: sqlite3.Connection = None,
     ) -> Optional["Task"]:
         """创建任务
 
@@ -170,9 +166,7 @@ class TaskService:
         return Task.get_recent_tasks(limit, db=db)
 
     @staticmethod
-    def update_response_hash(
-            task_id: str, response_hash: str, db: sqlite3.Connection = None
-    ) -> Optional["Task"]:
+    def update_response_hash(task_id: str, response_hash: str, db: sqlite3.Connection = None) -> Optional["Task"]:
         """更新任务响应哈希"""
         task = Task.get_by_id(task_id, db)
         if task:
@@ -182,7 +176,10 @@ class TaskService:
 
     @staticmethod
     def update_task_status(
-            task_id: str, status: str, error: Optional[str] = None, db: sqlite3.Connection = None
+        task_id: str,
+        status: str,
+        error: Optional[str] = None,
+        db: sqlite3.Connection = None,
     ) -> Optional["Task"]:
         """更新任务状态
 
@@ -203,7 +200,7 @@ class TaskService:
 
     @staticmethod
     def get_queue_status(
-            limit: int = 5, build_mode: str | None = None, db: sqlite3.Connection = None
+        limit: int = 5, build_mode: str | None = None, db: sqlite3.Connection = None
     ) -> dict[str, Any]:
         """
         获取队列状态

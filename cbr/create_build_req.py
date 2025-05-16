@@ -109,9 +109,7 @@ def create_build_req():
             for root, dirs, files in os.walk(target_dir):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    arcname = os.path.join(
-                        config.UNI_APP_ID, os.path.relpath(file_path, target_dir)
-                    )
+                    arcname = os.path.join(config.UNI_APP_ID, os.path.relpath(file_path, target_dir))
                     zipf.write(file_path, arcname)
         logging.info(f"已将 {target_dir} 目录压缩为 {zip_file_path}")
 

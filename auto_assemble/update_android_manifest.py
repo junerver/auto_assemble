@@ -10,13 +10,7 @@ def prettify_xml(elem):
     rough_string = ET.tostring(elem, encoding="utf-8")
     reparsed = minidom.parseString(rough_string)
     # 过滤掉多余的空行
-    return "\n".join(
-        [
-            line
-            for line in reparsed.toprettyxml(indent="  ").splitlines()
-            if line.strip()
-        ]
-    )
+    return "\n".join([line for line in reparsed.toprettyxml(indent="  ").splitlines() if line.strip()])
 
 
 def clear_namespaces(root: ET.Element) -> None:
@@ -43,9 +37,9 @@ namespaces = {
 
 
 def update_android_manifest(
-        android_manifest_path: str,
-        update_info: ManifestInfo,
-        launch_activity: str = "io.dcloud.PandoraEntry",
+    android_manifest_path: str,
+    update_info: ManifestInfo,
+    launch_activity: str = "io.dcloud.PandoraEntry",
 ) -> bool:
     """
     更新 AndroidManifest.xml 文件中的权限和特性（uses-permission 和 uses-feature）,
@@ -91,9 +85,7 @@ def update_android_manifest(
         root.set("xmlns:app", namespaces["app"])
 
         # **移除所有 <uses-permission> 和 <uses-feature> 元素**
-        for element in root.findall("./uses-permission") + root.findall(
-                "./uses-feature"
-        ):
+        for element in root.findall("./uses-permission") + root.findall("./uses-feature"):
             root.remove(element)
         logging.info("移除所有 <uses-permission> 和 <uses-feature> 元素")
 
@@ -108,9 +100,7 @@ def update_android_manifest(
                 break
 
         # **按顺序插入新的权限**
-        elements_to_insert = list(permissions["permissions"].values()) + list(
-            permissions["features"].values()
-        )
+        elements_to_insert = list(permissions["permissions"].values()) + list(permissions["features"].values())
         for element in reversed(elements_to_insert):  # 反向插入，确保顺序正确
             element.tail = "\n"  # 添加换行
             root.insert(insert_index, element)
@@ -142,9 +132,7 @@ def update_android_manifest(
                         if schemes:
                             for scheme in schemes:
                                 data = ET.Element("data")
-                                data.set(
-                                    f"{{{namespaces['android']}}}scheme", scheme.strip()
-                                )
+                                data.set(f"{{{namespaces['android']}}}scheme", scheme.strip())
                                 intent_filter.append(data)
                         else:
                             # 如果没有schemes，添加默认的空scheme

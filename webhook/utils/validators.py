@@ -70,10 +70,7 @@ def is_valid_build_task(commit: Commit) -> bool:
         return False
 
     # 检查是否包含压缩包和markdown文件
-    has_archive = any(
-        file_path.endswith((".zip", ".rar", ".7z", ".tar.gz", ".tar.bz2"))
-        for file_path in added_files
-    )
+    has_archive = any(file_path.endswith((".zip", ".rar", ".7z", ".tar.gz", ".tar.bz2")) for file_path in added_files)
     has_md = any(file_path.endswith(".md") for file_path in added_files)
 
     return has_archive and has_md

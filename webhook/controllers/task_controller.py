@@ -21,9 +21,7 @@ router = APIRouter(tags=["task"])
 
 
 @router.get("/task/{task_id}", response_model=TaskDetailResp)
-async def get_task_info(
-        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
-):
+async def get_task_info(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """获取任务详细信息"""
     task = TaskService.get_task(task_id, db=db)
     if task:
@@ -32,9 +30,7 @@ async def get_task_info(
 
 
 @router.delete("/task/{task_id}", response_model=BaseRespModel)
-async def outdated_task(
-        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
-):
+async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """标记任务为过期"""
     if TaskService.update_task_status(task_id, "outdated", db=db) is not None:
         return {"message": "Task outdated"}
@@ -51,8 +47,8 @@ async def get_tasks_statistics(db=Depends(get_db)):
 
 @router.get("/queue", response_model=QueueDetailResp)
 async def get_queue_status(
-        build_mode: str = Query(default="all", description="构建模式"),
-        db=Depends(get_db),
+    build_mode: str = Query(default="all", description="构建模式"),
+    db=Depends(get_db),
 ):
     """获取队列状态"""
     if build_mode == "all":
@@ -61,9 +57,7 @@ async def get_queue_status(
 
     # 修正返回的数据格式
     formatted_status = {
-        "running_task": (
-            format_task_info(queue_status["running_task"]) if queue_status["running_task"] else None
-        ),
+        "running_task": (format_task_info(queue_status["running_task"]) if queue_status["running_task"] else None),
         "pending_tasks": [format_task_info(task) for task in queue_status["pending_tasks"]],
         "queue_size": queue_status["queue_size"],
         "recent_tasks": [format_task_info(task) for task in queue_status["recent_tasks"]],
@@ -73,15 +67,11 @@ async def get_queue_status(
 
 
 @router.post("/task/{task_id}/replay")
-async def replay_webhook(
-        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
-):
+async def replay_webhook(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """重放webhook请求"""
 
     # 获取原始请求数据
-    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(
-        task_id, db=db
-    )
+    request_data, headers, status_code = WebhookRequestService.replay_webhook_request(task_id, db=db)
     if not request_data:
         raise HTTPException(status_code=404, detail="task request don't exists")
 

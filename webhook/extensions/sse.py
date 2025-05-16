@@ -32,9 +32,7 @@ class ServerSentEvents:
 
     def publish(self, event_type: str, data: dict):
         message = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
-        logging.info(
-            f"Publishing: \n---------------------------{message.strip()}\n---------------------------"
-        )
+        logging.info(f"Publishing: \n---------------------------{message.strip()}\n---------------------------")
         with self._lock:
             to_remove = set()
             for client_id in self.active_clients.copy():

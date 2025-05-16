@@ -52,9 +52,7 @@ def find_latest_directory(base_path: str) -> str:
         ValueError: 当没有找到符合条件的目录时抛出
     """
     try:
-        directories = [
-            d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))
-        ]
+        directories = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d))]
         if not directories:
             raise ValueError(f"在 {base_path} 中没有找到目录")
 
@@ -140,9 +138,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
             shutil.rmtree(temp_dir)
             return False, ""
         if contents[0] != config.UNI_APP_ID:
-            logging.error(
-                f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
-            )
+            logging.error(f"压缩文件中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}")
             # 检查失败，清理临时目录
             shutil.rmtree(temp_dir)
             return False, ""
@@ -157,9 +153,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
         return False, ""
 
 
-def extract_compressed_file(
-        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
-) -> bool:
+def extract_compressed_file(compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
     Args:
@@ -223,9 +217,7 @@ def check_apps_directory() -> bool:
 
         # 检查目录名称是否与UNI_APP_ID一致,不一致则警告
         if len(contents) == 1 and contents[0] != config.UNI_APP_ID:
-            logging.warning(
-                f"APPS_DIRECTORY中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}"
-            )
+            logging.warning(f"APPS_DIRECTORY中的目录名称与UNI_APP_ID不匹配: {contents[0]} != {config.UNI_APP_ID}")
 
         logging.info("APPS_DIRECTORY目录结构检查通过")
         return True
@@ -246,11 +238,7 @@ def get_prod_name(distribution_path: str) -> tuple[str, str]:
     """
     try:
         # 获取分发仓库下的所有目录（项目目录）
-        project_dirs = [
-            d
-            for d in os.listdir(distribution_path)
-            if os.path.isdir(os.path.join(distribution_path, d))
-        ]
+        project_dirs = [d for d in os.listdir(distribution_path) if os.path.isdir(os.path.join(distribution_path, d))]
         if not project_dirs:
             raise ValueError(f"在 {distribution_path} 中没有找到项目目录")
 
@@ -262,17 +250,13 @@ def get_prod_name(distribution_path: str) -> tuple[str, str]:
         for project_dir in project_dirs:
             project_path = os.path.join(distribution_path, project_dir)
             # 获取项目目录下的所有时间戳目录
-            timestamp_dirs = [
-                d for d in os.listdir(project_path) if os.path.isdir(os.path.join(project_path, d))
-            ]
+            timestamp_dirs = [d for d in os.listdir(project_path) if os.path.isdir(os.path.join(project_path, d))]
             if not timestamp_dirs:
                 continue
 
             # 获取最新的时间戳目录
             try:
-                latest_timestamp_dir = max(
-                    timestamp_dirs, key=lambda d: datetime.strptime(d, "%Y%m%d%H%M")
-                )
+                latest_timestamp_dir = max(timestamp_dirs, key=lambda d: datetime.strptime(d, "%Y%m%d%H%M"))
                 if latest_timestamp is None or latest_timestamp_dir > latest_timestamp:
                     latest_timestamp = latest_timestamp_dir
                     latest_project = project_dir
@@ -333,9 +317,7 @@ def main(prod_name: str, task_dir: str):
             if response.status_code == 200:
                 task_info = response.json()["task"]
                 logging.info(f"获取到提交信息: {task_info}")
-                config.build_mode, commit_message = parse_build_req_message(
-                    task_info["commit_message"]
-                )
+                config.build_mode, commit_message = parse_build_req_message(task_info["commit_message"])
                 config.last_commit_message = textwrap.dedent(
                     f"""
                     
@@ -445,13 +427,9 @@ def main(prod_name: str, task_dir: str):
                 logging.info(f"执行javascript-obfuscator命令: {cmd}")
                 result = subprocess.run(cmd, check=True)
                 if result.returncode == 0:
-                    logging.info(
-                        f"javascript-obfuscator命令执行成功，混淆后的目录: {obfuscated_dir}"
-                    )
+                    logging.info(f"javascript-obfuscator命令执行成功，混淆后的目录: {obfuscated_dir}")
                     # 将混淆后的目录压缩为zip文件，作为留痕
-                    zip_file = os.path.join(
-                        config.cur_task_dir, f"{latest_dir_name}_obfuscated.bak"
-                    )
+                    zip_file = os.path.join(config.cur_task_dir, f"{latest_dir_name}_obfuscated.bak")
                     with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zipf:
                         for root, dirs, files in os.walk(obfuscated_dir):
                             for file in files:
@@ -465,9 +443,7 @@ def main(prod_name: str, task_dir: str):
                     temp_dir = obfuscated_dir
                     config.is_obfuscated = True
                 else:
-                    logging.error(
-                        f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码"
-                    )
+                    logging.error(f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码")
                     # 执行失败，不进行混淆
                     if obfuscated_dir is not None and os.path.exists(obfuscated_dir):
                         shutil.rmtree(obfuscated_dir)
@@ -488,9 +464,9 @@ def main(prod_name: str, task_dir: str):
         # 更新build.gradle
         try:
             if not update_build_gradle(
-                    config.BUILD_GRADLE_PATH,
-                    latest_dir_name,
-                    readme_info,
+                config.BUILD_GRADLE_PATH,
+                latest_dir_name,
+                readme_info,
             ):
                 logging.error("更新build.gradle失败，终止执行")
                 return 12005
@@ -500,9 +476,9 @@ def main(prod_name: str, task_dir: str):
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
-                config.CONTROL_FILE_PATH,
-                readme_info["uniapp_id"],
-                config.build_mode == "dev",
+            config.CONTROL_FILE_PATH,
+            readme_info["uniapp_id"],
+            config.build_mode == "dev",
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
             return 12006

@@ -9,11 +9,12 @@ from webhook.types import MetaDataPostResp, MetaDataModel
 
 router = APIRouter(prefix="/api/metadata", tags=["metadata"])
 
+
 @router.post("/{task_id}", response_model=MetaDataPostResp)
 async def create_metadata(
-        task_id: Annotated[str, Path(..., description="提交元数据的任务id")],
-        req: MetaDataModel,
-        db=Depends(get_db),
+    task_id: Annotated[str, Path(..., description="提交元数据的任务id")],
+    req: MetaDataModel,
+    db=Depends(get_db),
 ):
     """创建构建任务产物元数据"""
     try:
@@ -38,7 +39,8 @@ async def create_metadata(
 
 @router.get("/{task_id}", response_model=MetaDataPostResp)
 async def get_metadata(
-        task_id: Annotated[str, Path(..., description="查询元数据的任务id")], db=Depends(get_db)
+    task_id: Annotated[str, Path(..., description="查询元数据的任务id")],
+    db=Depends(get_db),
 ):
     """获取指定任务ID的构建任务产物元数据"""
     try:

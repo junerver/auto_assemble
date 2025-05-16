@@ -40,9 +40,7 @@ def update_debug_status(content: str, debug: bool = False) -> str:
     return content
 
 
-def update_control_file(
-        control_file_path: str, uniapp_id: str, debug: bool = False
-) -> bool:
+def update_control_file(control_file_path: str, uniapp_id: str, debug: bool = False) -> bool:
     """
     更新 dcloud_control.xml 文件中的 uniapp_id 和 debug 状态
 
@@ -62,9 +60,7 @@ def update_control_file(
         content = update_debug_status(content, debug)
 
         # 正则匹配 <app appid="..."> 并替换 appid
-        new_content, count = re.subn(
-            r'(<app\s+appid=")[^"]+(")', rf"\1{uniapp_id}\2", content
-        )
+        new_content, count = re.subn(r'(<app\s+appid=")[^"]+(")', rf"\1{uniapp_id}\2", content)
 
         # 如果没有匹配到内容，返回 False
         if count == 0:

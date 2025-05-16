@@ -7,16 +7,16 @@ from webhook.models.metadata import BuildMetadata
 class MetadataService:
     @staticmethod
     def create_metadata(
-            task_id: str,
-            package_name: str,
-            version_name: str,
-            version_code: int,
-            build_type: str,
-            flavor: str,
-            build_date: str,
-            file_size: int,
-            md5: str,
-            db: sqlite3.Connection = None,
+        task_id: str,
+        package_name: str,
+        version_name: str,
+        version_code: int,
+        build_type: str,
+        flavor: str,
+        build_date: str,
+        file_size: int,
+        md5: str,
+        db: sqlite3.Connection = None,
     ) -> BuildMetadata:
         """创建构建任务产物元数据"""
         # 检查是否存在相同任务ID的元数据
@@ -39,8 +39,6 @@ class MetadataService:
         return metadata
 
     @staticmethod
-    def get_metadata_by_task_id(
-            task_id: str, db: sqlite3.Connection = None
-    ) -> Optional[BuildMetadata]:
+    def get_metadata_by_task_id(task_id: str, db: sqlite3.Connection = None) -> Optional[BuildMetadata]:
         """根据任务ID获取构建任务产物元数据"""
         return BuildMetadata.get_by_task_id(task_id, db)

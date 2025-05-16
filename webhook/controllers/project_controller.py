@@ -35,9 +35,9 @@ async def configure_project(request: Request, db=Depends(get_db)):
 
 @router.get("/project", response_model=ProjectConfigDetailResp)
 async def get_project_config(
-        url: str = Query(default=None, description="项目URL"),
-        name: str = Query(default=None, description="项目名称"),
-        db=Depends(get_db),
+    url: str = Query(default=None, description="项目URL"),
+    name: str = Query(default=None, description="项目名称"),
+    db=Depends(get_db),
 ):
     """获取项目配置信息"""
     try:
@@ -67,9 +67,9 @@ async def get_project_config(
 
 @router.put("/project/{project_id}")
 async def update_project_config(
-        project_id: Annotated[str, Path(..., description="项目的uuid主键")],
-        request: Request,
-        db=Depends(get_db),
+    project_id: Annotated[str, Path(..., description="项目的uuid主键")],
+    request: Request,
+    db=Depends(get_db),
 ):
     """更新项目配置信息"""
     try:
@@ -103,9 +103,7 @@ async def update_project_config(
                 # 检查字典项是否存在
                 dict_item = ThirdPartyService.get_dict_item(dict_key, db=db)
                 if not dict_item:
-                    raise HTTPException(
-                        status_code=400, detail=f"Dictionary item {dict_key} not found"
-                    )
+                    raise HTTPException(status_code=400, detail=f"Dictionary item {dict_key} not found")
 
                 # 只有当配置值发生变化时才更新
                 if dict_key not in current_configs or current_configs[dict_key] != config_value:

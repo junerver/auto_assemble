@@ -43,7 +43,8 @@ async def add_third_party_dict(request: Request, db=Depends(get_db)):
 
 @router.get("/dict/{key}")
 async def get_third_party_dict_item(
-        key: Annotated[str, Path(..., description="第三方服务配置的键值")], db=Depends(get_db)
+    key: Annotated[str, Path(..., description="第三方服务配置的键值")],
+    db=Depends(get_db),
 ):
     """获取单个第三方配置字典项"""
     try:
@@ -58,9 +59,9 @@ async def get_third_party_dict_item(
 
 @router.put("/dict/{key}", response_model=BaseRespModel)
 async def update_third_party_dict_item(
-        key: Annotated[str, Path(..., description="第三方服务配置的键值")],
-        request: Request,
-        db=Depends(get_db),
+    key: Annotated[str, Path(..., description="第三方服务配置的键值")],
+    request: Request,
+    db=Depends(get_db),
 ):
     """更新第三方配置字典项"""
     try:
@@ -72,7 +73,8 @@ async def update_third_party_dict_item(
             return {"message": "Third party dictionary item updated successfully"}
         else:
             raise HTTPException(
-                status_code=404, detail="Dictionary item not found or key already exists"
+                status_code=404,
+                detail="Dictionary item not found or key already exists",
             )
 
     except Exception as e:
@@ -81,7 +83,8 @@ async def update_third_party_dict_item(
 
 @router.delete("/dict/{key}", response_model=BaseRespModel)
 async def delete_third_party_dict_item(
-        key: Annotated[str, Path(..., description="第三方服务配置的键值")], db=Depends(get_db)
+    key: Annotated[str, Path(..., description="第三方服务配置的键值")],
+    db=Depends(get_db),
 ):
     """删除第三方配置字典项"""
     try:
@@ -94,9 +97,7 @@ async def delete_third_party_dict_item(
 
 
 @router.get("/dict/unconfigured")
-async def get_unconfigured_dict_items(
-        project_id: str = Query(default=None, description="项目URL"), db=Depends(get_db)
-):
+async def get_unconfigured_dict_items(project_id: str = Query(default=None, description="项目URL"), db=Depends(get_db)):
     """获取项目未配置的字典项"""
     try:
         if not project_id:

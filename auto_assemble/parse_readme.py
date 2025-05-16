@@ -138,9 +138,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
 
         # 解析第三方配置
         # todo: 重构第三方配置读取，修改为从服务器接口读取，不再解析yaml代码块
-        response = requests.get(
-            f"{config.SERVER_HOST_URL}/api/config/project?name={config.PROD_NAME}"
-        )
+        response = requests.get(f"{config.SERVER_HOST_URL}/api/config/project?name={config.PROD_NAME}")
         if response.status_code == 200:
             data = response.json()
             third_party_configs = data["third_party_configs"]
@@ -157,9 +155,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
                 }
 
         # 普通项目正常读取
-        abi_filters = (
-            abi_filters_match.group(1) if abi_filters_match else '"armeabi-v7a", "arm64-v8a"'
-        )
+        abi_filters = abi_filters_match.group(1) if abi_filters_match else '"armeabi-v7a", "arm64-v8a"'
         # 识田间项目使用armeabi-v7a，arm64-v8a
         if config.PROD_NAME == "identify_field":
             abi_filters = '"armeabi-v7a", "arm64-v8a"'

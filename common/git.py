@@ -405,15 +405,9 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 return False
 
             # 更精确的分支匹配
-            branches = [
-                branch.strip() for branch in branches_proc.stdout.split("\n") if branch.strip()
-            ]
-            local_branch_exists = any(
-                branch.replace("*", "").strip() == target_branch for branch in branches
-            )
-            remote_branch_exists = any(
-                branch.strip() == f"remotes/origin/{target_branch}" for branch in branches
-            )
+            branches = [branch.strip() for branch in branches_proc.stdout.split("\n") if branch.strip()]
+            local_branch_exists = any(branch.replace("*", "").strip() == target_branch for branch in branches)
+            remote_branch_exists = any(branch.strip() == f"remotes/origin/{target_branch}" for branch in branches)
 
             if local_branch_exists:
                 # 8. 如果本地分支存在，直接切换
@@ -426,10 +420,10 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 # 9. 如果远程分支存在，从远程分支创建本地分支
                 logging.info(f"{repo_path} 从远程分支创建本地分支: {target_branch}")
                 if not git_checkout_branch(
-                        repo_path,
-                        target_branch,
-                        original_branch=f"origin/{target_branch}",
-                        create_new=True,
+                    repo_path,
+                    target_branch,
+                    original_branch=f"origin/{target_branch}",
+                    create_new=True,
                 ):
                     return False
 
@@ -440,9 +434,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 logging.info(f"{repo_path} 目标分支不存在，准备从master创建新分支")
 
                 # 从master创建新分支
-                if not git_checkout_branch(
-                        repo_path, target_branch, original_branch="master", create_new=True
-                ):
+                if not git_checkout_branch(repo_path, target_branch, original_branch="master", create_new=True):
                     return False
 
                 logging.info(f"{repo_path} 成功从master创建并切换到新分支: {target_branch}")
@@ -465,7 +457,10 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
 
 
 def git_checkout_branch(
-        repo_path: str, target_branch: str, original_branch: str = None, create_new: bool = False
+    repo_path: str,
+    target_branch: str,
+    original_branch: str = None,
+    create_new: bool = False,
 ):
     """
     切换到目标分支，如果目标分支不存在，则创建新分支

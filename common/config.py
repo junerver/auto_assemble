@@ -71,17 +71,13 @@ class Config:
     @property
     def ANDROID_MANIFEST_PATH(self):
         if self._android_manifest_path is None:
-            self._android_manifest_path = (
-                rf"{self.ANDROID_UNI_BASE_PATH}/app/src/main/AndroidManifest.xml"
-            )
+            self._android_manifest_path = rf"{self.ANDROID_UNI_BASE_PATH}/app/src/main/AndroidManifest.xml"
         return self._android_manifest_path
 
     @property
     def CONTROL_FILE_PATH(self):
         if self._control_file_path is None:
-            self._control_file_path = (
-                f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/data/dcloud_control.xml"
-            )
+            self._control_file_path = f"{self.ANDROID_UNI_BASE_PATH}/app/src/main/assets/data/dcloud_control.xml"
         return self._control_file_path
 
     @property
@@ -99,17 +95,13 @@ class Config:
     @property
     def BUILD_RELEASE_OUTPUT_DIR(self):
         if self._build_release_output_dir is None:
-            self._build_release_output_dir = (
-                f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/release"
-            )
+            self._build_release_output_dir = f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/release"
         return self._build_release_output_dir
 
     @property
     def BUILD_DEBUG_OUTPUT_DIR(self):
         if self._build_debug_output_dir is None:
-            self._build_debug_output_dir = (
-                f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/debug"
-            )
+            self._build_debug_output_dir = f"{self.ANDROID_UNI_BASE_PATH}/app/build/outputs/apk/debug"
         return self._build_debug_output_dir
 
     @property

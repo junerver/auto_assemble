@@ -7,13 +7,13 @@ from ..models.project import Project
 class ProjectService:
     @staticmethod
     def create_project(
-            project_url,
-            prod_name,
-            hbx_version=None,
-            uniapp_id=None,
-            uniapp_appkey=None,
-            uniapp_is_cli=False,
-            db: sqlite3.Connection = None,
+        project_url,
+        prod_name,
+        hbx_version=None,
+        uniapp_id=None,
+        uniapp_appkey=None,
+        uniapp_is_cli=False,
+        db: sqlite3.Connection = None,
     ):
         project = Project(
             id=str(uuid.uuid4()),
@@ -28,9 +28,7 @@ class ProjectService:
         return project
 
     @staticmethod
-    def get_project(
-            project_id=None, project_url=None, prod_name=None, db: sqlite3.Connection = None
-    ):
+    def get_project(project_id=None, project_url=None, prod_name=None, db: sqlite3.Connection = None):
         if project_id:
             return Project.get_by_id(project_id, db)
         elif project_url:

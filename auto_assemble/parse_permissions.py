@@ -106,20 +106,16 @@ def _merge_permissions(permissions: ManifestPermissions):
     """
     merged = {
         "permissions": {
-            key: ET.Element("uses-permission", {"android:name": key})
-            for key in permissions["default"]["permissions"]
+            key: ET.Element("uses-permission", {"android:name": key}) for key in permissions["default"]["permissions"]
         },  # 复制 default 的 permissions
         "features": {
-            key: ET.Element("uses-feature", {"android:name": key})
-            for key in permissions["default"]["features"]
+            key: ET.Element("uses-feature", {"android:name": key}) for key in permissions["default"]["features"]
         },  # 复制 default 的 features
     }
 
     # 添加 add 里的权限和特性
     for key in permissions["add"]["permissions"]:
-        merged["permissions"][key] = ET.Element(
-            "uses-permission", {"android:name": key}
-        )
+        merged["permissions"][key] = ET.Element("uses-permission", {"android:name": key})
     for key in permissions["add"]["features"]:
         merged["features"][key] = ET.Element("uses-feature", {"android:name": key})
 
@@ -129,9 +125,7 @@ def _merge_permissions(permissions: ManifestPermissions):
             "uses-permission", {"android:name": del_key, "tools:node": "remove"}
         )
     for del_key in permissions["del_"]["features"]:
-        merged["features"][del_key] = ET.Element(
-            "uses-feature", {"android:name": del_key, "tools:node": "remove"}
-        )
+        merged["features"][del_key] = ET.Element("uses-feature", {"android:name": del_key, "tools:node": "remove"})
 
     # 增加判断，如果最终的 merged["permissions"] 中包含 android.permission.ACCESS_FINE_LOCATION，则需要添加 android.permission.ACCESS_COARSE_LOCATION
     if "android.permission.ACCESS_FINE_LOCATION" in merged["permissions"]:
@@ -190,8 +184,4 @@ if __name__ == "__main__":
     _merged_permissions = parse_and_merge_permissions(content)
 
     print("\n合并后权限:")
-    print(
-        _merged_permissions["permissions"][
-            "android.permission.READ_EXTERNAL_STORAGE"
-        ].attrib
-    )
+    print(_merged_permissions["permissions"]["android.permission.READ_EXTERNAL_STORAGE"].attrib)
