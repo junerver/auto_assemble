@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from webhook.extensions.db import get_db
+from webhook.types import BaseRespModel
 from ..models.third_party import ThirdPartyDict
 from ..services.third_party_service import ThirdPartyService
 
@@ -39,7 +42,9 @@ async def add_third_party_dict(request: Request, db=Depends(get_db)):
 
 
 @router.get("/dict/{key}")
-async def get_third_party_dict_item(key: str, db=Depends(get_db)):
+async def get_third_party_dict_item(
+        key: Annotated[str, Path(..., description="第三方服务配置的键值")], db=Depends(get_db)
+):
     """获取单个第三方配置字典项"""
     try:
         item = ThirdPartyService.get_dict_item(key, db=db)
@@ -51,8 +56,12 @@ async def get_third_party_dict_item(key: str, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/dict/{key}")
-async def update_third_party_dict_item(key: str, request: Request, db=Depends(get_db)):
+@router.put("/dict/{key}", response_model=BaseRespModel)
+async def update_third_party_dict_item(
+        key: Annotated[str, Path(..., description="第三方服务配置的键值")],
+        request: Request,
+        db=Depends(get_db),
+):
     """更新第三方配置字典项"""
     try:
         try:
@@ -70,8 +79,10 @@ async def update_third_party_dict_item(key: str, request: Request, db=Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/dict/{key}")
-async def delete_third_party_dict_item(key: str, db=Depends(get_db)):
+@router.delete("/dict/{key}", response_model=BaseRespModel)
+async def delete_third_party_dict_item(
+        key: Annotated[str, Path(..., description="第三方服务配置的键值")], db=Depends(get_db)
+):
     """删除第三方配置字典项"""
     try:
         if ThirdPartyService.delete_dict_item(key, db=db):

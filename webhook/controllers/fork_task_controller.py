@@ -4,14 +4,20 @@ import logging
 import os
 import subprocess
 from threading import Thread
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Path, status
 from fastapi.responses import JSONResponse
 
 from webhook.config import API_TEST, TASK_TIMEOUT
 from webhook.extensions.db import get_db
 from webhook.models.fork_task import ForkTask
 from webhook.services.fork_task_service import ForkTaskService
+from webhook.types import (
+    ForkTaskReq,
+    ForkTaskResp,
+    ForkTaskDetailResp,
+)
 from webhook.utils.notifications import show_toast
 from webhook.utils.task_lock import (
     acquire_task_lock,
@@ -67,17 +73,16 @@ def fork_task_worker(forked_task: ForkTask):
     Thread(target=cleanup, daemon=True).start()
 
 
-@router.post("")
-async def fork_task(request: Request, db=Depends(get_db)):
+@router.post("", response_model=ForkTaskResp)
+async def fork_task(req: ForkTaskReq, db=Depends(get_db)):
     """派生任务"""
-    data = await request.json()
-    source_task_id = data.get("source_task_id")
-    source_branch = data.get("source_branch")
-    target_branch = data.get("target_branch")
-    target_version_name = data.get("target_version_name")
-    target_version_code = data.get("target_version_code")
-    commit_message_raw = data.get("commit_message")
-    operator = data.get("operator") or "assemble_bot"
+    source_task_id = req.source_task_id
+    source_branch = req.source_branch
+    target_branch = req.target_branch
+    target_version_name = req.target_version_name
+    target_version_code = req.target_version_code
+    commit_message_raw = req.commit_message
+    operator = req.operator
 
     label = f"#{target_branch}_req#" if target_branch != "master" else "#dev_req#"
     commit_message = (
@@ -113,8 +118,14 @@ async def fork_task(request: Request, db=Depends(get_db)):
     return {"message": "派生任务创建成功", "fork_task": task.to_dict()}
 
 
-@router.get("/{fork_task_id}")
-async def get_fork_task(fork_task_id: str, db=Depends(get_db)):
+@router.get("/{fork_task_id}", response_model=ForkTaskDetailResp)
+async def get_fork_task(
+        fork_task_id: Annotated[
+            str,
+            Path(..., title="fork_task_id", description="需要查询的派生任务id"),
+        ],
+        db=Depends(get_db),
+):
     """获取派生任务"""
     task = ForkTaskService.get_fork_task(fork_task_id, db=db)
     return {"fork_task": task.to_dict()}

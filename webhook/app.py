@@ -25,7 +25,7 @@ from webhook.controllers import (
     third_party_controller,
     webhook_controller,
 )
-from webhook.extensions.middlewares import DBSessionMiddleware, RequestLoggingMiddleware
+from webhook.extensions.middlewares import DBSessionMiddleware
 
 # 配置日志
 setup_logging()
@@ -54,7 +54,7 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # 添加数据库、log中间件
 app.add_middleware(DBSessionMiddleware)
-app.add_middleware(RequestLoggingMiddleware)
+# app.add_middleware(RequestLoggingMiddleware)
 
 # 引入路由
 app.include_router(auth_controller.router)

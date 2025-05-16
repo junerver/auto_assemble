@@ -122,7 +122,7 @@ async def webhook(request: Request, db=Depends(get_db)):
         # 处理webhook请求，提取构建任务
         tasks, message, status_code = TaskService.handle_webhook_request(data, db=db)
         logging.info(
-            f"过滤后的任务（{len(tasks)}）：\n{json.dumps(tasks, ensure_ascii=False, indent=2)}"
+            f"过滤后的任务（{len(tasks)}）：\n{json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)}"
         )
         if tasks is None:
             return JSONResponse(content={"message": message}, status_code=status_code)

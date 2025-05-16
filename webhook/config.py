@@ -50,8 +50,8 @@ MAX_RETRIES = 3  # 最大重试次数
 
 def setup_logging(log_file: str = "webhook.log"):
     # 关闭fastapi内置log
-    logging.getLogger("uvicorn.access").disabled = True
-    logging.getLogger("uvicorn.error").disabled = True
+    # logging.getLogger("uvicorn.access").disabled = True
+    # logging.getLogger("uvicorn.error").disabled = True
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

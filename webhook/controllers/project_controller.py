@@ -1,6 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
 from webhook.extensions.db import get_db
+from webhook.types import (
+    AllProjectsResp,
+    ConfigureProjectResp,
+    ProjectConfigDetailResp,
+)
 from ..models.third_party import ThirdPartyConfig
 from ..services.project_service import ProjectService
 from ..services.third_party_service import ThirdPartyService
@@ -8,7 +15,7 @@ from ..services.third_party_service import ThirdPartyService
 router = APIRouter(prefix="/api/config", tags=["project"])
 
 
-@router.post("/project")
+@router.post("/project", response_model=ConfigureProjectResp)
 async def configure_project(request: Request, db=Depends(get_db)):
     """配置项目信息"""
     try:
@@ -26,7 +33,7 @@ async def configure_project(request: Request, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/project")
+@router.get("/project", response_model=ProjectConfigDetailResp)
 async def get_project_config(
         url: str = Query(default=None, description="项目URL"),
         name: str = Query(default=None, description="项目名称"),
@@ -59,7 +66,11 @@ async def get_project_config(
 
 
 @router.put("/project/{project_id}")
-async def update_project_config(project_id: str, request: Request, db=Depends(get_db)):
+async def update_project_config(
+        project_id: Annotated[str, Path(..., description="项目的uuid主键")],
+        request: Request,
+        db=Depends(get_db),
+):
     """更新项目配置信息"""
     try:
         data = await request.json()
@@ -124,7 +135,7 @@ async def update_project_config(project_id: str, request: Request, db=Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/projects")
+@router.get("/projects", response_model=AllProjectsResp)
 async def get_projects(db=Depends(get_db)):
     """获取所有项目配置列表"""
     try:

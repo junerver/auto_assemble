@@ -1,19 +1,29 @@
 import logging
+from typing import Annotated
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 
 from webhook.config import PORT
 from webhook.extensions.db import get_db
+from webhook.types import (
+    BaseRespModel,
+    QueueDetailResp,
+    StatisticsResp,
+    StopTaskResp,
+    TaskDetailResp,
+)
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
 
 router = APIRouter(tags=["task"])
 
 
-@router.get("/task/{task_id}")
-async def get_task_info(task_id: str, db=Depends(get_db)):
+@router.get("/task/{task_id}", response_model=TaskDetailResp)
+async def get_task_info(
+        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
+):
     """获取任务详细信息"""
     task = TaskService.get_task(task_id, db=db)
     if task:
@@ -21,15 +31,17 @@ async def get_task_info(task_id: str, db=Depends(get_db)):
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.delete("/task/{task_id}")
-async def outdated_task(task_id: str, db=Depends(get_db)):
+@router.delete("/task/{task_id}", response_model=BaseRespModel)
+async def outdated_task(
+        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
+):
     """标记任务为过期"""
     if TaskService.update_task_status(task_id, "outdated", db=db) is not None:
         return {"message": "Task outdated"}
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.get("/tasks/statistics")
+@router.get("/tasks/statistics", response_model=StatisticsResp)
 async def get_tasks_statistics(db=Depends(get_db)):
     """获取所有任务的统计情况"""
     tasks = TaskService.get_tasks_statistics(db)
@@ -37,7 +49,7 @@ async def get_tasks_statistics(db=Depends(get_db)):
     return {"tasks": tasks, "packer_usage": packer_usage}
 
 
-@router.get("/queue")
+@router.get("/queue", response_model=QueueDetailResp)
 async def get_queue_status(
         build_mode: str = Query(default="all", description="构建模式"),
         db=Depends(get_db),
@@ -61,7 +73,9 @@ async def get_queue_status(
 
 
 @router.post("/task/{task_id}/replay")
-async def replay_webhook(task_id: str, db=Depends(get_db)):
+async def replay_webhook(
+        task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)
+):
     """重放webhook请求"""
 
     # 获取原始请求数据
@@ -84,8 +98,7 @@ async def replay_webhook(task_id: str, db=Depends(get_db)):
             return JSONResponse(
                 status_code=response.status_code,
                 content={
-                    "error": "Webhook请求重放失败",
-                    "status_code": response.status_code,
+                    "message": "Webhook请求重放失败",
                     "response": response.json(),
                 },
             )
@@ -95,8 +108,8 @@ async def replay_webhook(task_id: str, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/task/{task_id}/stop")
-async def stop_task(task_id: str, db=Depends(get_db)):
+@router.post("/task/{task_id}/stop", response_model=StopTaskResp)
+async def stop_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """停止运行中的任务"""
     logging.info(f"停止任务: {task_id}")
     task, message, status_code = TaskService.stop_task(task_id, db=db)

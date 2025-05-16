@@ -8,6 +8,7 @@ LastEditTime: 2025-05-15 18:06:21
 
 import sqlite3
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 
@@ -22,8 +23,8 @@ class Project:
     uniapp_id: Optional[str] = None
     uniapp_appkey: Optional[str] = None
     uniapp_is_cli: bool = False
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     @classmethod
     def get_by_id(cls, project_id: str, db: sqlite3.Connection) -> Optional["Project"]:
