@@ -2,7 +2,6 @@
 
 import logging
 import os
-import sqlite3
 import subprocess
 from threading import Thread
 
@@ -25,7 +24,7 @@ from webhook.utils.task_lock import (
 router = APIRouter(prefix="/api/fork_task", tags=["fork_task"])
 
 
-def fork_task_worker(forked_task: ForkTask, db: sqlite3.Connection):
+def fork_task_worker(forked_task: ForkTask):
     """
     派生任务处理函数
     """
@@ -61,7 +60,7 @@ def fork_task_worker(forked_task: ForkTask, db: sqlite3.Connection):
                 if next_task_type == TaskType.BUILD:
                     from webhook.controllers.webhook_controller import execute_task
 
-                    Thread(target=execute_task, args=(next_task, db), daemon=True).start()
+                    Thread(target=execute_task, args=(next_task,), daemon=True).start()
                 else:
                     Thread(target=fork_task_worker, args=(next_task,), daemon=True).start()
 
@@ -108,7 +107,7 @@ async def fork_task(request: Request, db=Depends(get_db)):
             },
         )
 
-    Thread(target=fork_task_worker, args=(task, db), daemon=True).start()
+    Thread(target=fork_task_worker, args=(task,), daemon=True).start()
     logging.info(f"派生任务 {task.id} 开始执行")
 
     return {"message": "派生任务创建成功", "fork_task": task.to_dict()}

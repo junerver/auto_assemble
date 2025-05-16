@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 
 from common.err_code import format_error
-from webhook.extensions.db import get_db
+from webhook.extensions.db import get_db, get_db_conn
 from webhook.models.task import Task
 from ..config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
@@ -30,68 +30,78 @@ logging.info("正在注册webhook路由...")
 router = APIRouter(tags=["webhook"])
 
 
-def execute_task(task: Task, db: sqlite3.Connection):
+def execute_task(task: Task):
     """
     执行构建任务
     这里由于通过Flask管理的数据库上下文给、app_context，所以直接将task传递到外部时将
     无法正确的更新数据，必须通过下面的方式才能正确执行
     """
-    task.started_at = datetime.now()
-    task.status = "running"
-    task.save(db=db)
-    show_toast(
-        "📜开始执行构建",
-        f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}",
-    )
-    if API_TEST:
-        # API 测试模式，不执行任务，直接释放锁，退出执行
-        release_task_lock()
-        return
+    db = get_db_conn()
+    try:
+        task.started_at = datetime.now()
+        task.status = "running"
+        task.save(db=db)
+        show_toast(
+            "📜开始执行构建",
+            f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}",
+        )
+        if API_TEST:
+            # API 测试模式，不执行任务，直接释放锁，退出执行
+            release_task_lock()
+            return
 
-    process = subprocess.Popen(
-        ["auto-assemble", "--fn", "1", "--task", task.id],
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        encoding="utf-8",
-        env=os.environ.copy(),  # 传递当前环境变量
-    )
+        process = subprocess.Popen(
+            ["auto-assemble", "--fn", "1", "--task", task.id],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            encoding="utf-8",
+            env=os.environ.copy(),  # 传递当前环境变量
+        )
 
-    def cleanup():
-        try:
-            process.wait(timeout=TASK_TIMEOUT)
-            task.completed_at = datetime.now()
-            task.status = "completed" if process.returncode == 0 else "failed"
-            show_build_toast(task, process.returncode == 0)
-            if process.returncode == 0:
-                task.error = None
-                # 删除成功的webhook请求记录
-                # WebhookRequestService.delete_webhook_request(task.id)
-            else:
-                # 使用错误码映射格式化错误信息
-                task.error = format_error(process.returncode)
-                if task.retries < MAX_RETRIES:
-                    task.retries += 1
-                    task.priority += 1
-                    add_task_to_queue(task, TaskType.BUILD)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            task.status = "failed"
-            task.error = format_error(10002)  # 使用超时错误码
-            task.completed_at = datetime.now()
-            show_build_toast(task, False)
-        finally:
-            task.save(db)
-            # 释放任务锁并获取下一个任务
-            next_task_info = release_task_lock()
-            if next_task_info:
-                next_task_type, next_task = next_task_info
-                if next_task_type == TaskType.BUILD:
-                    Thread(target=execute_task, args=(next_task, db), daemon=True).start()
+        def cleanup():
+            _db = get_db_conn()
+            try:
+                process.wait(timeout=TASK_TIMEOUT)
+                task.completed_at = datetime.now()
+                task.status = "completed" if process.returncode == 0 else "failed"
+                show_build_toast(task, process.returncode == 0)
+                if process.returncode == 0:
+                    task.error = None
+                    # 删除成功的webhook请求记录
+                    # WebhookRequestService.delete_webhook_request(task.id)
                 else:
-                    from ..controllers.fork_task_controller import fork_task_worker
+                    # 使用错误码映射格式化错误信息
+                    task.error = format_error(process.returncode)
+                    if task.retries < MAX_RETRIES:
+                        task.retries += 1
+                        task.priority += 1
+                        add_task_to_queue(task, TaskType.BUILD)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                task.status = "failed"
+                task.error = format_error(10002)  # 使用超时错误码
+                task.completed_at = datetime.now()
+                show_build_toast(task, False)
+            except Exception as e:
+                logging.error(f"执行 cleanup 时出错: {e}", exc_info=True)
+            finally:
+                task.save(_db)
+                # 释放任务锁并获取下一个任务
+                next_task_info = release_task_lock()
+                if next_task_info:
+                    next_task_type, next_task = next_task_info
+                    if next_task_type == TaskType.BUILD:
+                        Thread(target=execute_task, args=(next_task,), daemon=True).start()
+                    else:
+                        from ..controllers.fork_task_controller import fork_task_worker
 
-                    Thread(target=fork_task_worker, args=(next_task,), daemon=True).start()
+                        Thread(target=fork_task_worker, args=(next_task,), daemon=True).start()
+                _db.close()
 
-    Thread(target=cleanup, daemon=True).start()
+        Thread(target=cleanup, daemon=True).start()
+    except Exception as e:
+        logging.error(f"执行 execute_task 时出错: {e}", exc_info=True)
+    finally:
+        db.close()
 
 
 @router.post("/webhook")
@@ -154,7 +164,7 @@ def handle_tasks_execution(tasks: list["Task"], db: sqlite3.Connection = None):
 
     # 执行第一个任务
     first_task = tasks[0]
-    Thread(target=execute_task, args=(first_task, db), daemon=True).start()
+    Thread(target=execute_task, args=(first_task,), daemon=True).start()
 
     # 如果有多个任务，将剩余任务加入队列
     if len(tasks) > 1:
