@@ -30,7 +30,7 @@ def copy_source(fork_task_id: str) -> tuple[str, dict]:
     source_branch = fork_task_info["source_branch"]
     source_task_id = fork_task_info["source_task_id"]
     # 派生的任务目标分支、项目id
-    target_branch = fork_task_info["target_branch"]
+    # target_branch = fork_task_info["target_branch"]
     target_task_id = fork_task_info["id"]
     # 派生任务的临时目录
     _, target_task = target_task_id.split(",")

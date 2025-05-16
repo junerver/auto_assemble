@@ -43,7 +43,7 @@ class ServerSentEvents:
                     continue
                 try:
                     q.put_nowait(message)
-                except:
+                except Exception:
                     to_remove.add(client_id)
             for cid in to_remove:
                 self.clients.pop(cid, None)

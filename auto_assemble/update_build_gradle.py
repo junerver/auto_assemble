@@ -59,7 +59,7 @@ def _process_line(
         str: 处理后的行内容
     """
     # 从字典中读取版本信息
-    hbx_version = version_info.get("hbx_version", "")
+    # hbx_version = version_info.get("hbx_version", "")
     version_name = version_info.get("version_name", "")
     version_code = version_info.get("version_code", "")
     uniapp_id = version_info.get("uniapp_id", "")

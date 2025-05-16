@@ -1,5 +1,4 @@
 import logging
-import os
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -61,9 +60,9 @@ def update_android_manifest(
         bool: 更新成功返回 True，失败返回 False
     """
     # 备份原始文件
-    backup_path = os.path.join(
-        os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml"
-    )
+    # backup_path = os.path.join(
+    #     os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml"
+    # )
     # 暂时不备份，因为git本身会追踪文件的修改
     # shutil.copy(android_manifest_path, backup_path)
     permissions = update_info["permissions"]

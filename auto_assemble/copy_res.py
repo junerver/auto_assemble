@@ -22,20 +22,6 @@ from common.git import sync_repository, check_git_branch
 from common.types import ManifestInfo
 
 
-def check_dependencies():
-    """
-    检查必要的依赖是否已安装
-    Raises:
-        ImportError: 当缺少必要的依赖时抛出
-    """
-    try:
-        import rarfile
-        import zipfile
-    except ImportError as e:
-        logging.error(f"缺少必要的依赖: {e}")
-        raise
-
-
 def check_paths():
     """
     检查必要的路径是否存在
@@ -334,8 +320,7 @@ def main(prod_name: str, task_dir: str):
         # 配置日志
         setup_logging(clear_log_file=True, task_name="执行资源同步流程")
 
-        # 检查依赖和路径
-        check_dependencies()
+        # 检查路径
         check_paths()
 
         # 获取项目名称和最新目录
