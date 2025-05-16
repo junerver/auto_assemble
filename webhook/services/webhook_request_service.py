@@ -1,13 +1,15 @@
 import json
 import logging
 import sqlite3
+from typing import Any
 
 from ..models.webhook_request import WebhookRequest
+from ..types import PushEventModel
 
 
 class WebhookRequestService:
     @staticmethod
-    def save_webhook_request(task_id, request_data, headers=None, db: sqlite3.Connection = None):
+    def save_webhook_request(task_id, request_data:dict[str, Any], headers=None, db: sqlite3.Connection = None):
         """
         保存webhook请求记录
         Args:
@@ -32,15 +34,18 @@ class WebhookRequestService:
             return False
 
     @staticmethod
-    def save_webhook_requests(tasks, request_data, headers=None, db: sqlite3.Connection = None):
+    def save_webhook_requests(tasks, event:PushEventModel, headers=None, db: sqlite3.Connection = None):
         """
         保存多个webhook请求记录，多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id，
         即保存的request_data中只包含当前任务的commit，这样才能实现多任务处理的同时，还能针对单任务进行重播
         """
         for task in tasks:
             logging.info(f"保存\清洗webhook请求记录，task_id: {task.id}")
+
             # 多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id
-            request_data["commits"] = [commit for commit in request_data["commits"] if commit["id"] == task.commit_hash]
+            filtered_commits = [commit for commit in event.commits if commit.id == task.commit_hash]
+            request_data = event.model_dump(exclude={"commits"})
+            request_data["commits"] = [c.model_dump() for c in filtered_commits]
             WebhookRequestService.save_webhook_request(task.id, request_data, headers, db)
 
     @staticmethod

@@ -47,11 +47,11 @@ def is_valid_build_task(commit: Commit) -> bool:
         bool: 是否是有效的构建任务
     """
     # 获取提交信息，正则匹配是否为 #(.*)_req# 格式开头
-    commit_title = commit.get("title", "")
+    commit_title = commit.title or ""
     if not commit_title or not re.match(r"#\w+_req#", commit_title):
         return False
     # 获取添加的文件
-    added_files = commit.get("added", [])
+    added_files = commit.added or []
     if not added_files:
         return False
 
@@ -85,7 +85,7 @@ def parse_build_task(commit: Commit):
     Returns:
         tuple: 构建任务信息
     """
-    added_files = commit.get("added", [])
+    added_files = commit.added or []
     if not added_files:
         return None, None
 

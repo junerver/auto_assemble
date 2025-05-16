@@ -1,30 +1,9 @@
 from datetime import datetime
-from typing import Optional, TypedDict
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
 from webhook.models.task import TaskStatus
-
-
-class Commit(TypedDict):
-    # 提交的hash值
-    id: str
-    # 提交的消息
-    message: str
-    # 提交的标题
-    title: str
-    # 提交的日期
-    timestamp: str
-    # 提交的URL
-    url: str
-    # 提交的作者
-    author: dict
-    # 添加的文件
-    added: list[str]
-    # 删除的文件
-    removed: list[str]
-    # 修改的文件
-    modified: list[str]
 
 
 # ========================请求、响应模型============================
@@ -116,6 +95,8 @@ class AllProjectsResp(BaseModel):
 
 
 class BaseTaskModel(BaseModel):
+    """任务的基础字段，排除了前端重命名部分"""
+
     id: str = Field(..., description="任务id，由项目别名与申请时间戳拼接")
     author: str = Field(..., description="作者")
     commit_title: str = Field(..., description="提交标题")
@@ -135,11 +116,15 @@ class BaseTaskModel(BaseModel):
 
 
 class TaskModel(BaseTaskModel):
+    """前端使用的响应实体，对两个字段名称进行了重命名"""
+
     project: str = Field(..., description="项目名称")
     task: str = Field(..., description="任务名称")
 
 
 class TaskDetailResp(BaseModel):
+    """构建任务详情"""
+
     task: TaskModel = Field(..., description="构建任务详情")
 
 
@@ -158,11 +143,15 @@ class UsageStatistics(BaseModel):
 
 
 class StatisticsResp(BaseModel):
+    """统计接口响应"""
+
     tasks: list[TaskStatistics]
     packer_usage: list[UsageStatistics]
 
 
 class QueueDetailResp(BaseModel):
+    """队列接口响应"""
+
     running_task: Optional[TaskModel] = Field(None, description="当前运行的构建任务")
     pending_tasks: list[TaskModel] = Field(..., description="排队中的构建任务")
     queue_size: int = Field(..., description="当前队列深度")
@@ -170,6 +159,8 @@ class QueueDetailResp(BaseModel):
 
 
 class StopTaskResp(BaseRespModel):
+    """停止任务响应"""
+
     task: TaskModel = Field(..., description="构建任务详情")
 
 
@@ -181,3 +172,79 @@ class ThirdPartyConfigModel(BaseModel):
     dict_key: str = Field(..., description="第三方服务字典键")
     dict_value: str = Field(..., description="第三方服务字典值")
     config_value: str = Field(..., description="第三方服务配置值")
+
+
+class Author(BaseModel):
+    """作者信息"""
+
+    name: str = Field(..., description="作者名称")
+    email: str = Field(..., description="作者邮箱")
+
+
+class Commit(BaseModel):
+    """提交信息"""
+
+    id: str = Field(..., description="当前提交的hash值")
+    message: str = Field(..., description="提交消息")
+    title: str = Field(..., description="提交标题")
+    timestamp: str = Field(..., description="提交时间戳")
+    url: str = Field(..., description="当前提交对应仓库快照的url")
+    author: Author = Field(..., description="提交人")
+    added: list[str] = Field(..., description="添加的文件列表")
+    modified: list[str] = Field(..., description="修改的文件列表")
+    removed: list[str] = Field(..., description="移除的文件列表")
+
+
+class ProjectInfo(BaseModel):
+    """项目信息"""
+
+    id: int = Field(..., description="gitlab项目id")
+    name: str = Field(..., description="项目名称")
+    description: str = Field(..., description="项目描述")
+    web_url: str = Field(..., description="项目url")
+    avatar_url: Optional[str] = Field(..., description="项目头像地址")
+    git_ssh_url: str = Field(..., description="仓库ssh地址")
+    git_http_url: str = Field(..., description="仓库http地址")
+    namespace: str = Field(..., description="仓库命名空间")
+    visibility_level: int = Field(..., description="仓库可见级别")
+    path_with_namespace: str
+    default_branch: str = Field(..., description="默认分支")
+    ci_config_path: Optional[str] = Field(..., description="ci配置路径")
+    homepage: str = Field(..., description="主页")
+    url: str
+    ssh_url: str
+    http_url: str
+
+
+class RepositoryInfo(BaseModel):
+    name: str
+    url: str
+    description: str
+    homepage: str
+    git_http_url: str
+    git_ssh_url: str
+    visibility_level: int
+
+
+class PushEventModel(BaseModel):
+    """webhook 推送事件请求实体类"""
+
+    object_kind: str = Field(..., description="事件类型")
+    event_name: str = Field(..., description="事件名称")
+    before: str = Field(..., description="推送前的 commit hash")
+    after: str = Field(..., description="推送后的 commit hash")
+    ref: str = Field(..., description="分支引用（如 refs/heads/master）")
+    ref_protected: bool = Field(..., description="是否是受保护的分支")
+    checkout_sha: str = Field(..., description="当前检出的 commit hash")
+    message: Optional[str] = Field(None, description="推送信息（可为空）")
+    user_id: int = Field(..., description="用户 ID")
+    user_name: str = Field(..., description="用户名字")
+    user_username: str = Field(..., description="用户登录名")
+    user_email: Optional[str] = Field(None, description="用户邮箱（可为空）")
+    user_avatar: Optional[str] = Field(None, description="用户头像 URL（可为空）")
+    project_id: int = Field(..., description="项目 ID")
+    project: ProjectInfo = Field(..., description="项目信息")
+    commits: list[Commit] = Field(..., description="提交记录列表")
+    total_commits_count: int = Field(..., description="总提交数量")
+    push_options: dict = Field(..., description="推送选项")
+    repository: RepositoryInfo = Field(..., description="仓库基本信息")

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from common.err_code import format_error
-from webhook.types import Commit
+from webhook.types import Commit, PushEventModel
 from ..models.task import Task, TaskStatus
 from ..utils.validators import (
     is_valid_assemble_response,
@@ -16,7 +16,7 @@ from ..utils.validators import (
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data: dict[str, Any], db: sqlite3.Connection) -> tuple[Optional[list["Task"]], str, int]:
+    def handle_webhook_request(data: PushEventModel, db: sqlite3.Connection) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         支持多任务构建，会遍历commits中的提交，过滤有效的提交任务，返回提交任务列表
@@ -32,13 +32,17 @@ class TaskService:
             - status_code: HTTP状态码
         """
         # 验证提交信息
-        commits: list[Commit] = data.get("commits", [])
+        commits: list[Commit] = data.commits or []
         if not commits:
             return None, "No file changes in commit", 200
 
-        logging.info(f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}")
+        logging.info(
+            f"收到{len(commits)}个提交信息: {json.dumps([c.model_dump() for c in commits], ensure_ascii=False, indent=2)}"
+        )
         valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
-        logging.info(f"有效提交（{len(valid_commits)}）：\n{json.dumps(valid_commits, ensure_ascii=False, indent=2)}")
+        logging.info(
+            f"有效提交（{len(valid_commits)}）：\n{json.dumps([c.model_dump() for c in valid_commits], ensure_ascii=False, indent=2)}"
+        )
         if not valid_commits:
             is_resp, resp_hash = is_valid_assemble_response(commits[0])
             if is_resp:
@@ -104,14 +108,14 @@ class TaskService:
         )
 
         if commit_info:
-            task.author = commit_info.get("author", {}).get("name")
-            task.commit_title = commit_info.get("title")
-            task.commit_message = commit_info.get("message")
-            task.commit_url = commit_info.get("url")
-            task.commit_hash = commit_info.get("id")
+            task.author = commit_info.author.name
+            task.commit_title = commit_info.title
+            task.commit_message = commit_info.message
+            task.commit_url = commit_info.url
+            task.commit_hash = commit_info.id
             timestamp = None
             try:
-                timestamp = commit_info.get("timestamp")
+                timestamp = commit_info.timestamp
                 if timestamp:
                     task.created_at = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S%z")
             except (ValueError, TypeError):

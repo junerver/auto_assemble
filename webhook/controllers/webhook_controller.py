@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sqlite3
 import subprocess
 from datetime import datetime
 from threading import Thread
@@ -15,6 +14,7 @@ from webhook.models.task import Task
 from ..config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
+from ..types import PushEventModel
 from ..utils.notifications import show_build_toast, show_toast
 from ..utils.task_lock import (
     acquire_task_lock,
@@ -105,12 +105,11 @@ def execute_task(task: Task):
 
 
 @router.post("/webhook")
-async def webhook(request: Request, db=Depends(get_db)):
+async def webhook(event: PushEventModel, request: Request, db=Depends(get_db)):
     """处理Gitlab的webhook请求"""
     logging.info("收到webhook请求")
     try:
-        data = await request.json()
-        if not data:
+        if not event:
             logging.warning("收到空的webhook请求")
             raise HTTPException(status_code=400, detail="No JSON data received")
 
@@ -120,7 +119,7 @@ async def webhook(request: Request, db=Depends(get_db)):
             return {"message": f"Ignored non-push event: {event_type}"}
 
         # 处理webhook请求，提取构建任务
-        tasks, message, status_code = TaskService.handle_webhook_request(data, db=db)
+        tasks, message, status_code = TaskService.handle_webhook_request(event, db=db)
         logging.info(
             f"过滤后的任务（{len(tasks)}）：\n{json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)}"
         )
@@ -129,21 +128,21 @@ async def webhook(request: Request, db=Depends(get_db)):
 
         # 保存webhook请求记录
         if not request.headers.get("X-Webhook-Request-Cache"):
-            WebhookRequestService.save_webhook_requests(tasks, data, dict(request.headers), db=db)
+            WebhookRequestService.save_webhook_requests(tasks, event, dict(request.headers), db=db)
 
         # 处理缓存请求
         if request.headers.get("X-Webhook-Request-Cache") and len(tasks) == 1:
             WebhookRequestService.update_replay_count(tasks[0].id, db=db)
 
         # 处理任务执行
-        return handle_tasks_execution(tasks, db)
+        return handle_tasks_execution(tasks)
 
     except Exception as e:
         logging.error(f"处理webhook请求时发生错误: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def handle_tasks_execution(tasks: list["Task"], db: sqlite3.Connection = None):
+def handle_tasks_execution(tasks: list["Task"]):
     """处理任务执行逻辑"""
     if not tasks:
         return {"message": "No tasks to execute"}
