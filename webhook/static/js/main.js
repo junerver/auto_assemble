@@ -87,7 +87,41 @@ function updateUIAuthorization() {
 // 在页面加载时检查IP授权
 document.addEventListener('DOMContentLoaded', function () {
     checkIPAuthorization();
+    // 应用保存的缩放设置
+    applyZoom();
 });
+
+// 缩放控制相关函数，初始缩放 1.25
+let currentZoom = parseFloat(localStorage.getItem('pageZoom')) || 1.25;
+
+/**
+ * 放大，极限为2
+ */
+function zoomIn() {
+    if (currentZoom < 2.0) {
+        currentZoom += 0.1;
+        applyZoom();
+    }
+}
+
+/**
+ * 缩小，极限为0.5
+ */
+function zoomOut() {
+    if (currentZoom > 0.5) {
+        currentZoom -= 0.1;
+        applyZoom();
+    }
+}
+
+/**
+ * 使用css中 style-zoom控制页面主体缩放
+ */
+function applyZoom() {
+    document.body.style.zoom = currentZoom;
+    document.getElementById('zoomLevel').textContent = `${Math.round(currentZoom * 100)}%`;
+    localStorage.setItem('pageZoom', currentZoom);
+}
 
 /**
  * 格式化日期时间

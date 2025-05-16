@@ -116,7 +116,7 @@ class AllProjectsResp(BaseModel):
 
 
 class BaseTaskModel(BaseModel):
-    id: int = Field(..., description="任务唯一ID")
+    id: str = Field(..., description="任务id，由项目别名与申请时间戳拼接")
     author: str = Field(..., description="作者")
     commit_title: str = Field(..., description="提交标题")
     commit_message: str = Field(..., description="完整提交信息")
@@ -163,7 +163,7 @@ class StatisticsResp(BaseModel):
 
 
 class QueueDetailResp(BaseModel):
-    running_task: TaskModel = Field(..., description="当前运行的构建任务")
+    running_task: Optional[TaskModel] = Field(None, description="当前运行的构建任务")
     pending_tasks: list[TaskModel] = Field(..., description="排队中的构建任务")
     queue_size: int = Field(..., description="当前队列深度")
     recent_tasks: list[TaskModel] = Field(..., description="最近完成的构建任务")
