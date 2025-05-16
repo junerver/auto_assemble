@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sqlite3
@@ -11,7 +12,7 @@ from fastapi.responses import JSONResponse
 from common.err_code import format_error
 from webhook.extensions.db import get_db
 from webhook.models.task import Task
-from ..config import TASK_TIMEOUT, MAX_RETRIES
+from ..config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
 from ..services.task_service import TaskService
 from ..services.webhook_request_service import WebhookRequestService
 from ..utils.notifications import show_build_toast, show_toast
@@ -42,6 +43,11 @@ def execute_task(task: Task, db: sqlite3.Connection):
         "📜开始执行构建",
         f"🗃️项目: {task.prod_name}\n🏗️任务: {task.task_name}\n🧑‍💻作者: {task.author}\n📝标题: {task.commit_title}",
     )
+    if API_TEST:
+        # API 测试模式，不执行任务，直接释放锁，退出执行
+        release_task_lock()
+        return
+
     process = subprocess.Popen(
         ["auto-assemble", "--fn", "1", "--task", task.id],
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -105,6 +111,9 @@ async def webhook(request: Request, db=Depends(get_db)):
 
         # 处理webhook请求，提取构建任务
         tasks, message, status_code = TaskService.handle_webhook_request(data, db=db)
+        logging.info(
+            f"过滤后的任务（{len(tasks)}）：\n{json.dumps(tasks, ensure_ascii=False, indent=2)}"
+        )
         if tasks is None:
             return JSONResponse(content={"message": message}, status_code=status_code)
 

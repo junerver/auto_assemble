@@ -17,6 +17,8 @@ class TaskService:
     ) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
+        支持多任务构建，会遍历commits中的提交，过滤有效的提交任务，返回提交任务列表
+
         Args:
             data: webhook请求数据
             db:
@@ -36,6 +38,9 @@ class TaskService:
             f"收到{len(commits)}个提交信息: {json.dumps(commits, ensure_ascii=False, indent=2)}"
         )
         valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
+        logging.info(
+            f"有效提交（{len(valid_commits)}）：\n{json.dumps(valid_commits, ensure_ascii=False, indent=2)}"
+        )
         if not valid_commits:
             is_resp, resp_hash = is_valid_assemble_response(commits[0])
             if is_resp:
@@ -86,8 +91,10 @@ class TaskService:
         if task:
             if task.status == "failed":
                 task.update_status("pending")
+                logging.warning(f"任务id：{task_id} 存在（失败），加入队列")
                 return task
             else:
+                logging.warning(f"任务id：{task_id} 已存在，跳过执行")
                 return None
 
         task = Task(

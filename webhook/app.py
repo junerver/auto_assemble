@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from webhook.config import setup_logging
 from webhook.controllers import (
     auth_controller,
     events_controller,
@@ -24,10 +25,10 @@ from webhook.controllers import (
     third_party_controller,
     webhook_controller,
 )
-from webhook.extensions.middlewares import DBSessionMiddleware
+from webhook.extensions.middlewares import DBSessionMiddleware, RequestLoggingMiddleware
 
 # 配置日志
-logging.basicConfig(level=logging.INFO)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -51,9 +52,11 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-# 添加数据库中间件
+# 添加数据库、log中间件
 app.add_middleware(DBSessionMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 
+# 引入路由
 app.include_router(auth_controller.router)
 app.include_router(events_controller.router)
 app.include_router(fork_task_controller.router)

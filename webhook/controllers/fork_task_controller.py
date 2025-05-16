@@ -9,7 +9,7 @@ from threading import Thread
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 
-from webhook.config import TASK_TIMEOUT
+from webhook.config import API_TEST, TASK_TIMEOUT
 from webhook.extensions.db import get_db
 from webhook.models.fork_task import ForkTask
 from webhook.services.fork_task_service import ForkTaskService
@@ -33,6 +33,10 @@ def fork_task_worker(forked_task: ForkTask, db: sqlite3.Connection):
         "📜开始创建派生任务",
         f"操作人：{forked_task.operator}\n源任务: {forked_task.source_task_id}\n源分支: {forked_task.source_branch}\n目标分支: {forked_task.target_branch}\n目标版本名: {forked_task.target_version_name}\n目标版本号: {forked_task.target_version_code}\n提交信息: {forked_task.commit_message}",
     )
+    if API_TEST:
+        # API 测试模式，不执行任务，直接释放锁，退出执行
+        release_task_lock()
+        return
 
     process = subprocess.Popen(
         ["fork-task", "--fork", forked_task.id],
