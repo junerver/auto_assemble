@@ -27,8 +27,8 @@ def copy_source(fork_task_id: str) -> tuple[str, dict]:
     fork_task_info = response.json()["fork_task"]
     logging.info(f"派生任务详情: {json.dumps(fork_task_info, indent=4)}")
     # 源分支、项目id
-    source_branch = fork_task_info["source_branch"]
-    source_task_id = fork_task_info["source_task_id"]
+    source_branch: str = fork_task_info["source_branch"]
+    source_task_id: str = fork_task_info["source_task_id"]
     # 派生的任务目标分支、项目id
     # target_branch = fork_task_info["target_branch"]
     target_task_id = fork_task_info["id"]
@@ -39,7 +39,7 @@ def copy_source(fork_task_id: str) -> tuple[str, dict]:
     check_git_branch(DISTRIBUTION_PATH, source_branch)
     # 校验源任务指向的目录是否存在，source_task既是任务目录，也是任务资源zip名
     prod_name, source_task = source_task_id.split(",")
-    source_dir = os.path.join(DISTRIBUTION_PATH, prod_name, source_task)
+    source_dir: str = os.path.join(DISTRIBUTION_PATH, prod_name, source_task)
     if not os.path.exists(source_dir):
         raise BusinessException(13002)
     # 提取源任务目录中的 task_dir.zip 文件、README.md 文件

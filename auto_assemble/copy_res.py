@@ -298,7 +298,6 @@ def main(prod_name: str, task_dir: str):
     Returns:
         int: 返回0表示成功，返回1表示失败
     """
-    global temp_dir
     temp_dir = None  # 初始化为None
     try:
         # 配置日志

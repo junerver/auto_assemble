@@ -116,19 +116,19 @@ def check_exe_version(metadata):
 # 主流程
 if __name__ == "__main__":
     print("📦 读取 pyproject.toml...")
-    metadata = get_metadata()
+    _metadata = get_metadata()
 
     print("📝 生成 version.txt...")
-    generate_version_file(metadata)
+    generate_version_file(_metadata)
 
     print("🧹 清理旧的打包文件...")
     clean_old_builds()
 
     print("🛠️ 开始打包...")
-    exe_name = run_pyinstaller(metadata)
+    exe_name = run_pyinstaller(_metadata)
 
     print("🔍 验证打包结果...")
-    check_exe_version(metadata)
+    check_exe_version(_metadata)
 
     print("📋 复制到 release 目录...")
     copy_to_release(exe_name)

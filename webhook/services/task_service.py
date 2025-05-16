@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from common.err_code import format_error
 from webhook.types import Commit
-from ..models.task import Task
+from ..models.task import Task, TaskStatus
 from ..utils.validators import (
     is_valid_assemble_response,
     is_valid_build_task,
@@ -177,7 +177,7 @@ class TaskService:
     @staticmethod
     def update_task_status(
         task_id: str,
-        status: str,
+        status: TaskStatus,
         error: Optional[str] = None,
         db: sqlite3.Connection = None,
     ) -> Optional["Task"]:

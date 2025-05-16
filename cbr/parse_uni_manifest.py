@@ -4,13 +4,13 @@ import json5
 
 from auto_assemble.parse_third_party_configs import parse_third_party_configs
 from common.const import DEFAULT_PERMISSIONS
-from common.types import CbrEnvVars, ManifestInfo
+from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
 def parse_uni_manifest(
     manifest_path: str,
     env_vars: CbrEnvVars | None = None,
-    third_party_configs: list[dict[str, str]] | None = None,
+    third_party_configs: list[ThirdPartyConfig] | None = None,
 ) -> ManifestInfo:
     """
     解析uniapp的manifest.json文件

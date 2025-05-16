@@ -279,7 +279,7 @@ class Task:
         cursor.execute("UPDATE tasks SET response_hash = ? WHERE id = ?", (response_hash, self.id))
         db.commit()
 
-    def update_status(self, status: str, error: Optional[str] = None, db: sqlite3.Connection = None) -> None:
+    def update_status(self, status: TaskStatus, error: Optional[str] = None, db: sqlite3.Connection = None) -> None:
         """更新任务状态"""
         cursor = db.cursor()
 

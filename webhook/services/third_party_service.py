@@ -31,7 +31,7 @@ class ThirdPartyService:
         return item.save(db)
 
     @staticmethod
-    def update_dict_item(dict_key: str, item: ThirdPartyDict, db: sqlite3.Connection = None) -> bool:
+    def update_dict_item(_dict_key: str, item: ThirdPartyDict, db: sqlite3.Connection = None) -> bool:
         """更新第三方配置字典项"""
         return item.update(db)
 

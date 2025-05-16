@@ -81,8 +81,8 @@ def execute_task(task: Task):
                 task.error = format_error(10002)  # 使用超时错误码
                 task.completed_at = datetime.now()
                 show_build_toast(task, False)
-            except Exception as e:
-                logging.error(f"执行 cleanup 时出错: {e}", exc_info=True)
+            except Exception as _e:
+                logging.error(f"执行 cleanup 时出错: {_e}", exc_info=True)
             finally:
                 task.save(_db)
                 # 释放任务锁并获取下一个任务

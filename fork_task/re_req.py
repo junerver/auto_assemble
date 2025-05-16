@@ -15,14 +15,14 @@ def re_req(temp_dir: str, fork_task_info: dict) -> None:
     # 确保使用正确的路径分隔符
     temp_dir = os.path.normpath(temp_dir)
     target_branch = fork_task_info["target_branch"]
-    target_task_id = fork_task_info["id"]
+    target_task_id: str = fork_task_info["id"]
     commit_message = fork_task_info["commit_message"]
     operator = fork_task_info["operator"]
     prod_name, target_task = target_task_id.split(",")
     logging.info(f"切换到的目标分支：{DISTRIBUTION_PATH}/{target_branch}")
     check_git_branch(DISTRIBUTION_PATH, target_branch)
     # 创建派生任务目录
-    target_dir = os.path.join(DISTRIBUTION_PATH, prod_name, target_task)
+    target_dir: str = os.path.join(DISTRIBUTION_PATH, prod_name, target_task)
     os.makedirs(target_dir, exist_ok=True)
     # 拷贝临时目录中的 zip 文件和 readme.md 文件到派生任务目录
     zip_file = os.path.join(temp_dir, f"{target_task}.zip")
