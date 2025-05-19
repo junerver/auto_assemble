@@ -168,10 +168,7 @@ def check_compressed_file_content(compressed_file: str) -> tuple[bool, str]:
 
 
 def extract_compressed_file(
-        compressed_file: str,
-        extract_to: str,
-        temp_dir: str,
-        rm_temp: bool = True
+        compressed_file: str, extract_to: str, temp_dir: str, rm_temp: bool = True
 ) -> bool:
     """
     解压文件到指定目录，如果临时解压目录已存在，则直接复制文件
@@ -329,7 +326,7 @@ def main(prod_name: str = None, task_dir: str = None):
     """
     try:
         # 配置日志
-        setup_logging(clear_log_file=True, task_name="执行更新流程")
+        setup_logging(clear_log_file=True, task_name="执行资源同步流程")
 
         # 检查依赖和路径
         check_dependencies()
