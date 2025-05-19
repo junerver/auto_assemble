@@ -31,8 +31,27 @@ class ServerSentEvents:
         logging.info(f"Publishing: {message.strip()}")
         logging.info(f"Current clients: {len(self.clients)}")
 
+        # 清理无效的客户端
+        valid_clients = []
         for client_queue in self.clients:
-            client_queue.put(message)
+            try:
+                # 测试客户端是否仍然有效
+                client_queue.put(":\n\n", block=False)  # 发送心跳消息
+                valid_clients.append(client_queue)
+            except Exception as e:
+                logging.error(f"Removing invalid client: {e}")
+
+        self.clients = valid_clients
+        logging.info(f"Valid clients after cleanup: {len(self.clients)}")
+
+        # 发送事件到所有有效客户端
+        for client_queue in self.clients:
+            try:
+                client_queue.put(message)
+                logging.info(f"Event sent to client successfully")
+            except Exception as e:
+                logging.error(f"Error sending event to client: {e}")
+                self.clients.remove(client_queue)
 
     def stream(self):
         """SSE 流处理"""
@@ -47,8 +66,12 @@ class ServerSentEvents:
                     message = client_queue.get()
                     yield message
             except GeneratorExit:
-                self.clients.remove(client_queue)
-                logging.info(f"Client disconnected: {len(self.clients)} clients remaining")
+                logging.info("Client disconnected")
+            finally:
+                # 清理客户端
+                if client_queue in self.clients:
+                    self.clients.remove(client_queue)
+                    logging.info(f"Client removed: {len(self.clients)} clients remaining")
 
         return Response(
             stream_with_context(generate()),
