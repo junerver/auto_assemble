@@ -172,6 +172,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
                 md5 = re.search(r"MD5: (\w+)", content).group(1)
             # 复制metadata文件
             shutil.copy2(source_metadata, target_metadata)
+            # todo: 插入基座依赖说明
             # 在metadata末尾追加写入
             with open(target_metadata, "a", encoding="utf-8") as f:
                 f.write(f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}")
