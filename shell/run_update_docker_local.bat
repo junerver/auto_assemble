@@ -21,7 +21,7 @@ if %errorlevel% neq 0 (
 
 :: 构建Docker镜像
 echo 开始构建Docker镜像...
-docker build -t auto_assemble-webhook:uv -f Dockerfile .
+docker build -t auto_assemble-webhook:fast_api -f Dockerfile .
 if %errorlevel% neq 0 (
     echo Docker镜像构建失败
     exit /b 1
@@ -29,7 +29,7 @@ if %errorlevel% neq 0 (
 
 :: 标记镜像
 echo 标记镜像...
-docker tag auto_assemble-webhook:uv 192.168.172.110:5000/auto_assemble-webhook:latest
+docker tag auto_assemble-webhook:fast_api 192.168.172.110:5000/auto_assemble-webhook:fast_api
 if %errorlevel% neq 0 (
     echo 镜像标记失败
     exit /b 1
@@ -37,7 +37,7 @@ if %errorlevel% neq 0 (
 
 :: 推送镜像
 echo 推送镜像到私有仓库...
-docker push 192.168.172.110:5000/auto_assemble-webhook:latest
+docker push 192.168.172.110:5000/auto_assemble-webhook:fast_api
 if %errorlevel% neq 0 (
     echo 镜像推送失败
     exit /b 1

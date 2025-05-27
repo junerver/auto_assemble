@@ -19,7 +19,7 @@ if %errorlevel% neq 0 (
 
 :: 构建Docker镜像
 echo 开始构建Docker镜像...
-docker build -t auto_assemble-webhook:multi_task -f Dockerfile .
+docker build -t auto_assemble-webhook:fast_api -f Dockerfile .
 if %errorlevel% neq 0 (
     echo Docker镜像构建失败
     exit /b 1
@@ -27,7 +27,7 @@ if %errorlevel% neq 0 (
 
 :: 标记镜像
 echo 标记镜像...
-docker tag auto_assemble-webhook:multi_task 192.168.172.110:5000/auto_assemble-webhook:multi_task
+docker tag auto_assemble-webhook:fast_api 192.168.172.110:5000/auto_assemble-webhook:fast_api
 if %errorlevel% neq 0 (
     echo 镜像标记失败
     exit /b 1
@@ -35,7 +35,7 @@ if %errorlevel% neq 0 (
 
 :: 推送镜像
 echo 推送镜像到私有仓库...
-docker push 192.168.172.110:5000/auto_assemble-webhook:multi_task
+docker push 192.168.172.110:5000/auto_assemble-webhook:fast_api
 if %errorlevel% neq 0 (
     echo 镜像推送失败
     exit /b 1
@@ -51,7 +51,8 @@ if %errorlevel% neq 0 (
 
 :: 部署到服务器并清理旧镜像
 echo 开始部署到服务器...
-ssh root@192.168.189.243 -t "cd /opt/auto_assemble && docker-compose down && docker-compose pull && docker-compose up -d && LATEST_ID=$(docker images 192.168.172.110:5000/auto_assemble-webhook:multi_task --format '{{.ID}}') && docker images 192.168.172.110:5000/auto_assemble-webhook --format '{{.ID}}' | grep -v $LATEST_ID | xargs -r docker rmi -f"
+ssh root@192.168.189.243 -t "cd /opt/auto_assemble && docker-compose down && docker-compose pull && docker-compose up -d "
+:: 移除旧版本 && LATEST_ID=$(docker images 192.168.172.110:5000/auto_assemble-webhook:fast_api --format '{{.ID}}') && docker images 192.168.172.110:5000/auto_assemble-webhook --format '{{.ID}}' | grep -v $LATEST_ID | xargs -r docker rmi -f
 if %errorlevel% neq 0 (
     echo 服务器部署失败
     exit /b 1

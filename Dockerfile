@@ -15,8 +15,12 @@ COPY --chown=appuser:appuser fork_task ./fork_task
 COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser pyproject.docker.toml ./pyproject.toml
 COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
+COPY --chown=appuser:appuser resource/ApkDiffPatch_v1.8.0 ./ApkDiffPatch
 
+# ADP 可执行
+RUN chmod +x /app/ApkDiffPatch/*
 
+ENV PATH="/app/ApkDiffPatch:${PATH}"
 
 # 设置环境变量
 ENV FLASK_APP=webhook/__main__.py \

@@ -1,6 +1,6 @@
 services:
   webhook:
-    image: auto_assemble-webhook:uv
+    image: auto_assemble-webhook:fast_api
     container_name: auto_assemble_webhook
     restart: unless-stopped
     ports:
