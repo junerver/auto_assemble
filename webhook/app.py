@@ -74,3 +74,8 @@ async def index(request: Request):
     except Exception as e:
         logger.error(f"渲染模板时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"模板渲染失败: {str(e)}")
+
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    return {"status": "ok"}

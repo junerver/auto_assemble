@@ -8,8 +8,7 @@ def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
     """
     验证是否是有效的组装响应
     1. 提交信息以 #(.*)_resp# 格式开头
-    2. 添加的文件数量为4个
-    3. 添加的文件中包含apk文件、markdown文件、bak混淆备份文件、MD5文件(无文件尾缀)
+    2. 添加的文件数量至少为4个（apk文件、markdown文件、bak混淆备份文件、MD5文件）
 
     Args:
         commit: 提交信息
@@ -23,7 +22,7 @@ def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
     added_files = commit.added or []
     if not added_files:
         return False, None
-    if len(added_files) != 4:
+    if len(added_files) < 4:
         return False, None
     pattern = r"^([^/]+)/([^/]+)/([^/]+\.apk|[^/]+\.bak|[^/]+\.md|[^/]+)$"
     for file_path in added_files:

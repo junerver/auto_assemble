@@ -47,6 +47,13 @@ class Task:
     # 派生任务源任务ID
     source_task_id: Optional[str] = None
 
+    def __post_init__(self):
+        """在初始化后确保datetime字段的类型正确"""
+        for field in ["created_at", "started_at", "completed_at"]:
+            value = getattr(self, field)
+            if value and isinstance(value, str):
+                setattr(self, field, datetime.fromisoformat(value))
+
     def __lt__(self, other):
         """比较两个任务的优先级
         优先级高的任务先执行，优先级相同时，创建时间早的任务先执行
@@ -112,6 +119,10 @@ class Task:
         row = cursor.fetchone()
         if row:
             row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "started_at", "completed_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
             # 提取元数据字段
             metadata = None
             if row_dict.get("package_name"):
@@ -150,7 +161,12 @@ class Task:
         cursor.execute("SELECT * FROM tasks WHERE status = 'running' ORDER BY started_at DESC LIMIT 1")
         row = cursor.fetchone()
         if row:
-            return cls(**dict(row))
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "started_at", "completed_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            return cls(**row_dict)
         return None
 
     @classmethod
@@ -158,7 +174,15 @@ class Task:
         """获取待处理的任务"""
         cursor = db.cursor()
         cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
-        return [cls(**dict(row)) for row in cursor.fetchall()]
+        tasks = []
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "started_at", "completed_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            tasks.append(cls(**row_dict))
+        return tasks
 
     @classmethod
     def get_recent_tasks(
@@ -223,6 +247,10 @@ class Task:
         tasks = []
         for row in cursor.fetchall():
             row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "started_at", "completed_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
             # 提取元数据字段
             metadata = None
             if row_dict.get("package_name"):
@@ -329,9 +357,9 @@ class Task:
             "commit_url": self.commit_url,
             "priority": self.priority,
             "retries": self.retries,
-            "created_at": self.created_at,
-            "started_at": self.started_at,
-            "completed_at": self.completed_at,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "status": self.status,
             "error": self.error,
             "commit_hash": self.commit_hash,

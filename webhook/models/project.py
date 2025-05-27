@@ -26,6 +26,13 @@ class Project:
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+    def __post_init__(self):
+        """在初始化后确保datetime字段的类型正确"""
+        for field in ["created_at", "updated_at"]:
+            value = getattr(self, field)
+            if value and isinstance(value, str):
+                setattr(self, field, datetime.fromisoformat(value))
+
     @classmethod
     def get_by_id(cls, project_id: str, db: sqlite3.Connection) -> Optional["Project"]:
         """根据ID获取项目"""
@@ -33,7 +40,12 @@ class Project:
         cursor.execute("SELECT * FROM project_config WHERE id = ?", (project_id,))
         row = cursor.fetchone()
         if row:
-            return cls(**dict(row))
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "updated_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            return cls(**row_dict)
         return None
 
     @classmethod
@@ -43,7 +55,12 @@ class Project:
         cursor.execute("SELECT * FROM project_config WHERE project_url = ?", (project_url,))
         row = cursor.fetchone()
         if row:
-            return cls(**dict(row))
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "updated_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            return cls(**row_dict)
         return None
 
     @classmethod
@@ -53,7 +70,12 @@ class Project:
         cursor.execute("SELECT * FROM project_config WHERE prod_name = ?", (prod_name,))
         row = cursor.fetchone()
         if row:
-            return cls(**dict(row))
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "updated_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            return cls(**row_dict)
         return None
 
     @classmethod
@@ -61,7 +83,15 @@ class Project:
         """获取所有项目"""
         cursor = db.cursor()
         cursor.execute("SELECT * FROM project_config ORDER BY prod_name")
-        return [cls(**dict(row)) for row in cursor.fetchall()]
+        projects = []
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            # 转换datetime字段
+            for field in ["created_at", "updated_at"]:
+                if row_dict.get(field):
+                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+            projects.append(cls(**row_dict))
+        return projects
 
     def save(self, db: sqlite3.Connection) -> None:
         """保存项目配置"""

@@ -47,6 +47,7 @@ class TaskService:
             is_resp, resp_hash = is_valid_assemble_response(commits[0])
             if is_resp:
                 # 更新任务响应哈希
+                logging.info(f"更新任务响应哈希: {resp_hash}")
                 prod_name, task_name = parse_build_task(commits[0])
                 task_id = f"{prod_name},{task_name}"
                 TaskService.update_response_hash(task_id, resp_hash, db=db)
@@ -89,9 +90,10 @@ class TaskService:
         task_id = f"{prod_name},{task_name}"
         task = Task.get_by_id(task_id, db)
         if task:
-            if task.status == "failed":
-                task.update_status("pending")
-                logging.warning(f"任务id：{task_id} 存在（失败），加入队列")
+            if task.status == "failed" or task.status == "pending":
+                if task.status == "failed":
+                    task.update_status("pending", db=db)
+                logging.warning(f"任务id：{task_id} 存在（失败/待执行），加入队列")
                 return task
             else:
                 logging.warning(f"任务id：{task_id} 已存在，跳过执行")
