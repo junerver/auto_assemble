@@ -12,7 +12,7 @@ import requests
 from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
-from auto_assemble.types import BuildMetadata
+from auto_assemble.types import BuildMetadata, SignConfig
 from common.config import config
 from common.git import git_push, git_reset_and_clean
 
@@ -134,7 +134,7 @@ def execute_gradle_build(release: bool = True):
         return False
 
 
-def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[bool, str]:
+def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_config: SignConfig) -> tuple[bool, str]:
     """
     复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
 
@@ -142,6 +142,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
         apk_name: APK文件名
         target_dir: 目标目录
         release: 是否为release包
+        sign_config: 项目签名配置信息
     Returns:
         tuple<bool, str>: 复制是否成功, apk文件名(不包含尾缀)
     """
@@ -152,11 +153,29 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
         output_dir = config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
         # 复制APK文件
         source_apk = os.path.join(output_dir, apk_name)
+        normalized_apk = os.path.join(output_dir, apk_name.replace(".apk", "_normalized.apk"))
         target_apk = os.path.join(target_dir, apk_name)
 
         if os.path.exists(source_apk):
-            shutil.copy2(source_apk, target_apk)
-            logging.info(f"成功复制APK文件: {apk_name}")
+            # 使用 ApkNormalized 预处理
+            normalized_cmd = [
+                "ApkNormalized",
+                source_apk,
+                normalized_apk,
+            ]
+            logging.info(f"执行ApkNormalized命令: {' '.join(normalized_cmd)}")
+            subprocess.run(
+                normalized_cmd,
+                stdout=sys.stdout,
+                stderr=sys.stderr,
+                text=True,
+                encoding="utf-8",  # ✅ 修改为 utf-8
+                errors="replace",  # ✅ 可选，避免报错，替换非法字符
+            )
+            logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
+            # 使用 34.0.0 的apksigner重新签名
+            signed_apk, signed_size = sign_apk(normalized_apk, sign_config, target_apk)
+            logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
         else:
             logging.error(f"源APK文件不存在: {source_apk}")
             return False, ""
@@ -173,15 +192,29 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool) -> tuple[b
             # 复制metadata文件
             shutil.copy2(source_metadata, target_metadata)
             # todo: 插入基座依赖说明
+            # 修改metadata文件中的 File Size 内容
+            with open(target_metadata, "r", encoding="utf-8") as f:
+                content = f.read()
+                file_size = re.search(r"File Size: (\d+) bytes", content).group(1)
+                content = re.sub(
+                    r"File Size: \d+ bytes \(\d+ KB\)",
+                    f"File Size: {signed_size} bytes ({signed_size // 1024} KB)",
+                    content,
+                )
+                logging.info(f"原始 file_size: {file_size}，修改后 file_size: {signed_size}")
+            with open(target_metadata, "w", encoding="utf-8") as f:
+                f.write(content)
             # 在metadata末尾追加写入
             with open(target_metadata, "a", encoding="utf-8") as f:
-                f.write(f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated}")
+                f.write(
+                    f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated} \n\n是否Normalized: True"
+                )
+
             # 在目标目录下创建md5作为文件名的空白文件
             open(os.path.join(target_dir, md5), "w").close()
             logging.info("成功复制metadata文件")
 
-            # todo: 解析metadata文件，调用接口，记录任务对应的元数据
-            # 解析metadata文件
+            # 解析metadata文件，调用接口，记录任务对应的元数据
             with open(target_metadata, "r", encoding="utf-8") as f:
                 metadata_text = f.read()
             # 解析metadata文件
@@ -312,7 +345,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         logging.info("开始执行构建流程")
 
         # 检查基座工程
-        check_uni_base()
+        sign_config = check_uni_base()
 
         # 执行gradle构建
         if not execute_gradle_build(release):
@@ -326,7 +359,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
             target_dir = get_distribution_target_dir(apk_name)
 
         # 复制构建产物，返回是否成功和apk文件名
-        success, apk_name = copy_build_outputs(apk_name, target_dir, release)
+        success, apk_name = copy_build_outputs(apk_name, target_dir, release, sign_config)
         if not success:
             logging.error("复制构建产物失败，终止执行")
             return 20002
@@ -354,6 +387,59 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         # 清理
         logging.info("开始清理基座项目git缓存")
         git_reset_and_clean(repo_path=config.ANDROID_UNI_BASE_PATH)
+
+
+def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tuple[str, int]:
+    """
+    对APK文件进行签名
+
+    Args:
+        origin_apk (str): 输入的原始文件
+        sign_config (SignConfig): 签名配置
+        output (str, optional): 输出文件，如不配置则默认输出到.apk同目录下，文件名称为原文件名+_signed.apk
+
+    Returns:
+        str,int: 签名后的文件路径, 重新签名后的文件体积
+    """
+    apk_signer = "/opt/android-sdk/build-tools/34.0.0/apksigner"
+    if not os.path.exists(apk_signer):
+        raise FileNotFoundError(f"apksigner 文件不存在: {apk_signer}")
+    if output is None:
+        output = os.path.splitext(origin_apk)[0] + "_signed.apk"
+    cmd = [
+        apk_signer,
+        "sign",
+        "--ks",
+        sign_config["key_store"],
+        "--ks-key-alias",
+        sign_config["alias"],
+        "--ks-pass",
+        f"pass:{sign_config['ks_pass']}",
+        "--key-pass",
+        f"pass:{sign_config['key_pass']}",
+        "--v1-signing-enabled",
+        "true",
+        "--v2-signing-enabled",
+        "true",
+        "--out",
+        output,
+        origin_apk,
+    ]
+    logging.info(f"执行命令: {' '.join(cmd)}")
+    subprocess.run(
+        cmd,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        text=True,
+        encoding="utf-8",  # ✅ 修改为 utf-8
+        errors="replace",  # ✅ 可选，避免报错，替换非法字符
+    )
+    # 检查输出目录下是否存在签名创建的idsig文件
+    if os.path.exists(f"{output}.idsig"):
+        # 删除idsig文件
+        os.remove(f"{output}.idsig")
+    # 获取重新签名后的文件体积
+    return output, os.path.getsize(output)
 
 
 if __name__ == "__main__":
