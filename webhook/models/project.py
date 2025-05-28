@@ -9,7 +9,7 @@ LastEditTime: 2025-05-15 18:06:21
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional
 
 from common.time import safe_convert_datetime
 

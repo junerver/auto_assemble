@@ -46,7 +46,7 @@ async def check_ip(request: Request):
             status_code=200,
             content=response_date.model_dump(),
         )
-    except Exception as e:
+    except Exception:
         return JSONResponse(
             status_code=404,
             content={

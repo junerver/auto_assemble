@@ -2,7 +2,7 @@ import sys
 
 import uvicorn
 
-from webhook.config import PORT, DEBUG
+from webhook.config import PORT
 
 
 def main():

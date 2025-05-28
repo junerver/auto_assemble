@@ -25,13 +25,13 @@ def main():
         client_publish_async("fork", "派生任务", f"开始从{fork_task_id}拷贝资源")
         logging.info(f"复制源文件: {fork_task_id}")
         temp_dir, fork_task_info = copy_source(fork_task_id)
-        client_publish_async("fork", "派生任务", f"资源拷贝完成，开始修改 uni-res 资源")
+        client_publish_async("fork", "派生任务", "资源拷贝完成，开始修改 uni-res 资源")
         # 修改 uni-res 资源
         modify_uni_res(temp_dir, fork_task_info)
-        client_publish_async("fork", "派生任务", f"修改 uni-res 资源完成，开始创建新的派生任务")
+        client_publish_async("fork", "派生任务", "修改 uni-res 资源完成，开始创建新的派生任务")
         # 创建新的派生任务
         re_req(temp_dir, fork_task_info)
-        client_publish_async("fork", "派生任务", f"创建新的派生任务完成，等待任务执行...")
+        client_publish_async("fork", "派生任务", "创建新的派生任务完成，等待任务执行...")
         return 0
     except Exception as e:
         if isinstance(e, BusinessException):
