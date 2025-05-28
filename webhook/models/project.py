@@ -9,7 +9,9 @@ LastEditTime: 2025-05-15 18:06:21
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
+
+from common.time import safe_convert_datetime
 
 
 @dataclass
@@ -30,8 +32,7 @@ class Project:
         """在初始化后确保datetime字段的类型正确"""
         for field in ["created_at", "updated_at"]:
             value = getattr(self, field)
-            if value and isinstance(value, str):
-                setattr(self, field, datetime.fromisoformat(value))
+            setattr(self, field, safe_convert_datetime(value))
 
     @classmethod
     def get_by_id(cls, project_id: str, db: sqlite3.Connection) -> Optional["Project"]:
@@ -43,8 +44,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
 
@@ -58,8 +58,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
 
@@ -73,8 +72,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
 
@@ -88,8 +86,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                row_dict[field] = safe_convert_datetime(row_dict.get(field))
             projects.append(cls(**row_dict))
         return projects
 

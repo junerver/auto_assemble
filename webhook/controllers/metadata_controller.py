@@ -20,14 +20,7 @@ async def create_metadata(
     try:
         metadata = MetadataService.create_metadata(
             task_id=task_id,
-            package_name=req.package_name,
-            version_name=req.version_name,
-            version_code=req.version_code,
-            build_type=req.build_type,
-            flavor=req.flavor,
-            build_date=req.build_date,
-            file_size=req.file_size,
-            md5=req.md5,
+            metadata_model=req,
             db=db,
         )
         return JSONResponse(status_code=201, content=metadata.to_dict())

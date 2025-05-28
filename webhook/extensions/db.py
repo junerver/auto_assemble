@@ -16,6 +16,7 @@ from webhook.config import DB_FILE
 
 def get_db_conn():
     conn = sqlite3.connect(DB_FILE)
+    # 设置查表返回为Row，这是一个类似字典的对象，可以通过列名访问数据，实际使用时最好通过dict()方法转换为字典
     conn.row_factory = sqlite3.Row
     return conn
 

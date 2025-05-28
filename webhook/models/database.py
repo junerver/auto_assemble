@@ -111,6 +111,8 @@ def init_db():
             file_size    INTEGER NOT NULL,
             md5          TEXT    NOT NULL,
             created_at   TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            is_normalized BOOLEAN,
+            is_obfuscated BOOLEAN,
             FOREIGN KEY (task_id) REFERENCES tasks(id)
         )
     """
@@ -138,6 +140,10 @@ def init_db():
     migrate_add_operator_to_fork_tasks_nullable(cursor)
     # 25.05.14 迁移添加response_hash字段
     migrate_add_response_hash_to_tasks_nullable(cursor)
+    # 25.05.28 迁移添加is_normalized和is_obfuscated字段
+    migrate_add_is_normalized_and_is_obfuscated_to_metadata_nullable(cursor)
+
+    # 提交更改并关闭连接
     conn.commit()
     conn.close()
 
@@ -187,3 +193,29 @@ def migrate_add_response_hash_to_tasks_nullable(cursor: sqlite3.Cursor):
             ADD COLUMN response_hash TEXT NULL
         """
     )
+
+
+def migrate_add_is_normalized_and_is_obfuscated_to_metadata_nullable(cursor: sqlite3.Cursor):
+    """
+    迁移添加is_normalized和is_obfuscated字段为可空
+    """
+    try:
+        # 分别检查和添加每个字段
+        if not _column_exists(cursor, "build_task_metadata", "is_normalized"):
+            cursor.execute(
+                """
+                ALTER TABLE build_task_metadata
+                    ADD COLUMN is_normalized BOOLEAN NULL
+                """
+            )
+
+        if not _column_exists(cursor, "build_task_metadata", "is_obfuscated"):
+            cursor.execute(
+                """
+                ALTER TABLE build_task_metadata
+                    ADD COLUMN is_obfuscated BOOLEAN NULL
+                """
+            )
+    except sqlite3.Error as e:
+        # 记录错误但不中断迁移过程
+        print(f"迁移警告: 添加字段时出错 - {e}")

@@ -34,7 +34,7 @@ class ForkTaskModel(ForkTaskReq):
     """派生任务详情"""
 
     id: str = Field(..., description="派生任务的任务id")
-    created_at: datetime = Field(..., description="派生任务创建时间")
+    created_at: Optional[datetime] = Field(None, description="派生任务创建时间")
 
 
 class ForkTaskResp(BaseModel):
@@ -55,12 +55,14 @@ class MetaDataModel(BaseModel):
     build_date: str = Field(..., description="构建日期")
     file_size: int = Field(..., description="文件大小（Kb）")
     md5: str = Field(..., description="MD5")
+    is_normalized: Optional[bool] = Field(False, description="是否已经归一化")
+    is_obfuscated: Optional[bool] = Field(False, description="是否已经混淆")
 
 
 class MetaDataPostResp(MetaDataModel):
     id: int = Field(..., description="主键id")
     task_id: str = Field(..., description="构建任务id")
-    created_at: datetime = Field(..., description="添加事件")
+    created_at: Optional[datetime] = Field(None, description="添加事件")
 
 
 class ProjectModel(BaseModel):
@@ -73,8 +75,8 @@ class ProjectModel(BaseModel):
     uniapp_id: str = Field(..., description="项目 UniApp 后台 appid")
     uniapp_appkey: str = Field(..., description="项目 UniApp 后台 appkey")
     uniapp_is_cli: bool = Field(..., description="项目是否为cli创建项目")
-    created_at: datetime = Field(..., description="项目配置创建时间")
-    updated_at: datetime = Field(..., description="项目配置更新时间")
+    created_at: Optional[datetime] = Field(None, description="项目配置创建时间")
+    updated_at: Optional[datetime] = Field(None, description="项目配置更新时间")
 
 
 class ConfigureProjectResp(BaseRespModel):

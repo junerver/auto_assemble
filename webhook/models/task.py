@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Optional
 
+from common.time import safe_convert_datetime
+
 # 任务状态，包含：pending（待处理）、running（运行中）、completed（已完成）、failed（失败）、outdated（过期）
 TaskStatus = Literal["pending", "running", "completed", "failed", "outdated"]
 
@@ -52,7 +54,7 @@ class Task:
         for field in ["created_at", "started_at", "completed_at"]:
             value = getattr(self, field)
             if value and isinstance(value, str):
-                setattr(self, field, datetime.fromisoformat(value))
+                setattr(self, field, safe_convert_datetime(value))
 
     def __lt__(self, other):
         """比较两个任务的优先级
@@ -122,7 +124,7 @@ class Task:
             # 转换datetime字段
             for field in ["created_at", "started_at", "completed_at"]:
                 if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                    row_dict[field] = safe_convert_datetime(row_dict[field])
             # 提取元数据字段
             metadata = None
             if row_dict.get("package_name"):
@@ -165,7 +167,7 @@ class Task:
             # 转换datetime字段
             for field in ["created_at", "started_at", "completed_at"]:
                 if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                    row_dict[field] = safe_convert_datetime(row_dict[field])
             return cls(**row_dict)
         return None
 
@@ -180,7 +182,7 @@ class Task:
             # 转换datetime字段
             for field in ["created_at", "started_at", "completed_at"]:
                 if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                    row_dict[field] = safe_convert_datetime(row_dict[field])
             tasks.append(cls(**row_dict))
         return tasks
 
@@ -250,7 +252,7 @@ class Task:
             # 转换datetime字段
             for field in ["created_at", "started_at", "completed_at"]:
                 if row_dict.get(field):
-                    row_dict[field] = datetime.fromisoformat(row_dict[field])
+                    row_dict[field] = safe_convert_datetime(row_dict[field])
             # 提取元数据字段
             metadata = None
             if row_dict.get("package_name"):

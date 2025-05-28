@@ -30,18 +30,29 @@ AUTHORIZED_IP_ROLE_MAP = {
 @router.get("/check-ip", response_model=AuthResponse)
 async def check_ip(request: Request):
     """检查客户端IP是否授权"""
-    client_ip = request.client.host
-    is_authorized = client_ip in AUTHORIZED_IP_ROLE_MAP
-    role = AUTHORIZED_IP_ROLE_MAP.get(client_ip) or "guest"
+    try:
+        client_ip = request.client.host
+        is_authorized = client_ip in AUTHORIZED_IP_ROLE_MAP
+        role = AUTHORIZED_IP_ROLE_MAP.get(client_ip) or "guest"
 
-    response_date = AuthResponse(
-        authorized=is_authorized,
-        client_ip=client_ip,
-        role=role,
-        permissions=ROLE_MAP[role] if is_authorized else [],
-    )
+        response_date = AuthResponse(
+            authorized=is_authorized,
+            client_ip=client_ip,
+            role=role,
+            permissions=ROLE_MAP[role] if is_authorized else [],
+        )
 
-    return JSONResponse(
-        status_code=200,
-        content=response_date.model_dump(),
-    )
+        return JSONResponse(
+            status_code=200,
+            content=response_date.model_dump(),
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "authorized": False,
+                "client_ip": client_ip,
+                "role": "guest",
+                "permissions": [],
+            },
+        )

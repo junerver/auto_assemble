@@ -2,20 +2,14 @@ import sqlite3
 from typing import Optional
 
 from webhook.models.metadata import BuildMetadata
+from webhook.types import MetaDataModel
 
 
 class MetadataService:
     @staticmethod
     def create_metadata(
         task_id: str,
-        package_name: str,
-        version_name: str,
-        version_code: int,
-        build_type: str,
-        flavor: str,
-        build_date: str,
-        file_size: int,
-        md5: str,
+        metadata_model: MetaDataModel,
         db: sqlite3.Connection = None,
     ) -> BuildMetadata:
         """创建构建任务产物元数据"""
@@ -24,17 +18,8 @@ class MetadataService:
         if existing_metadata:
             raise ValueError(f"任务ID {task_id} 已存在元数据")
 
-        metadata = BuildMetadata(
-            task_id=task_id,
-            package_name=package_name,
-            version_name=version_name,
-            version_code=version_code,
-            build_type=build_type,
-            flavor=flavor,
-            build_date=build_date,
-            file_size=file_size,
-            md5=md5,
-        )
+        # 使用字典解包的方式创建元数据
+        metadata = BuildMetadata(task_id=task_id, **metadata_model.model_dump(exclude_unset=True))
         metadata.save(db)
         return metadata
 

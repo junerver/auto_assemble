@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from common.time import safe_convert_datetime
+
 
 @dataclass
 class BuildMetadata:
@@ -31,6 +33,10 @@ class BuildMetadata:
     md5: Optional[str] = None
     # 创建时间
     created_at: Optional[datetime] = None
+    # 是否已经ApkNormalize归一化
+    is_normalized: Optional[bool] = None
+    # 是否UniApp资源已经混淆
+    is_obfuscated: Optional[bool] = None
 
     def save(self, db: sqlite3.Connection):
         """保存构建任务产物元数据"""
@@ -39,8 +45,8 @@ class BuildMetadata:
         cursor.execute(
             """
             INSERT INTO build_task_metadata (task_id, package_name, version_name, version_code, build_type, flavor,
-                                             build_date, file_size, md5, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                             build_date, file_size, md5, created_at, is_normalized, is_obfuscated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)
             """,
             (
                 self.task_id,
@@ -53,6 +59,8 @@ class BuildMetadata:
                 self.file_size,
                 self.md5,
                 self.created_at,
+                self.is_normalized,
+                self.is_obfuscated,
             ),
         )
         self.id = cursor.lastrowid
@@ -75,7 +83,7 @@ class BuildMetadata:
         if row:
             row_dict = dict(row)
             if row_dict.get("created_at"):
-                row_dict["created_at"] = datetime.fromisoformat(row_dict["created_at"])
+                row_dict["created_at"] = safe_convert_datetime(row_dict["created_at"])
             return cls(**row_dict)
         return None
 
@@ -93,4 +101,6 @@ class BuildMetadata:
             "file_size": self.file_size,
             "md5": self.md5,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "is_normalized": self.is_normalized,
+            "is_obfuscated": self.is_obfuscated,
         }

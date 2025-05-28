@@ -22,14 +22,14 @@ services:
       - PORT=5005
       - FLASK_DEBUG=false
       - OBFUSCATOR_PRESET=low
-      - API_TEST=true
+      - API_TEST=false
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5005/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    command: [ "uv", "run", "webhook" ]
+    command: ["uv", "run", "webhook"]
     depends_on:
       - git-repo
 

@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -26,11 +26,14 @@ from webhook.controllers import (
     webhook_controller,
 )
 from webhook.extensions.middlewares import DBSessionMiddleware
+from webhook.models.database import init_db
 
 # 配置日志
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# 初始化数据库
+init_db()
 app = FastAPI()
 
 # 使用绝对路径配置模板目录
