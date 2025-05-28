@@ -95,6 +95,7 @@ class Task:
         )
         db.commit()
 
+    # noinspection PyTypeChecker
     @classmethod
     def get_by_id(cls, task_id: str, db: sqlite3.Connection) -> Optional["Task"]:
         """根据ID获取任务"""
@@ -160,6 +161,7 @@ class Task:
             return task
         return None
 
+    # noinspection PyTypeChecker
     @classmethod
     def get_running_task(cls, db: sqlite3.Connection) -> Optional["Task"]:
         """获取正在运行的任务"""
@@ -175,6 +177,7 @@ class Task:
             return cls(**row_dict)
         return None
 
+    # noinspection PyTypeChecker
     @classmethod
     def get_pending_tasks(cls, db: sqlite3.Connection = None) -> list["Task"]:
         """获取待处理的任务"""
@@ -190,6 +193,7 @@ class Task:
             tasks.append(cls(**row_dict))
         return tasks
 
+    # noinspection PyTypeChecker
     @classmethod
     def get_recent_tasks(
         cls,

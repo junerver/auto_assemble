@@ -3,6 +3,7 @@ from typing import Literal
 
 
 Work_Mode = Literal["ui", "cli"]
+BuildMode = Literal["dev", "test", "release"]
 
 
 class Config:
@@ -42,7 +43,7 @@ class Config:
         # 当前任务目录，用于指向本次构建任务的目录
         self.cur_task_dir: str = ""
         # 构建模式，默认dev，可选值：dev、test、release
-        self.build_mode: str = "release"
+        self.build_mode: BuildMode = "release"
         # 当前任务id，即 prod_name,req_date
         self.cur_task_id: str = ""
         # 打包机主机地址

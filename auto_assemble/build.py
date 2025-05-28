@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from typing import Optional
 
 import requests
 
@@ -34,13 +35,13 @@ def get_build_resp_message(commit_message: str):
     return f"{get_build_req_label(config.build_mode, 'resp')}{commit_message}"
 
 
-def parse_build_req_message(message: str):
+def parse_build_req_message(message: str) -> tuple[Optional[str], Optional[str]]:
     """
     解析构建请求标签
     Args:
         message (str): 构建请求消息，它是一个 `#{build_mode}_req# {commit_message}` 格式的字符串，需要通过正则提取出build_mode和commit_message
     Returns:
-        tuple: 构建模式，构建请求类型
+        tuple: 构建模式，构建请求的commit message
     """
     pattern = r"#(\w+)_req#\s*(.*)"
     match = re.search(pattern, message)
@@ -160,29 +161,36 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
         is_normalized = False
 
         if os.path.exists(source_apk):
-            try:
-                # 使用 ApkNormalized 预处理
-                normalized_cmd = [
-                    "ApkNormalized",
-                    source_apk,
-                    normalized_apk,
-                ]
-                logging.info(f"执行ApkNormalized命令: {' '.join(normalized_cmd)}")
-                subprocess.run(
-                    normalized_cmd,
-                    stdout=sys.stdout,
-                    stderr=sys.stderr,
-                    text=True,
-                    encoding="utf-8",  # ✅ 修改为 utf-8
-                    errors="replace",  # ✅ 可选，避免报错，替换非法字符
-                )
-                logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
-                # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
-                signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
-                logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
-                is_normalized = True
-            except Exception as e:
-                logging.error(f"AppNormalize\重新签名APK文件时发生错误: {e}")
+            if config.build_mode == "release":
+                try:
+                    # 使用 ApkNormalized 预处理
+                    normalized_cmd = [
+                        "ApkNormalized",
+                        source_apk,
+                        normalized_apk,
+                    ]
+                    logging.info(f"执行ApkNormalized命令: {' '.join(normalized_cmd)}")
+                    subprocess.run(
+                        normalized_cmd,
+                        stdout=sys.stdout,
+                        stderr=sys.stderr,
+                        text=True,
+                        encoding="utf-8",  # ✅ 修改为 utf-8
+                        errors="replace",  # ✅ 可选，避免报错，替换非法字符
+                    )
+                    logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
+                    # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
+                    signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
+                    logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
+                    is_normalized = True
+                except Exception as e:
+                    logging.error(f"AppNormalize\重新签名APK文件时发生错误: {e}")
+                    is_normalized = False
+                    # 回退到原始APK
+                    shutil.copy2(source_apk, target_apk)
+                    logging.info(f"回退复制APK文件: {apk_name}")
+            else:
+                logging.info("非 release 模式，无需 normalized")
                 is_normalized = False
                 # 回退到原始APK
                 shutil.copy2(source_apk, target_apk)
