@@ -265,6 +265,8 @@ function createTaskItem(task, isRunning = false) {
     const isCompleted = task.status === 'completed';
     // 目标url，如果有响应hash，则指向响应hash，否则指向分支
     const targetUrl = task.response_hash ? task.response_hash : getBranchName(task.commit_title);
+    // 是否归一化
+    const isNormalized = task.metadata.is_normalized;
 
     // 构建完成时间显示（仅对已完成的任务显示）
     const completedTimeInfo = isCompleted && task.completed_at ?
@@ -309,6 +311,7 @@ function createTaskItem(task, isRunning = false) {
                     ${source_task_id && isAuthorizedIP ? `<i class="bi bi-link-45deg" 
                     style="font-size: 1rem; color: DarkGray; cursor: pointer;" onclick="openSourceTask('${source_task_id}')" 
                     data-bs-toggle="tooltip" data-bs-custom-class="custom-tooltip" data-bs-title="${source_task_id}"></i>` : ''}
+                    ${isNormalized && isAuthorizedIP ? `<i class="bi bi-wrench-adjustable-circle" style="font-size: 0.9rem; color: mediumaquamarine;"></i>` : ''}
                     ${isRunning && isAuthorizedIP && permissionsConfig.stopTaskEnabled ? `<button class="btn btn-sm btn-outline-danger ms-2 stop-btn" data-task-id="${task.id}">
                         <i class="bi bi-stop-circle"></i> 停止
                     </button>` : ''}
