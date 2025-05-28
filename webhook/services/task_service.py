@@ -260,3 +260,8 @@ class TaskService:
     def get_packer_usage_statistics(db: sqlite3.Connection = None):
         """获取打包机使用人员统计情况"""
         return Task.get_packer_usage_statistics(db)
+
+    @staticmethod
+    def get_other_normalized_tasks(current_task_id: str, db: sqlite3.Connection = None):
+        """获取其他已完成归一化的任务信息"""
+        return Task.get_other_normalized_tasks(current_task_id, db)

@@ -140,8 +140,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
-                    "is_normalized": row_dict.pop("is_normalized") or False,
-                    "is_obfuscated": row_dict.pop("is_obfuscated") or False,
+                    "is_normalized": bool(row_dict.pop("is_normalized")),
+                    "is_obfuscated": bool(row_dict.pop("is_obfuscated")),
                 }
             else:
                 row_dict.pop("package_name")
@@ -277,8 +277,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
-                    "is_normalized": row_dict.pop("is_normalized") or False,
-                    "is_obfuscated": row_dict.pop("is_obfuscated") or False,
+                    "is_normalized": bool(row_dict.pop("is_normalized")),
+                    "is_obfuscated": bool(row_dict.pop("is_obfuscated")),
                 }
             else:
                 row_dict.pop("package_name")
@@ -318,6 +318,25 @@ class Task:
         cursor = db.cursor()
         cursor.execute("SELECT author, COUNT(*) FROM tasks GROUP BY author")
         return [{"author": row[0], "count": row[1]} for row in cursor.fetchall()]
+
+    @classmethod
+    def get_other_normalized_tasks(cls, current_task_id: str, db: sqlite3.Connection) -> list["Task"]:
+        """
+        获取除当前任务外的已执行归一化的任务列表
+        """
+        cursor = db.cursor()
+        prod_name, _ = current_task_id.split(",")
+        cursor.execute(
+            """
+            SELECT btm.task_id
+            FROM build_task_metadata btm
+            WHERE btm.is_normalized = 1
+            AND btm.task_id != ?
+            AND btm.task_id LIKE ? || '%'
+            """,
+            (current_task_id, prod_name),
+        )
+        return [Task.get_by_id(row[0], db) for row in cursor.fetchall()]
 
     def update_response_hash(self, response_hash: str, db: sqlite3.Connection) -> None:
         """更新任务响应哈希"""

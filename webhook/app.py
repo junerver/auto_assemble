@@ -24,6 +24,7 @@ from webhook.controllers import (
     task_controller,
     third_party_controller,
     webhook_controller,
+    patch_controller,
 )
 from webhook.extensions.middlewares import DBSessionMiddleware
 from webhook.models.database import init_db
@@ -68,6 +69,7 @@ app.include_router(project_controller.router)
 app.include_router(task_controller.router)
 app.include_router(third_party_controller.router)
 app.include_router(webhook_controller.router)
+app.include_router(patch_controller.router)
 
 
 @app.get("/", response_class=HTMLResponse)
