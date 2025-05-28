@@ -110,6 +110,8 @@ class Task:
                    btm.build_date,
                    btm.file_size,
                    btm.md5,
+                   btm.is_normalized,
+                   btm.is_obfuscated,
                    ft.source_task_id
             FROM tasks t
                      LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
@@ -137,6 +139,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
+                    "is_normalized": row_dict.pop("is_normalized"),
+                    "is_obfuscated": row_dict.pop("is_obfuscated"),
                 }
             else:
                 row_dict.pop("package_name")
@@ -217,6 +221,8 @@ class Task:
                             btm.build_date,
                             btm.file_size,
                             btm.md5,
+                            btm.is_normalized,
+                            btm.is_obfuscated,
                             ft.source_task_id
                      FROM tasks t
                               LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
@@ -265,6 +271,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
+                    "is_normalized": row_dict.pop("is_normalized"),
+                    "is_obfuscated": row_dict.pop("is_obfuscated"),
                 }
             else:
                 row_dict.pop("package_name")
