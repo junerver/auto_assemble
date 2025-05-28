@@ -250,3 +250,10 @@ class PushEventModel(BaseModel):
     total_commits_count: int = Field(..., description="总提交数量")
     push_options: dict = Field(..., description="推送选项")
     repository: RepositoryInfo = Field(..., description="仓库基本信息")
+
+class PublishSSEModel(BaseModel):
+    """SSE 推送事件请求实体类"""
+
+    type: Optional[str] = Field("toast", description="事件类型")
+    title: str = Field(..., description="事件标题")
+    message: str = Field(..., description="事件消息")

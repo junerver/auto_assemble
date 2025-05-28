@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from webhook.extensions.sse import sse  # 单例实例
+from webhook.types import PublishSSEModel
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -31,4 +32,11 @@ def test_event():
     # 发布事件
     sse.publish("toast", test_data)
 
+    return JSONResponse(status_code=200, content={"status": "success", "message": "Event published"})
+
+
+@router.post("/publish")
+def publish_event(event: PublishSSEModel):
+    """发布事件"""
+    sse.publish(event.type, {"title": event.title, "message": event.message})
     return JSONResponse(status_code=200, content={"status": "success", "message": "Event published"})
