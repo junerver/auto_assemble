@@ -266,7 +266,7 @@ function createTaskItem(task, isRunning = false) {
     // 目标url，如果有响应hash，则指向响应hash，否则指向分支
     const targetUrl = task.response_hash ? task.response_hash : getBranchName(task.commit_title);
     // 是否归一化
-    const isNormalized = task.metadata.is_normalized;
+    const isNormalized = task?.metadata?.is_normalized ?? false;
 
     // 构建完成时间显示（仅对已完成的任务显示）
     const completedTimeInfo = isCompleted && task.completed_at ?

@@ -140,8 +140,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
-                    "is_normalized": row_dict.pop("is_normalized"),
-                    "is_obfuscated": row_dict.pop("is_obfuscated"),
+                    "is_normalized": row_dict.pop("is_normalized") or False,
+                    "is_obfuscated": row_dict.pop("is_obfuscated") or False,
                 }
             else:
                 row_dict.pop("package_name")
@@ -152,6 +152,8 @@ class Task:
                 row_dict.pop("build_date")
                 row_dict.pop("file_size")
                 row_dict.pop("md5")
+                row_dict.pop("is_normalized")
+                row_dict.pop("is_obfuscated")
 
             source_task_id = row_dict.pop("source_task_id")
 
@@ -275,8 +277,8 @@ class Task:
                     "build_date": row_dict.pop("build_date"),
                     "file_size": row_dict.pop("file_size"),
                     "md5": row_dict.pop("md5"),
-                    "is_normalized": row_dict.pop("is_normalized"),
-                    "is_obfuscated": row_dict.pop("is_obfuscated"),
+                    "is_normalized": row_dict.pop("is_normalized") or False,
+                    "is_obfuscated": row_dict.pop("is_obfuscated") or False,
                 }
             else:
                 row_dict.pop("package_name")
@@ -287,6 +289,8 @@ class Task:
                 row_dict.pop("build_date")
                 row_dict.pop("file_size")
                 row_dict.pop("md5")
+                row_dict.pop("is_normalized")
+                row_dict.pop("is_obfuscated")
 
             source_task_id = row_dict.pop("source_task_id")
 
