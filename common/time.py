@@ -31,7 +31,7 @@ def safe_convert_datetime(value: Any) -> Optional[datetime]:
                 # 秒级，直接用
                 timestamp = value
             return datetime.fromtimestamp(timestamp)
-        except Exception as e:
-            logging.error(f"转换失败：{value}，错误信息：{e.with_traceback()}")
+        except Exception:
+            logging.exception(f"转换失败：{value}")
             return None
     return None

@@ -125,12 +125,12 @@ if __name__ == "__main__":
     clean_old_builds()
 
     print("🛠️ 开始打包...")
-    exe_name = run_pyinstaller(_metadata)
+    _exe_name = run_pyinstaller(_metadata)
 
     print("🔍 验证打包结果...")
     check_exe_version(_metadata)
 
     print("📋 复制到 release 目录...")
-    copy_to_release(exe_name)
+    copy_to_release(_exe_name)
 
     print("✅ 打包流程完成！")

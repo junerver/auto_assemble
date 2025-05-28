@@ -83,6 +83,7 @@ class BuildMetadata:
         if row:
             row_dict = dict(row)
             if row_dict.get("created_at"):
+                # noinspection PyTypeChecker
                 row_dict["created_at"] = safe_convert_datetime(row_dict["created_at"])
             return cls(**row_dict)
         return None

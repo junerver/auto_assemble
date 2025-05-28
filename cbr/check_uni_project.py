@@ -4,7 +4,7 @@ import logging
 import os
 
 from cbr.parse_uni_manifest import parse_uni_manifest
-from common.types import CbrEnvVars, ManifestInfo
+from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
 def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[dict[str, str]]]:
@@ -86,7 +86,7 @@ def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[
 
 
 def check_uni_project(
-    env_vars: CbrEnvVars, third_party_configs: list[dict[str, str]]
+    env_vars: CbrEnvVars, third_party_configs: list[ThirdPartyConfig]
 ) -> tuple[bool, ManifestInfo | None, str]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录

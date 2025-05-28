@@ -95,6 +95,47 @@ class Task:
         )
         db.commit()
 
+    @classmethod
+    def _task_row_to_task(cls, row: sqlite3.Row):
+        row_dict = dict(row)
+        # 转换datetime字段
+        for field in ["created_at", "started_at", "completed_at"]:
+            if row_dict.get(field):
+                row_dict[field] = safe_convert_datetime(row_dict[field])
+        # 提取元数据字段
+        metadata = None
+        if row_dict.get("package_name"):
+            metadata = {
+                "package_name": row_dict.pop("package_name"),
+                "version_name": row_dict.pop("version_name"),
+                "version_code": row_dict.pop("version_code"),
+                "build_type": row_dict.pop("build_type"),
+                "flavor": row_dict.pop("flavor"),
+                "build_date": row_dict.pop("build_date"),
+                "file_size": row_dict.pop("file_size"),
+                "md5": row_dict.pop("md5"),
+                "is_normalized": bool(row_dict.pop("is_normalized")),
+                "is_obfuscated": bool(row_dict.pop("is_obfuscated")),
+            }
+        else:
+            row_dict.pop("package_name")
+            row_dict.pop("version_name")
+            row_dict.pop("version_code")
+            row_dict.pop("build_type")
+            row_dict.pop("flavor")
+            row_dict.pop("build_date")
+            row_dict.pop("file_size")
+            row_dict.pop("md5")
+            row_dict.pop("is_normalized")
+            row_dict.pop("is_obfuscated")
+
+        source_task_id = row_dict.pop("source_task_id")
+
+        task = cls(**row_dict)
+        task.metadata = metadata
+        task.source_task_id = source_task_id
+        return task
+
     # noinspection PyTypeChecker
     @classmethod
     def get_by_id(cls, task_id: str, db: sqlite3.Connection) -> Optional["Task"]:
@@ -123,44 +164,7 @@ class Task:
         )
         row = cursor.fetchone()
         if row:
-            row_dict = dict(row)
-            # 转换datetime字段
-            for field in ["created_at", "started_at", "completed_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = safe_convert_datetime(row_dict[field])
-            # 提取元数据字段
-            metadata = None
-            if row_dict.get("package_name"):
-                metadata = {
-                    "package_name": row_dict.pop("package_name"),
-                    "version_name": row_dict.pop("version_name"),
-                    "version_code": row_dict.pop("version_code"),
-                    "build_type": row_dict.pop("build_type"),
-                    "flavor": row_dict.pop("flavor"),
-                    "build_date": row_dict.pop("build_date"),
-                    "file_size": row_dict.pop("file_size"),
-                    "md5": row_dict.pop("md5"),
-                    "is_normalized": bool(row_dict.pop("is_normalized")),
-                    "is_obfuscated": bool(row_dict.pop("is_obfuscated")),
-                }
-            else:
-                row_dict.pop("package_name")
-                row_dict.pop("version_name")
-                row_dict.pop("version_code")
-                row_dict.pop("build_type")
-                row_dict.pop("flavor")
-                row_dict.pop("build_date")
-                row_dict.pop("file_size")
-                row_dict.pop("md5")
-                row_dict.pop("is_normalized")
-                row_dict.pop("is_obfuscated")
-
-            source_task_id = row_dict.pop("source_task_id")
-
-            task = cls(**row_dict)
-            task.metadata = metadata
-            task.source_task_id = source_task_id
-            return task
+            return Task._task_row_to_task(row)
         return None
 
     # noinspection PyTypeChecker
@@ -184,7 +188,7 @@ class Task:
     def get_pending_tasks(cls, db: sqlite3.Connection = None) -> list["Task"]:
         """获取待处理的任务"""
         cursor = db.cursor()
-        cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at ASC")
+        cursor.execute("SELECT * FROM tasks WHERE status = 'pending' ORDER BY created_at")
         tasks = []
         for row in cursor.fetchall():
             row_dict = dict(row)
@@ -260,44 +264,7 @@ class Task:
         cursor.execute(query, params)
         tasks = []
         for row in cursor.fetchall():
-            row_dict = dict(row)
-            # 转换datetime字段
-            for field in ["created_at", "started_at", "completed_at"]:
-                if row_dict.get(field):
-                    row_dict[field] = safe_convert_datetime(row_dict[field])
-            # 提取元数据字段
-            metadata = None
-            if row_dict.get("package_name"):
-                metadata = {
-                    "package_name": row_dict.pop("package_name"),
-                    "version_name": row_dict.pop("version_name"),
-                    "version_code": row_dict.pop("version_code"),
-                    "build_type": row_dict.pop("build_type"),
-                    "flavor": row_dict.pop("flavor"),
-                    "build_date": row_dict.pop("build_date"),
-                    "file_size": row_dict.pop("file_size"),
-                    "md5": row_dict.pop("md5"),
-                    "is_normalized": bool(row_dict.pop("is_normalized")),
-                    "is_obfuscated": bool(row_dict.pop("is_obfuscated")),
-                }
-            else:
-                row_dict.pop("package_name")
-                row_dict.pop("version_name")
-                row_dict.pop("version_code")
-                row_dict.pop("build_type")
-                row_dict.pop("flavor")
-                row_dict.pop("build_date")
-                row_dict.pop("file_size")
-                row_dict.pop("md5")
-                row_dict.pop("is_normalized")
-                row_dict.pop("is_obfuscated")
-
-            source_task_id = row_dict.pop("source_task_id")
-
-            task = cls(**row_dict)
-            task.metadata = metadata
-            task.source_task_id = source_task_id
-            tasks.append(task)
+            tasks.append(Task._task_row_to_task(row))
         return tasks
 
     @classmethod

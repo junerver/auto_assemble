@@ -30,8 +30,8 @@ AUTHORIZED_IP_ROLE_MAP = {
 @router.get("/check-ip", response_model=AuthResponse)
 async def check_ip(request: Request):
     """检查客户端IP是否授权"""
+    client_ip = request.client.host
     try:
-        client_ip = request.client.host
         is_authorized = client_ip in AUTHORIZED_IP_ROLE_MAP
         role = AUTHORIZED_IP_ROLE_MAP.get(client_ip) or "guest"
 

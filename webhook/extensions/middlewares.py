@@ -16,11 +16,7 @@ from webhook.extensions.db import get_db_conn
 
 
 class DBSessionMiddleware(BaseHTTPMiddleware):
-    """数据库会话中间件
-
-    Args:
-        BaseHTTPMiddleware (_type_): _description_
-    """
+    """数据库会话中间件"""
 
     async def dispatch(self, request: Request, call_next):
         request.state.db = get_db_conn()
@@ -35,11 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
-    """服务器日志中间件
-
-    Args:
-        BaseHTTPMiddleware (_type_): _description_
-    """
+    """服务器日志中间件"""
 
     async def dispatch(self, request: Request, call_next):
         logger.info(f"{request.client.host} - - [{request.method}] {request.url.path}")

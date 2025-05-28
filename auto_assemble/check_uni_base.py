@@ -84,7 +84,7 @@ def check_uni_base() -> SignConfig:
         if not all([store_file_match, store_password_match, key_password_match, key_alias_match]):
             raise ValueError("解析签名配置失败: 未找到签名配置信息")
 
-        store_file = store_file_match.group(1)
+        store_file: str = store_file_match.group(1)
         store_password = store_password_match.group(1)
         key_password = key_password_match.group(1)
         key_alias = key_alias_match.group(1)
@@ -106,9 +106,3 @@ def check_uni_base() -> SignConfig:
         error_msg = f"解析签名配置失败: {str(e)}"
         logging.error(error_msg)
         raise ValueError(error_msg)
-
-
-if __name__ == "__main__":
-    config._android_uni_base_path = r"D:\dev\project\uni-base"
-    sign_config = check_uni_base()
-    print(sign_config)

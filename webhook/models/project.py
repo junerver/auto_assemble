@@ -44,6 +44,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
+                # noinspection PyTypeChecker
                 row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
@@ -58,6 +59,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
+                # noinspection PyTypeChecker
                 row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
@@ -72,6 +74,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
+                # noinspection PyTypeChecker
                 row_dict[field] = safe_convert_datetime(row_dict.get(field))
             return cls(**row_dict)
         return None
@@ -86,6 +89,7 @@ class Project:
             row_dict = dict(row)
             # 转换datetime字段
             for field in ["created_at", "updated_at"]:
+                # noinspection PyTypeChecker
                 row_dict[field] = safe_convert_datetime(row_dict.get(field))
             projects.append(cls(**row_dict))
         return projects
