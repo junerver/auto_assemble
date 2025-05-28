@@ -243,8 +243,9 @@ SERVER_HOST_URL=http://localhost:5005
 
 ## Changelog
 
-- `v0.4.1` 接入 ApkDiffPatch，对apk进行统一处理
-- `v0.4.0` 迁移到 fastapi（存在bug，不能投入使用）
+- `v0.4.2` 修复bug，增加归一失败的回退操作
+- `v0.4.1` ~~接入 ApkDiffPatch，对apk进行统一处理~~
+- `v0.4.0` ~~迁移到 fastapi~~
 - `v0.3.10` 规范sse使用，添加类型标注，前端文件指向commit
 - `v0.3.9` 增加权限管理，取消看板轮询，统一使用sse
 - `v0.3.8` 增加多任务支持，用以支持分支merge提交
