@@ -14,6 +14,8 @@ class BuildMetadata(TypedDict):
     build_date: NotRequired[str]
     file_size: NotRequired[int]
     md5: NotRequired[str]
+    is_normalized: NotRequired[bool]
+    is_obfuscated: NotRequired[bool]
 
 
 class SignConfig(TypedDict):

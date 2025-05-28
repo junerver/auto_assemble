@@ -442,6 +442,7 @@ def main(prod_name: str, task_dir: str):
                     temp_dir = obfuscated_dir
                     config.is_obfuscated = True
                 else:
+                    config.is_obfuscated = False
                     logging.error(f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码")
                     # 执行失败，不进行混淆
                     if obfuscated_dir is not None and os.path.exists(obfuscated_dir):
