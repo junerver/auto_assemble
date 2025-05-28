@@ -17,6 +17,7 @@ from auto_assemble.parse_readme import parse_readme
 from auto_assemble.update_android_manifest import update_android_manifest
 from auto_assemble.update_build_gradle import update_build_gradle
 from auto_assemble.update_control_file import update_control_file
+from common.client_publish import client_publish_async
 from common.config import config
 from common.git import sync_repository, check_git_branch
 from common.types import ManifestInfo
@@ -359,6 +360,7 @@ def main(prod_name: str, task_dir: str):
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
         readme_path = os.path.join(config.cur_task_dir, "README.md")
         # 解析readme文件拿到本次打包请求所需的内容
+        client_publish_async("build", "构建任务:copy_res", f"开始解析请求文件 README.md ...")
         readme_info: ManifestInfo | None = parse_readme(readme_path)
         if readme_info is None:
             logging.error("解析readme文件失败，终止执行")
@@ -396,6 +398,7 @@ def main(prod_name: str, task_dir: str):
         if config.build_mode != "dev":
             obfuscated_dir = None
             try:
+                client_publish_async("build", "构建任务:copy_res", "开始执行资源混淆...")
                 # release 构建模式下需要对代码进行混淆，执行javascript-obfuscator命令混淆temp_dir目录下的所有js文件
                 # 在当前目录下复制temp_dir目录，作为混淆后的目录
                 obfuscated_dir = os.path.join(config.cur_task_dir, "obfuscated")
@@ -441,12 +444,14 @@ def main(prod_name: str, task_dir: str):
                     # 将混淆后的目录作为临时目录
                     temp_dir = obfuscated_dir
                     config.is_obfuscated = True
+                    client_publish_async("build", "构建任务:copy_res", "混淆完成")
                 else:
                     config.is_obfuscated = False
                     logging.error(f"javascript-obfuscator命令执行失败: {result.returncode}，回退使用原始代码")
                     # 执行失败，不进行混淆
                     if obfuscated_dir is not None and os.path.exists(obfuscated_dir):
                         shutil.rmtree(obfuscated_dir)
+                    client_publish_async("build", "构建任务:copy_res", "混淆失败，回退使用原始代码")
             except Exception as e:
                 logging.error(f"执行javascript-obfuscator命令失败: {e}")
                 # 执行失败，不进行混淆
@@ -462,6 +467,7 @@ def main(prod_name: str, task_dir: str):
             return 12004
 
         # 更新build.gradle
+        client_publish_async("build", "构建任务:copy_res", "开始执行更新基座工程构建脚本...")
         try:
             if not update_build_gradle(
                 config.BUILD_GRADLE_PATH,
@@ -489,6 +495,7 @@ def main(prod_name: str, task_dir: str):
             return 12007
 
         logging.info("所有操作执行成功")
+        client_publish_async("build", "构建任务:copy_res", "基座工程更新完成...")
         return 0
     except Exception as e:
         if isinstance(e, FileNotFoundError):

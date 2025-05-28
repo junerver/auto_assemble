@@ -14,6 +14,7 @@ from auto_assemble.check_uni_base import check_uni_base
 from auto_assemble.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 from auto_assemble.types import BuildMetadata, SignConfig
+from common.client_publish import client_publish_async
 from common.config import config
 from common.git import git_push, git_reset_and_clean
 from common.md5 import calculate_file_md5
@@ -163,6 +164,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
         if os.path.exists(source_apk):
             if config.build_mode == "release":
                 try:
+                    client_publish_async("build", "构建任务:build", "开始执行ApkNormalized归一化...")
                     # 使用 ApkNormalized 预处理
                     normalized_cmd = [
                         "ApkNormalized",
@@ -180,6 +182,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
                     )
                     logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
                     # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
+                    client_publish_async("build", "构建任务:build", "开始产物签名...")
                     signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
                     logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
                     is_normalized = True
@@ -377,8 +380,9 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         # 执行gradle构建
         if not execute_gradle_build(release):
             logging.error("Gradle构建失败，终止执行")
+            client_publish_async("build", "构建任务:build", "Gradle 构建失败")
             return 20001
-
+        client_publish_async("build", "构建任务:build", "Gradle 构建完毕，开始生成产物...")
         # 获取从release目录读取构建产物名称
         apk_name = get_build_output_name(release)
         # 没有传递时，指向分发目录
@@ -390,7 +394,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         if not success:
             logging.error("复制构建产物失败，终止执行")
             return 20002
-
+        client_publish_async("build", "构建任务:build", "构建产物生成完毕，开始提交基座变更代码...")
         # 更新git信息，执行git add和git commit
         if is_distribution:
             # 来自分发的打包请求，附带提交打包请求的commit信息
@@ -404,6 +408,7 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
             return git_code
 
         logging.info("所有操作执行成功")
+        client_publish_async("build", "构建任务:build", "构建完毕")
         return 0
     except Exception as e:
         logging.error(f"执行过程中发生错误: {e}")

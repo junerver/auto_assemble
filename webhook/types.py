@@ -251,6 +251,7 @@ class PushEventModel(BaseModel):
     push_options: dict = Field(..., description="推送选项")
     repository: RepositoryInfo = Field(..., description="仓库基本信息")
 
+
 class PublishSSEModel(BaseModel):
     """SSE 推送事件请求实体类"""
 
