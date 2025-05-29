@@ -8,9 +8,9 @@ import asyncio
 import logging
 import sys
 
-from .client import EventManager
-from .config import SERVER_HOST_URL
-from .notifications import show_toast
+from manager_client.client import EventManager
+from manager_client.config import SERVER_HOST_URL
+from manager_client.notifications import show_toast
 
 
 def setup_logging():

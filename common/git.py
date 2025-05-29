@@ -132,6 +132,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
             return True
 
         # 执行更新
+        logging.info(f"{repo_path} 开始执行 git pull 拉取更新")
         result = subprocess.run(["git", "pull"], capture_output=True, text=True, encoding="utf-8")
         if result.returncode == 0:
             if is_lfs:
@@ -711,4 +712,54 @@ def git_push(repo_path: str, is_lfs: bool = False):
 
     except Exception as e:
         logging.error(f"{repo_path} git push 执行时发生错误: {str(e)}")
+        return False
+
+
+def confirm_push(staged_files, commit_message):
+    """确认是否推送"""
+    logging.info("=" * 50)
+    logging.info("推送确认")
+    logging.info("=" * 50)
+    logging.info("本次提交的文件:")
+    for file in staged_files:
+        logging.info(f"  - {file}")
+    logging.info(f"提交信息: {commit_message}")
+    logging.info("=" * 50)
+
+    if config.work_mode == "ui":
+        user_input = input("\n是否推送本次提交？(Y/y 确认，直接回车取消): ").strip()
+        return user_input.lower() == "y"
+    else:
+        return True
+
+
+def has_changes(cwd=config.DISTRIBUTION_PATH) -> bool:
+    """检查是否有任何修改（包括未跟踪和已修改的文件）"""
+    try:
+        # 检查未跟踪的文件
+        result = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+        if result.returncode != 0:
+            logging.error("获取未跟踪文件列表失败")
+            return False
+
+        # 检查已修改的文件
+        modified_result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+        if modified_result.returncode != 0:
+            logging.error("获取git状态失败")
+            return False
+
+        # 如果有未跟踪的文件或已修改的文件，返回True
+        return bool(result.stdout.strip()) or bool(modified_result.stdout.strip())
+    except Exception as e:
+        logging.error(f"检查git状态时发生错误: {str(e)}")
         return False

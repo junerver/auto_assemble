@@ -1,6 +1,8 @@
+import argparse
 import os
 import shutil
 import subprocess
+import sys
 
 import toml
 
@@ -67,17 +69,24 @@ def clean_old_builds():
 
 
 # 运行 PyInstaller 进行打包
-def run_pyinstaller(metadata):
-    """运行 PyInstaller 打包"""
-    version_str = ".".join(map(str, metadata["version"]))
-    exe_name = f"{metadata['product_name']}({version_str})"
+def run_pyinstaller(version: str, module_name: str, exe_name: str = None):
+    """运行 PyInstaller 打包
+
+    Args:
+        version 版本信息
+        module_name 需要打包的模块
+        exe_name 最终可执行文件名称，如果未指定，则使用模块名与版本号拼接
+    """
+    version_str = ".".join(map(str, version))
+    if exe_name is None:
+        exe_name = f"{module_name}({version_str})"
     cmd = [
         "pyinstaller",
         "--clean",
         "--onefile",
         f"--name={exe_name}",
         "--version-file=version.txt",
-        "auto_assemble/__main__.py",
+        f"{module_name}/__main__.py",
     ]
 
     print("🚀 开始打包...")
@@ -113,8 +122,26 @@ def check_exe_version(metadata):
         subprocess.run(["powershell", "-Command", f'(Get-Item "{exe_path}").VersionInfo'])
 
 
-# 主流程
-if __name__ == "__main__":
+def clear_temp_files():
+    """清除临时文件
+
+    清除临时文件，包括：
+    - version.txt
+    - *.spec，以spec结尾的文件
+    """
+    # 删除 version.txt
+    if os.path.exists("version.txt"):
+        os.remove("version.txt")
+        print("🗑️ 已删除 version.txt")
+
+    # 删除所有 .spec 文件
+    for file in os.listdir():
+        if file.endswith(".spec"):
+            os.remove(file)
+            print(f"🗑️ 已删除 {file}")
+
+
+def main(module_name, exe_name: str = None):
     print("📦 读取 pyproject.toml...")
     _metadata = get_metadata()
 
@@ -125,7 +152,7 @@ if __name__ == "__main__":
     clean_old_builds()
 
     print("🛠️ 开始打包...")
-    _exe_name = run_pyinstaller(_metadata)
+    _exe_name = run_pyinstaller(_metadata["version"], module_name, exe_name)
 
     print("🔍 验证打包结果...")
     check_exe_version(_metadata)
@@ -133,4 +160,18 @@ if __name__ == "__main__":
     print("📋 复制到 release 目录...")
     copy_to_release(_exe_name)
 
+    print("🧹 清理构建创建的临时文件...")
+    # todo: 清除生成的 version.txt 文件、*.spec 文件
+    clear_temp_files()
+
     print("✅ 打包流程完成！")
+
+
+# 主流程
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Pyinstaller build module name, and executable file name")
+    parser.add_argument("-m", "--module", type=str, help="Pyinstaller build module name")
+    parser.add_argument("-e", "--exe", type=str, help="Executable file name")
+    args = parser.parse_args()
+    main(args.module, args.exe)
+    sys.exit()

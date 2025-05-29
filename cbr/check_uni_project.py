@@ -7,7 +7,7 @@ from cbr.parse_uni_manifest import parse_uni_manifest
 from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
-def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[dict[str, str]]]:
+def scan_uni_project(project_root: str, cbr_dir: str) -> tuple[CbrEnvVars, list[ThirdPartyConfig]]:
     """
     1. 扫描项目目录，拿到.git/config 文件，识别出其中项目的地址（作为依据检查项目配置）
     2. 使用git地址作为查询条件找到在打包服务后台配置的项目
@@ -142,9 +142,9 @@ def check_uni_project(
             return False, manifest_info, ""
         for content in resources_contents:
             if content == manifest_info["uniapp_id"]:
-                logging.info(f"资源目录名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}")
+                logging.info(f"资源目录{resources_dir}名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}")
                 return True, manifest_info, resources_dir
-        logging.error(f"资源目录中不存在名称为{manifest_info['uniapp_id']}的目录")
+        logging.error(f"资源目录{resources_dir}中不存在名称为{manifest_info['uniapp_id']}的目录")
         return False, manifest_info, ""
 
     except Exception as e:

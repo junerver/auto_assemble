@@ -11,25 +11,14 @@ from typing import Optional
 import requests
 
 from auto_assemble.check_uni_base import check_uni_base
-from auto_assemble.log import setup_logging
+from common.commit_label import get_build_req_label
+from common.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 from auto_assemble.types import BuildMetadata, SignConfig
 from common.client_publish import client_publish_async
 from common.config import config
 from common.git import git_push, git_reset_and_clean
 from common.md5 import calculate_file_md5
-
-
-def get_build_req_label(build_mode: str, req_resp: str = "req"):
-    """
-    获取构建请求标签
-    Args:
-        req_resp: 请求标识、响应标识
-        build_mode (str): 构建模式，可选值：dev、test、release
-    Returns:
-        str: 构建请求标签
-    """
-    return f"#{build_mode}_{req_resp}# "
 
 
 def get_build_resp_message(commit_message: str):

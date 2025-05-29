@@ -5,8 +5,8 @@ import re
 import requests
 import yaml
 
-from auto_assemble.parse_permissions import parse_and_merge_permissions
-from auto_assemble.parse_third_party_configs import parse_third_party_configs
+from common.parse_permissions import parse_and_merge_permissions
+from common.parse_third_party_configs import parse_third_party_configs
 from common.config import config
 from common.types import ManifestInfo
 

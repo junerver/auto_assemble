@@ -11,9 +11,9 @@ import requests
 from dotenv import load_dotenv
 from win11toast import toast
 
-from auto_assemble.build import get_build_req_label
-from auto_assemble.log import setup_logging
-from auto_assemble.push import confirm_push, has_changes
+from common.commit_label import get_build_req_label
+from common.log import setup_logging
+from common.git import confirm_push, has_changes
 from cbr.check_uni_project import check_uni_project, scan_uni_project
 from cbr.create_readme_file import create_readme_file
 from common.config import config
@@ -124,7 +124,7 @@ def create_build_req():
         # 检查lfs是否正确配置，否则阻止执行
         if not check_git_lfs_installed(config.DISTRIBUTION_PATH):
             logging.error(
-                "Git LFS未正确配置，请先以管理员身份运行PowerShell进入仓库根目录下，执行命令：.\.build_req\git-lfs.ps1"
+                r"Git LFS未正确配置，请先以管理员身份运行PowerShell进入仓库根目录下，执行命令：.\.build_req\git-lfs.ps1"
             )
             return 1
 

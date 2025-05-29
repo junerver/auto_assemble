@@ -12,7 +12,7 @@ import patoolib
 import requests
 
 from auto_assemble.build import parse_build_req_message
-from auto_assemble.log import setup_logging
+from common.log import setup_logging
 from auto_assemble.parse_readme import parse_readme
 from auto_assemble.update_android_manifest import update_android_manifest
 from auto_assemble.update_build_gradle import update_build_gradle

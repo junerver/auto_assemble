@@ -12,7 +12,7 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from .config import SERVER_HOST_URL, RECONNECT_INTERVAL
+from manager_client.config import SERVER_HOST_URL, RECONNECT_INTERVAL
 
 
 class EventManager:
