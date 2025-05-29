@@ -4,9 +4,8 @@ import os
 import subprocess
 from datetime import datetime
 from threading import Thread
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, HTTPException, Path
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 
 from common.err_code import format_error
@@ -15,7 +14,7 @@ from webhook.models.task import Task
 from webhook.config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
 from webhook.services.task_service import TaskService
 from webhook.services.webhook_request_service import WebhookRequestService
-from webhook.types import GitLabPushEventModel, BaseRespModel
+from webhook.types import GitLabPushEventModel
 from webhook.utils.notifications import show_build_toast, show_toast
 from webhook.utils.task_lock import (
     acquire_task_lock,
@@ -183,12 +182,3 @@ def handle_tasks_execution(tasks: list["Task"]):
             add_task_to_queue(task, TaskType.BUILD)
 
     return {"message": "Build started successfully", "task": first_task.to_dict()}
-
-
-@router.delete("/webhook/{task_id}", response_model=BaseRespModel)
-def delete_webhook_requests(
-    task_id: Annotated[str, Path(..., description="任务id")],
-    db=Depends(get_db),
-):
-    WebhookRequestService.delete_webhook_request(task_id, db=db)
-    return {"message": "Webhook requests deleted successfully"}
