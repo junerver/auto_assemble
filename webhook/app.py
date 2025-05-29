@@ -6,7 +6,9 @@ LastEditors: 侯文君
 LastEditTime: 2025-05-15 16:54:26
 """
 
+import importlib
 import logging
+import pkgutil
 from pathlib import Path
 
 from fastapi import FastAPI, Request, HTTPException, Response
@@ -15,18 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from webhook.config import setup_logging
-from webhook.controllers import (
-    auth_controller,
-    events_controller,
-    fork_task_controller,
-    metadata_controller,
-    project_controller,
-    task_controller,
-    third_party_controller,
-    webhook_controller,
-    patch_controller,
-    maintain_controller,
-)
+from webhook import controllers
 from webhook.extensions.middlewares import DBSessionMiddleware
 from webhook.models.database import init_db
 
@@ -61,17 +52,12 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 app.add_middleware(DBSessionMiddleware)  # type: ignore
 # app.add_middleware(RequestLoggingMiddleware)
 
-# 引入路由
-app.include_router(auth_controller.router)
-app.include_router(events_controller.router)
-app.include_router(fork_task_controller.router)
-app.include_router(metadata_controller.router)
-app.include_router(project_controller.router)
-app.include_router(task_controller.router)
-app.include_router(third_party_controller.router)
-app.include_router(webhook_controller.router)
-app.include_router(patch_controller.router)
-app.include_router(maintain_controller.router)
+# 遍历 controllers 包下所有模块
+for _, module_name, _ in pkgutil.iter_modules(controllers.__path__):
+    module = importlib.import_module(f"webhook.controllers.{module_name}")
+    if hasattr(module, "router"):
+        # 引入路由
+        app.include_router(module.router)
 
 
 @app.get("/", response_class=HTMLResponse)
