@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from webhook.extensions.sse import sse
-from ..models.task import Task
+from webhook.models.task import Task
 
 
 def show_toast(title: str, message: str):

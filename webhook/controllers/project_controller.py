@@ -8,9 +8,9 @@ from webhook.types import (
     ConfigureProjectResp,
     ProjectConfigDetailResp,
 )
-from ..models.third_party import ThirdPartyConfig
-from ..services.project_service import ProjectService
-from ..services.third_party_service import ThirdPartyService
+from webhook.models.third_party import ThirdPartyConfig
+from webhook.services.project_service import ProjectService
+from webhook.services.third_party_service import ThirdPartyService
 
 router = APIRouter(prefix="/api/config", tags=["project"])
 

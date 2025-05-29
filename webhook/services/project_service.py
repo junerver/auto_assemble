@@ -1,7 +1,7 @@
 import sqlite3
 import uuid
 
-from ..models.project import Project
+from webhook.models.project import Project
 
 
 class ProjectService:

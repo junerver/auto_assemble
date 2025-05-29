@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Any, Optional
 
 from common.err_code import format_error
-from webhook.types import Commit, PushEventModel
-from ..models.task import Task, TaskStatus
-from ..utils.validators import (
+from webhook.types import Commit, GitLabPushEventModel
+from webhook.models.task import Task, TaskStatus
+from webhook.utils.validators import (
     is_valid_assemble_response,
     is_valid_build_task,
     parse_build_task,
@@ -16,7 +16,9 @@ from ..utils.validators import (
 
 class TaskService:
     @staticmethod
-    def handle_webhook_request(data: PushEventModel, db: sqlite3.Connection) -> tuple[Optional[list["Task"]], str, int]:
+    def handle_webhook_request(
+        data: GitLabPushEventModel, db: sqlite3.Connection
+    ) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
         支持多任务构建，会遍历commits中的提交，过滤有效的提交任务，返回提交任务列表

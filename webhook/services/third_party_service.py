@@ -9,7 +9,7 @@ LastEditTime: 2025-05-15 18:05:29
 import sqlite3
 from typing import Optional
 
-from ..models.third_party import ThirdPartyDict, ThirdPartyConfig
+from webhook.models.third_party import ThirdPartyDict, ThirdPartyConfig
 
 
 class ThirdPartyService:

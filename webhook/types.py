@@ -228,7 +228,7 @@ class RepositoryInfo(BaseModel):
     visibility_level: int
 
 
-class PushEventModel(BaseModel):
+class GitLabPushEventModel(BaseModel):
     """webhook 推送事件请求实体类"""
 
     object_kind: str = Field(..., description="事件类型")

@@ -3,8 +3,8 @@ import logging
 import sqlite3
 from typing import Any
 
-from ..models.webhook_request import WebhookRequest
-from ..types import PushEventModel
+from webhook.models.webhook_request import WebhookRequest
+from webhook.types import GitLabPushEventModel
 
 
 class WebhookRequestService:
@@ -34,7 +34,7 @@ class WebhookRequestService:
             return False
 
     @staticmethod
-    def save_webhook_requests(tasks, event: PushEventModel, headers=None, db: sqlite3.Connection = None):
+    def save_webhook_requests(tasks, event: GitLabPushEventModel, headers=None, db: sqlite3.Connection = None):
         """
         保存多个webhook请求记录，多条任务需要清洗request_data，确保commits中只包含当前任务的commit，通过task.commit_hash对比字典中的 commits.id，
         即保存的request_data中只包含当前任务的commit，这样才能实现多任务处理的同时，还能针对单任务进行重播

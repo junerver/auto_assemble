@@ -1,6 +1,6 @@
 import sqlite3
 
-from ..config import DB_FILE
+from webhook.config import DB_FILE
 
 
 def init_db():

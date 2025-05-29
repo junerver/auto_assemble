@@ -14,8 +14,8 @@ from webhook.types import (
     StopTaskResp,
     TaskDetailResp,
 )
-from ..services.task_service import TaskService
-from ..services.webhook_request_service import WebhookRequestService
+from webhook.services.task_service import TaskService
+from webhook.services.webhook_request_service import WebhookRequestService
 
 router = APIRouter(tags=["task"])
 

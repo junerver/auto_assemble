@@ -5,8 +5,8 @@ from fastapi.responses import JSONResponse
 
 from webhook.extensions.db import get_db
 from webhook.types import BaseRespModel
-from ..models.third_party import ThirdPartyDict
-from ..services.third_party_service import ThirdPartyService
+from webhook.models.third_party import ThirdPartyDict
+from webhook.services.third_party_service import ThirdPartyService
 
 router = APIRouter(prefix="/api/config/third-party", tags=["third-party"])
 

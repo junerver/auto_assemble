@@ -4,19 +4,20 @@ import os
 import subprocess
 from datetime import datetime
 from threading import Thread
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, Path
 from fastapi.responses import JSONResponse
 
 from common.err_code import format_error
 from webhook.extensions.db import get_db, get_db_conn
 from webhook.models.task import Task
-from ..config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
-from ..services.task_service import TaskService
-from ..services.webhook_request_service import WebhookRequestService
-from ..types import PushEventModel
-from ..utils.notifications import show_build_toast, show_toast
-from ..utils.task_lock import (
+from webhook.config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
+from webhook.services.task_service import TaskService
+from webhook.services.webhook_request_service import WebhookRequestService
+from webhook.types import GitLabPushEventModel, BaseRespModel
+from webhook.utils.notifications import show_build_toast, show_toast
+from webhook.utils.task_lock import (
     acquire_task_lock,
     release_task_lock,
     add_task_to_queue,
@@ -92,7 +93,7 @@ def execute_task(task: Task):
                     if next_task_type == TaskType.BUILD:
                         Thread(target=execute_task, args=(next_task,), daemon=True).start()
                     else:
-                        from ..controllers.fork_task_controller import fork_task_worker
+                        from webhook.controllers.fork_task_controller import fork_task_worker
 
                         Thread(target=fork_task_worker, args=(next_task,), daemon=True).start()
                 _db.close()
@@ -105,7 +106,7 @@ def execute_task(task: Task):
 
 
 @router.post("/webhook")
-async def webhook(event: PushEventModel, request: Request, db=Depends(get_db)):
+async def webhook(event: GitLabPushEventModel, request: Request, db=Depends(get_db)):
     """处理Gitlab的webhook请求"""
     logging.info("收到webhook请求")
     try:
@@ -172,3 +173,12 @@ def handle_tasks_execution(tasks: list["Task"]):
             add_task_to_queue(task, TaskType.BUILD)
 
     return {"message": "Build started successfully", "task": first_task.to_dict()}
+
+
+@router.delete("/webhook/{task_id}", response_model=BaseRespModel)
+def delete_webhook_requests(
+    task_id: Annotated[str, Path(..., description="任务id")],
+    db=Depends(get_db),
+):
+    WebhookRequestService.delete_webhook_request(task_id, db=db)
+    return {"message": "Webhook requests deleted successfully"}
