@@ -243,6 +243,7 @@ SERVER_HOST_URL=http://localhost:5005
 
 ## Changelog
 
+- `v0.4.3` 修复dev包不记录响应hash的问题
 - `v0.4.2` 修复bug，增加归一失败的回退操作
 - `v0.4.1` ~~接入 ApkDiffPatch，对apk进行统一处理~~
 - `v0.4.0` ~~迁移到 fastapi~~
