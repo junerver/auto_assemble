@@ -1,8 +1,8 @@
 """
-fork_task - 派生任务创建工具
+common - 公共模块
 """
 
 __author__ = "Junerver"
 __email__ = "junerver@gmail.com"
 
-# fork_task package
+# common package

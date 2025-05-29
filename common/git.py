@@ -9,7 +9,7 @@ from common.config import config
 GitCommitInfo = namedtuple("GitCommitInfo", ["commit_date", "author", "message", "commit_hash"])
 
 
-def get_git_info(repo_path: str) -> GitCommitInfo | None:
+def _get_git_info(repo_path: str) -> GitCommitInfo | None:
     """
     获取Git仓库信息，包含下面信息：
     1. 最后提交时间
@@ -51,7 +51,7 @@ def get_git_info(repo_path: str) -> GitCommitInfo | None:
     return None
 
 
-def git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
+def _git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
     """
     执行git fetch操作, 检查远程是否有更新, 如果本地代码已是最新, 则返回False, 否则返回True
     Args:
@@ -62,7 +62,7 @@ def git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
     """
     try:
         # 检查远程是否有更新
-        if not git_fetch_branch(repo_path):
+        if not _git_fetch_branch(repo_path):
             return False
 
         if is_lfs:
@@ -111,7 +111,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
         os.chdir(repo_path)
 
         # 获取更新前的提交信息
-        before_commit_info = get_git_info(repo_path)
+        before_commit_info = _get_git_info(repo_path)
         if before_commit_info:
             logging.info(
                 f"当前版本 - 提交时间: {before_commit_info.commit_date}, 提交人: {before_commit_info.author}, 提交信息: {before_commit_info.message}"
@@ -127,7 +127,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
             )
 
         # 检查远程是否有更新
-        if not git_fetch(repo_path, is_lfs):
+        if not _git_fetch(repo_path, is_lfs):
             # 不需要拉取更新说明本地已经是最新
             return True
 
@@ -150,7 +150,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
                 logging.info(f"{repo_path} Git LFS pull成功")
 
             # 获取更新后的提交信息
-            after_commit_info = get_git_info(repo_path)
+            after_commit_info = _get_git_info(repo_path)
             if after_commit_info:
                 logging.info(f"{repo_path} 更新成功 - 新版本信息:")
                 logging.info(f"提交时间: {after_commit_info.commit_date}")
@@ -179,7 +179,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
         return False
 
 
-def git_reset_hard_head(repo_path: str) -> bool:
+def _git_reset_hard_head(repo_path: str) -> bool:
     """
     执行git reset --hard HEAD操作，重置当前分支最后一次提交
     """
@@ -201,7 +201,7 @@ def git_reset_hard_head(repo_path: str) -> bool:
         return False
 
 
-def git_clean_fd(repo_path: str) -> bool:
+def _git_clean_fd(repo_path: str) -> bool:
     """
     执行git clean操作，删除所有未跟踪的文件
     """
@@ -245,9 +245,9 @@ def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
                 return False
             logging.info(f"{repo_path} Git LFS clean成功")
 
-        if not git_reset_hard_head(repo_path):
+        if not _git_reset_hard_head(repo_path):
             return False
-        if not git_clean_fd(repo_path):
+        if not _git_clean_fd(repo_path):
             return False
         logging.info(f"{repo_path} Git reset --hard HEAD和git clean -fd执行成功")
         return True
@@ -282,7 +282,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
         logging.info(f"开始检查Git分支: {repo_path}/{target_branch}")
 
         # 1. 获取远程更新
-        if not git_fetch_branch(repo_path):
+        if not _git_fetch_branch(repo_path):
             return False
 
         if is_lfs:
@@ -412,7 +412,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
 
             if local_branch_exists:
                 # 8. 如果本地分支存在，直接切换
-                if not git_checkout_branch(repo_path, target_branch):
+                if not _git_checkout_branch(repo_path, target_branch):
                     return False
 
                 logging.info(f"{repo_path} 成功切换到目标分支: {target_branch}")
@@ -420,7 +420,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
             elif remote_branch_exists:
                 # 9. 如果远程分支存在，从远程分支创建本地分支
                 logging.info(f"{repo_path} 从远程分支创建本地分支: {target_branch}")
-                if not git_checkout_branch(
+                if not _git_checkout_branch(
                     repo_path,
                     target_branch,
                     original_branch=f"origin/{target_branch}",
@@ -435,7 +435,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 logging.info(f"{repo_path} 目标分支不存在，准备从master创建新分支")
 
                 # 从master创建新分支
-                if not git_checkout_branch(repo_path, target_branch, original_branch="master", create_new=True):
+                if not _git_checkout_branch(repo_path, target_branch, original_branch="master", create_new=True):
                     return False
 
                 logging.info(f"{repo_path} 成功从master创建并切换到新分支: {target_branch}")
@@ -444,12 +444,12 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
         except subprocess.TimeoutExpired as e:
             logging.error(f"{repo_path} Git命令执行超时: {e}")
             # 尝试切回原分支
-            git_checkout_branch(repo_path, original_branch)
+            _git_checkout_branch(repo_path, original_branch)
             return False
         except Exception as e:
             logging.error(f"{repo_path} 分支操作过程中发生错误: {e}")
             # 尝试切回原分支
-            git_checkout_branch(repo_path, original_branch)
+            _git_checkout_branch(repo_path, original_branch)
             return False
 
     except Exception as e:
@@ -457,7 +457,7 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
         return False
 
 
-def git_checkout_branch(
+def _git_checkout_branch(
     repo_path: str,
     target_branch: str,
     original_branch: str = None,
@@ -496,7 +496,7 @@ def git_checkout_branch(
         return False
 
 
-def git_fetch_branch(repo_path: str, branch: str = None):
+def _git_fetch_branch(repo_path: str, branch: str = None):
     """
     获取指定分支的最新提交
     Args:
@@ -672,7 +672,7 @@ def git_push(repo_path: str, is_lfs: bool = False):
             current_branch = branch_result.stdout.strip()
 
             # 执行fetch
-            if not git_fetch_branch(repo_path, current_branch):
+            if not _git_fetch_branch(repo_path, current_branch):
                 return False
 
             # 执行rebase
@@ -763,3 +763,17 @@ def has_changes(cwd=config.DISTRIBUTION_PATH) -> bool:
     except Exception as e:
         logging.error(f"检查git状态时发生错误: {str(e)}")
         return False
+
+
+__all__ = [
+    "sync_repository",
+    "git_reset_and_clean",
+    "check_git_branch",
+    "get_untracked_files",
+    "get_staged_files",
+    "git_add",
+    "git_commit",
+    "git_push",
+    "confirm_push",
+    "has_changes",
+]
