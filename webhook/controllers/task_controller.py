@@ -37,7 +37,7 @@ async def outdated_task(task_id: Annotated[str, Path(..., description="任务id"
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.get("/tasks/statistics", response_model=StatisticsResp)
+@router.get("/task/statistics", response_model=StatisticsResp)
 async def get_tasks_statistics(db=Depends(get_db)):
     """获取所有任务的统计情况"""
     tasks = TaskService.get_tasks_statistics(db)

@@ -10,4 +10,5 @@ router = APIRouter(prefix="/api/patch", tags=["patch"])
 
 @router.get("/{task_id}")
 async def get_other_normalized_tasks(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
+    """获取其他已经归一化的任务列表"""
     return TaskService.get_other_normalized_tasks(task_id, db)
