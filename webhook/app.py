@@ -9,7 +9,7 @@ LastEditTime: 2025-05-15 16:54:26
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -83,6 +83,6 @@ async def index(request: Request):
         raise HTTPException(status_code=500, detail=f"模板渲染失败: {str(e)}")
 
 
-@app.api_route("/health", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["HEAD"])
 async def health():
-    return {"status": "ok"}
+    return Response(status_code=200)
