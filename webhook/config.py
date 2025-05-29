@@ -1,8 +1,8 @@
 import logging
+import colorlog
 import os
 from pathlib import Path
-
-import colorlog
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
 # 从环境变量读取配置
@@ -49,19 +49,19 @@ MAX_RETRIES = 3  # 最大重试次数
 
 
 def setup_logging(log_file: str = "webhook.log"):
-    # 关闭fastapi内置log
-    # logging.getLogger("uvicorn.access").disabled = True
-    # logging.getLogger("uvicorn.error").disabled = True
-
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    # 清空原有处理器
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
 
-    # 文件日志
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    # ✅ 替换为 RotatingFileHandler
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=5,
+        encoding="utf-8",
+    )
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 
     # 彩色控制台日志

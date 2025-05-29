@@ -109,6 +109,13 @@ SERVER_HOST_URL=http://localhost:5005
 - Docker 20.10+
 - Docker Compose 2.0+
 
+外部资源：
+
+需要在 resource 目录下添加如下资源：
+
+- ApkDiffPatch_v1.8.0，这是一个用于归一化操作的程序目录
+- commandlinetools-linux
+
 ### 部署步骤
 
 1. 备份本地数据库文件：
