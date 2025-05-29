@@ -105,7 +105,17 @@ def execute_task(task: Task):
         db.close()
 
 
-@router.post("/webhook")
+@router.post(
+    "/webhook",
+    responses={
+        200: {"description": "任务创建成功，立即开始执行"},
+        201: {"description": "构建任务执行完毕，记录提交产物的信息"},
+        202: {"description": "任务创建成功，当前有正在执行的任务，已加入队列"},
+        403: {"description": "hook中不包含任何提交内容"},
+        404: {"description": "提交信息不是有效的构建任务请求"},
+        500: {"description": "处理webhook请求时发生错误"},
+    },
+)
 async def webhook(event: GitLabPushEventModel, request: Request, db=Depends(get_db)):
     """处理Gitlab的webhook请求"""
     logging.info("收到webhook请求")

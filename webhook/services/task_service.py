@@ -37,7 +37,7 @@ class TaskService:
         # 验证提交信息
         commits: list[Commit] = data.commits or []
         if not commits:
-            return None, "No file changes in commit", 200
+            return None, "No file changes in commit", 403
 
         logging.info(
             f"收到{len(commits)}个提交信息: {json.dumps([c.model_dump() for c in commits], ensure_ascii=False, indent=2)}"
@@ -55,8 +55,8 @@ class TaskService:
                 task_id = f"{prod_name},{task_name}"
                 TaskService.update_response_hash(task_id, resp_hash, db=db)
                 WebhookRequestService.delete_webhook_request(task_id, db=db)
-                return None, "This's a assemble response, not a build task", 200
-            return None, "No valid build task", 200
+                return None, "This's a assemble response, not a build task", 201
+            return None, "No valid build task", 404
 
         def build_task(commit: Commit) -> Optional["Task"]:
             prod, task = parse_build_task(commit)
