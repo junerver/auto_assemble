@@ -12,7 +12,7 @@ import pkgutil
 from pathlib import Path
 
 from fastapi import FastAPI, Request, HTTPException, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -72,3 +72,11 @@ async def index(request: Request):
 @app.api_route("/health", methods=["HEAD"])
 async def health():
     return Response(status_code=200)
+
+
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail},
+    )
