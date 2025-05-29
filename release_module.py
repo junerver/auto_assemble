@@ -161,7 +161,6 @@ def main(module_name, exe_name: str = None):
     copy_to_release(_exe_name)
 
     print("🧹 清理构建创建的临时文件...")
-    # todo: 清除生成的 version.txt 文件、*.spec 文件
     clear_temp_files()
 
     print("✅ 打包流程完成！")

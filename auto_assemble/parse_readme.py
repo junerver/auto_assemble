@@ -136,8 +136,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
         abi_filters_match = re.search(r"AbiFilters：`([^`]+)`", content)
         schemes_match = re.search(r"UrlSchemes：`([^`]+)`", content)
 
-        # 解析第三方配置
-        # todo: 重构第三方配置读取，修改为从服务器接口读取，不再解析yaml代码块
+        # 解析第三方配置读取，修改为从服务器接口读取，不再解析yaml代码块
         response = requests.get(f"{config.SERVER_HOST_URL}/api/config/project?name={config.PROD_NAME}")
         if response.status_code == 200:
             data = response.json()

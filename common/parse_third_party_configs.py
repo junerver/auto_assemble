@@ -5,11 +5,12 @@ def parse_third_party_configs(
     third_party_configs: list[ThirdPartyConfig],
 ) -> dict[str, dict]:
     """
-    将从服务器获取的第三方配置列表解析为字典对象
+    将从服务器获取的第三方配置列表解析为字典对象，从平铺格式，聚合成对象字典
     Args:
         third_party_configs: 从服务器获取的第三方配置
 
     Returns:
+        dict[str, dict]: 聚合后的第三方配置字典结构，例如 {"wechat":{"appid":"xxx","secret":"xxx"}}
 
     """
     # 提取第三方配置成正确的格式
