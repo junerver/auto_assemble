@@ -9,7 +9,7 @@ from webhook.types import GitLabPushEventModel
 
 class WebhookRequestService:
     @staticmethod
-    def save_webhook_request(task_id, request_data: dict[str, Any], headers=None, db: sqlite3.Connection = None):
+    def _save_webhook_request(task_id, request_data: dict[str, Any], headers=None, db: sqlite3.Connection = None):
         """
         保存webhook请求记录
         Args:
@@ -46,7 +46,7 @@ class WebhookRequestService:
             filtered_commits = [commit for commit in event.commits if commit.id == task.commit_hash]
             request_data = event.model_dump(exclude={"commits"})
             request_data["commits"] = [c.model_dump() for c in filtered_commits]
-            WebhookRequestService.save_webhook_request(task.id, request_data, headers, db)
+            WebhookRequestService._save_webhook_request(task.id, request_data, headers, db)
 
     @staticmethod
     def get_webhook_request(task_id, db: sqlite3.Connection = None):
@@ -96,4 +96,27 @@ class WebhookRequestService:
             return True
         except Exception as e:
             logging.error(f"更新webhook请求记录的replay_count失败: {str(e)}")
+            return False
+
+    @staticmethod
+    def clear_invalid_webhook_requests(db: sqlite3.Connection = None):
+        """清除无效的webhook请求记录
+
+        遍历当前所有的webhook请求记录，联合查 tasks 表，如果对应表中id的status值为 completed 或者 outdated，
+        则删除该webhook请求记录
+        """
+        try:
+            cursor = db.cursor()
+            cursor.execute("""
+                SELECT task_id FROM webhook_requests
+                LEFT JOIN tasks ON webhook_requests.task_id = tasks.id
+                WHERE tasks.status IN ('completed', 'outdated')
+            """)
+            invalid_request_ids = [row[0] for row in cursor.fetchall()]
+            logging.info(f"找到{len(invalid_request_ids)}个无效的webhook请求记录")
+            for request_id in invalid_request_ids:
+                WebhookRequestService.delete_webhook_request(request_id, db)
+            return True
+        except Exception as e:
+            logging.error(f"清除无效的webhook请求记录失败: {str(e)}")
             return False
