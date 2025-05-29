@@ -57,7 +57,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # 添加数据库、log中间件
-app.add_middleware(DBSessionMiddleware)
+app.add_middleware(DBSessionMiddleware)  # type: ignore
 # app.add_middleware(RequestLoggingMiddleware)
 
 # 引入路由

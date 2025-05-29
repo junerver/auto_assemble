@@ -76,25 +76,17 @@ def fork_task_worker(forked_task: ForkTask):
 @router.post("", response_model=ForkTaskResp)
 async def fork_task(req: ForkTaskReq, db=Depends(get_db)):
     """派生任务"""
-    source_task_id = req.source_task_id
-    source_branch = req.source_branch
-    target_branch = req.target_branch
-    target_version_name = req.target_version_name
-    target_version_code = req.target_version_code
-    commit_message_raw = req.commit_message
-    operator = req.operator
-
-    label = f"#{target_branch}_req#" if target_branch != "master" else "#dev_req#"
-    commit_message = f"{label} {commit_message_raw}\n\n源任务分支: {source_branch}\n源任务ID: {source_task_id}"
+    label = f"#{req.target_branch}_req#" if req.target_branch != "master" else "#dev_req#"
+    commit_message = f"{label} {req.commit_message}\n\n源任务分支: {req.source_branch}\n源任务ID: {req.source_task_id}"
 
     task = ForkTaskService.create_fork_task(
-        source_task_id,
-        source_branch,
-        target_branch,
-        target_version_name,
-        target_version_code,
+        req.source_task_id,
+        req.source_branch,
+        req.target_branch,
+        req.target_version_name,
+        req.target_version_code,
         commit_message,
-        operator,
+        req.operator,
         db=db,
     )
 
@@ -118,10 +110,7 @@ async def fork_task(req: ForkTaskReq, db=Depends(get_db)):
 
 @router.get("/{fork_task_id}", response_model=ForkTaskDetailResp)
 async def get_fork_task(
-    fork_task_id: Annotated[
-        str,
-        Path(..., title="fork_task_id", description="需要查询的派生任务id"),
-    ],
+    fork_task_id: Annotated[str, Path(..., title="fork_task_id", description="需要查询的派生任务id")],
     db=Depends(get_db),
 ):
     """获取派生任务"""

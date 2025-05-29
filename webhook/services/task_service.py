@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from common.err_code import format_error
+from webhook.services.webhook_request_service import WebhookRequestService
 from webhook.types import Commit, GitLabPushEventModel
 from webhook.models.task import Task, TaskStatus
 from webhook.utils.validators import (
@@ -53,6 +54,7 @@ class TaskService:
                 prod_name, task_name = parse_build_task(commits[0])
                 task_id = f"{prod_name},{task_name}"
                 TaskService.update_response_hash(task_id, resp_hash, db=db)
+                WebhookRequestService.delete_webhook_request(task_id, db=db)
                 return None, "This's a assemble response, not a build task", 200
             return None, "No valid build task", 200
 
