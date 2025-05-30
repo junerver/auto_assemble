@@ -1,8 +1,8 @@
 import logging
-import os
 import re
 import subprocess
 from datetime import datetime
+from pathlib import Path
 
 from common.log import setup_logging
 from common.config import config
@@ -106,7 +106,7 @@ def main():
         logging.info("开始执行git推送流程")
 
         # 检查目录是否存在
-        if not os.path.exists(config.DISTRIBUTION_PATH):
+        if not Path(config.DISTRIBUTION_PATH).exists():
             logging.error(f"目录不存在: {config.DISTRIBUTION_PATH}")
             return 11001
 

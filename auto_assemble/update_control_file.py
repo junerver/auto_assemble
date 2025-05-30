@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 
@@ -75,17 +74,3 @@ def update_control_file(control_file_path: str, uniapp_id: str, debug: bool = Fa
     except Exception as e:
         print(f"更新 dcloud_control.xml 文件失败: {e}")
         return False
-
-
-if __name__ == "__main__":
-    # 执行更新，文件位置指向当前目录
-    result = update_control_file(
-        os.path.join(os.path.dirname(__file__), "dcloud_control.xml"),
-        "__UNI__TEST123",
-        debug=True,
-    )
-
-    if result:
-        print("文件更新成功！")
-    else:
-        print("文件更新失败！")

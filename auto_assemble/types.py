@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from pathlib import Path
 from typing import TypedDict, NotRequired
 
 
@@ -18,7 +20,8 @@ class BuildMetadata(TypedDict):
     is_obfuscated: NotRequired[bool]
 
 
-class SignConfig(TypedDict):
+@dataclass
+class SignConfig:
     """签名配置"""
 
     # 签名文件别名
@@ -28,4 +31,4 @@ class SignConfig(TypedDict):
     # 签名文件别名密码
     key_pass: str
     # 签名文件路径
-    key_store: str
+    key_store: Path

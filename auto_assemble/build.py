@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -53,7 +54,7 @@ def get_build_output_name(release):
     raise FileNotFoundError("未找到符合yyyyMMddHHmm格式的APK文件")
 
 
-def get_distribution_target_dir(apk_name: str):
+def get_distribution_target_dir(apk_name: str) -> Path:
     """
     根据APK文件名生成目标目录
     Args:
@@ -61,7 +62,7 @@ def get_distribution_target_dir(apk_name: str):
     Returns:
         str: 目标目录路径
     """
-    return os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, apk_name.replace(".apk", ""))
+    return Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / apk_name.replace(".apk", "")
 
 
 def execute_gradle_build(release: bool = True):
@@ -76,7 +77,7 @@ def execute_gradle_build(release: bool = True):
         logging.info(f"目标项目目录: {config.ANDROID_UNI_BASE_PATH}")
 
         # 检查目录是否存在
-        if not os.path.exists(config.ANDROID_UNI_BASE_PATH):
+        if not Path(config.ANDROID_UNI_BASE_PATH).exists():
             logging.error(f"项目目录不存在: {config.ANDROID_UNI_BASE_PATH}")
             return False
 
@@ -85,7 +86,7 @@ def execute_gradle_build(release: bool = True):
         logging.info(f"已切换到项目目录: {os.getcwd()}")
 
         # 检查 gradlew.bat 是否存在
-        if not os.path.exists("gradlew.bat"):
+        if not Path("gradlew.bat").exists():
             logging.error("gradlew.bat 文件不存在")
             return False
 
@@ -127,7 +128,7 @@ def execute_gradle_build(release: bool = True):
 
 
 # noinspection PyUnusedLocal,PyUnboundLocalVariable
-def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_config: SignConfig) -> tuple[bool, str]:
+def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_config: SignConfig) -> tuple[bool, str]:
     """
     复制构建产物到目标目录，将从分发仓库获取的提交信息补充到元数据文件中，并创建md5作为文件名的空白文件
 
@@ -141,24 +142,24 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
     """
     try:
         # 确保目标目录存在
-        os.makedirs(target_dir, exist_ok=True)
+        target_dir.mkdir(parents=True, exist_ok=True)
         # 根据构建模式确定输出目录
-        output_dir = config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR
+        output_dir: Path = Path(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR)
         # 复制APK文件
-        source_apk = os.path.join(output_dir, apk_name)
-        normalized_apk = os.path.join(output_dir, apk_name.replace(".apk", "_normalized.apk"))
-        target_apk = os.path.join(target_dir, apk_name)
+        source_apk = output_dir / apk_name
+        normalized_apk = output_dir / apk_name.replace(".apk", "_normalized.apk")
+        target_apk = target_dir / apk_name
         is_normalized = False
 
-        if os.path.exists(source_apk):
+        if source_apk.exists():
             if config.build_mode == "release":
                 try:
                     client_publish_async("build", "构建任务:build", "开始执行ApkNormalized归一化...")
                     # 使用 ApkNormalized 预处理
                     normalized_cmd = [
                         "ApkNormalized",
-                        source_apk,
-                        normalized_apk,
+                        str(source_apk),
+                        str(normalized_apk),
                     ]
                     logging.info(f"执行ApkNormalized命令: {' '.join(normalized_cmd)}")
                     subprocess.run(
@@ -172,7 +173,7 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
                     logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
                     # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
                     client_publish_async("build", "构建任务:build", "开始产物签名...")
-                    signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
+                    signed_apk, signed_size, signed_md5 = sign_apk(str(normalized_apk), sign_config, target_apk)
                     logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
                     is_normalized = True
                 except Exception as e:
@@ -192,10 +193,10 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
             return False, ""
 
         # 复制metadata文件
-        source_metadata = os.path.join(output_dir, "release-metadata.md")
-        target_metadata = os.path.join(target_dir, "release-metadata.md")
+        source_metadata = output_dir / "release-metadata.md"
+        target_metadata = target_dir / "release-metadata.md"
 
-        if os.path.exists(source_metadata):
+        if source_metadata.exists():
             # 复制并修改metadata文件
             shutil.copy2(source_metadata, target_metadata)
             # 更新文件内容
@@ -227,7 +228,8 @@ def copy_build_outputs(apk_name: str, target_dir: str, release: bool, sign_confi
                 f.truncate()
 
             # 创建MD5空白文件
-            open(os.path.join(target_dir, md5), "w").close()
+            md5_path = target_dir / md5
+            open(md5_path, "w").close()
             logging.info("成功复制并更新metadata文件")
 
             # 解析metadata并记录到服务器
@@ -414,7 +416,7 @@ def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tu
     对APK文件进行签名
 
     Args:
-        origin_apk (str): 输入的原始文件
+        origin_apk (str): 输入的原始文件路径字符串
         sign_config (SignConfig): 签名配置
         output (str, optional): 输出文件，如不配置则默认输出到.apk同目录下，文件名称为原文件名+_signed.apk
 
@@ -430,13 +432,13 @@ def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tu
         apk_signer,
         "sign",
         "--ks",
-        sign_config["key_store"],
+        str(sign_config.key_store),
         "--ks-key-alias",
-        sign_config["alias"],
+        sign_config.alias,
         "--ks-pass",
-        f"pass:{sign_config['ks_pass']}",
+        f"pass:{sign_config.ks_pass}",
         "--key-pass",
-        f"pass:{sign_config['key_pass']}",
+        f"pass:{sign_config.key_pass}",
         "--v1-signing-enabled",
         "true",
         "--v2-signing-enabled",

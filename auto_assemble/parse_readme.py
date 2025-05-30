@@ -1,6 +1,6 @@
 import logging
-import os
 import re
+from pathlib import Path
 
 import requests
 import yaml
@@ -100,7 +100,7 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
         return {}
 
 
-def parse_readme(readme_path: str) -> ManifestInfo | None:
+def parse_readme(readme_path: Path) -> ManifestInfo | None:
     """
     从 README.md 文件中解析版本信息
     Args:
@@ -120,7 +120,7 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
         如果解析失败则对应值为空字符串
     """
     try:
-        if not os.path.exists(readme_path):
+        if not Path(readme_path).exists():
             logging.warning(f"README.md 文件不存在: {readme_path}")
             return None
 
@@ -197,19 +197,3 @@ def parse_readme(readme_path: str) -> ManifestInfo | None:
     except Exception as e:
         logging.error(f"解析 README.md 文件时发生错误: {e}")
         return None
-
-
-if __name__ == "__main__":
-    # 模块依赖映射字典
-    _result = parse_readme(os.path.join(r"./", "list.md"))
-    print(_result)
-    _modules = _result.get("modules", [])
-    if "Maps : amap" in _modules and "Geolocation : amap" in _modules:
-        # 同时存在高德地图与高德定位
-        _modules.remove("Maps : amap")
-        _modules.remove("Geolocation : amap")
-        _modules.append("Maps : amap & Geolocation : amap")
-    from auto_assemble.update_build_gradle import MODULE_DEPENDENCY_MAP
-
-    deps = [dep for m in _modules if (dep := MODULE_DEPENDENCY_MAP.get(m)) is not None]
-    [print(dep) for dep in deps]

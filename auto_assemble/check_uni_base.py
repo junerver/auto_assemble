@@ -1,6 +1,6 @@
 import logging
-import os
 import re
+from pathlib import Path
 
 from common.config import config
 from auto_assemble.types import SignConfig
@@ -26,11 +26,11 @@ def check_uni_base() -> SignConfig:
         ValueError: 当签名配置解析失败时抛出
     """
     paths_to_check = {
-        "项目目录": config.ANDROID_UNI_BASE_PATH,
+        "项目目录": Path(config.ANDROID_UNI_BASE_PATH),
     }
     # 目录结构检查
     for name, path in paths_to_check.items():
-        if not os.path.exists(path):
+        if not path.exists:
             error_msg = f"{name}不存在: {path}"
             logging.error(error_msg)
             raise FileNotFoundError(error_msg)
@@ -47,8 +47,8 @@ def check_uni_base() -> SignConfig:
 
             missing_items = []
             for item in required_items:
-                item_path = os.path.join(path, item)
-                if not os.path.exists(item_path):
+                item_path = path / item
+                if not item_path.exists():
                     missing_items.append(item)
 
             if missing_items:
@@ -59,12 +59,12 @@ def check_uni_base() -> SignConfig:
             logging.info("项目结构检查通过")
 
     # 解析签名配置
-    build_gradle_path = os.path.join(config.ANDROID_UNI_BASE_PATH, "app", "build.gradle")
-    if not os.path.exists(build_gradle_path):
+    build_gradle_path = Path(config.ANDROID_UNI_BASE_PATH) / "app" / "build.gradle"
+    if not build_gradle_path.exists():
         error_msg = f"app/build.gradle文件不存在: {build_gradle_path}"
         logging.error(error_msg)
         raise FileNotFoundError(error_msg)
-
+    # 提取 signingConfigs 区块内的 config 内容（非贪婪匹配）
     try:
         with open(build_gradle_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -84,13 +84,12 @@ def check_uni_base() -> SignConfig:
         if not all([store_file_match, store_password_match, key_password_match, key_alias_match]):
             raise ValueError("解析签名配置失败: 未找到签名配置信息")
 
-        store_file: str = store_file_match.group(1)
+        store_file_str: str = store_file_match.group(1)
         store_password = store_password_match.group(1)
         key_password = key_password_match.group(1)
         key_alias = key_alias_match.group(1)
         # 处理相对路径
-        if store_file.startswith(".."):
-            store_file = os.path.abspath(os.path.join(config.ANDROID_UNI_BASE_PATH, "app", store_file))
+        store_file = (Path(config.ANDROID_UNI_BASE_PATH) / "app" / store_file_str).resolve()
 
         sign_config = SignConfig(
             alias=key_alias,

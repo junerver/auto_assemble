@@ -6,6 +6,7 @@ import sys
 import textwrap
 import zipfile
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import patoolib
@@ -356,7 +357,7 @@ def main(prod_name: str, task_dir: str):
             return 11003
 
         logging.info(f"不存在产物 {apk_file} 需要执行打包")
-        readme_path = os.path.join(config.cur_task_dir, "README.md")
+        readme_path = Path(config.cur_task_dir) / "README.md"
         # 解析readme文件拿到本次打包请求所需的内容
         client_publish_async("build", "构建任务:copy_res", "开始解析请求文件 README.md ...")
         readme_info: ManifestInfo | None = parse_readme(readme_path)

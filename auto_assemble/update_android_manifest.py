@@ -53,12 +53,7 @@ def update_android_manifest(
     Returns:
         bool: 更新成功返回 True，失败返回 False
     """
-    # 备份原始文件
-    # backup_path = os.path.join(
-    #     os.path.dirname(android_manifest_path), "AndroidManifest_backup.xml"
-    # )
-    # 暂时不备份，因为git本身会追踪文件的修改
-    # shutil.copy(android_manifest_path, backup_path)
+
     permissions = update_info["permissions"]
     # 注册schema在其它App中打开当前App，多个scheme使用','号分割，需要解析成数组，例如：test1,test2
     if "schemes" in update_info:
