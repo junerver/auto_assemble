@@ -7,10 +7,10 @@ import time
 import zipfile
 from datetime import datetime
 
-import requests
 from dotenv import load_dotenv
 from win11toast import toast
 
+from common.api import fetch_task_info
 from common.commit_label import get_build_req_label
 from common.log import setup_logging
 from common.git import confirm_push, has_changes
@@ -26,6 +26,7 @@ from common.git import (
     git_push,
     sync_repository,
 )
+from common.types import TaskInfo
 
 
 def create_build_req():
@@ -217,18 +218,19 @@ def rolling_req_build_status():
     轮询请求构建主机，获取构建状态，toast通知成功、失败
     """
     dots = ""  # 用于存储进度点
-    while True:
+    should_exit = True
+    while not should_exit:
         try:
-            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
-            if response.status_code == 200:
-                task_info = response.json().get("task", {})
-                status = task_info.get("status")
+
+            def on_success(task_info: TaskInfo):
+                nonlocal should_exit, dots
+                status = task_info.status
 
                 if status == "running":
                     dots = dots + "." if len(dots) < 30 else "."
                     logging.info(f"打包中{dots}")
                     time.sleep(5)  # 等待5秒后继续轮询
-                    continue
+                    should_exit = False
                 elif status in ["completed", "failed"]:
                     # 简化版的toast提示
                     success = status == "completed"
@@ -236,7 +238,7 @@ def rolling_req_build_status():
                     logging.info("打包完毕，正在同步本地仓库....")
                     if success:
                         sync_repository(config.DISTRIBUTION_PATH)
-                    message = f"🗃️项目: {task_info.get('prod_name', '')}\n🏗️任务: {task_info.get('task_name', '')}"
+                    message = f"🗃️项目: {task_info.project}\n🏗️任务: {task_info.task}"
                     if success:
                         buttons = [
                             {
@@ -248,15 +250,15 @@ def rolling_req_build_status():
                         toast(f"🎉构建结果:{status_text}", message, buttons=buttons)
                     else:
                         toast(f"🔦构建结果:{status_text}", message, button="我知道了！")
+                    should_exit = True
 
-                    break
-            elif response.status_code == 404:
+            def on_error():
+                nonlocal should_exit
                 logging.info("尚未查询到任务状态，请稍等...")
                 time.sleep(5)  # 等待5秒后继续轮询
-                continue
-            else:
-                logging.error(f"获取任务状态失败: {response.status_code}")
-                break
+                should_exit = False
+
+            fetch_task_info(config.cur_task_id, on_success, on_error)
         except Exception as e:
             logging.error(f"轮询任务状态时发生错误: {str(e)}")
             break
