@@ -16,11 +16,8 @@ from webhook.services.task_service import TaskService
 from webhook.services.webhook_request_service import WebhookRequestService
 from webhook.types import GitLabPushEventModel
 from webhook.utils.notifications import show_build_toast, show_toast
-from webhook.utils.task_lock import (
-    acquire_task_lock,
-    release_task_lock,
-    add_task_to_queue,
-    get_queue_size,
+from webhook.utils.task_manager import (
+    TaskManager,
     TaskType,
 )
 
@@ -47,7 +44,7 @@ def execute_task(task: Task):
         )
         if API_TEST:
             # API 测试模式，不执行任务，直接释放锁，退出执行
-            release_task_lock()
+            TaskManager.release_task_lock()
             return
 
         process = subprocess.Popen(
@@ -74,7 +71,7 @@ def execute_task(task: Task):
                     if task.retries < MAX_RETRIES:
                         task.retries += 1
                         task.priority += 1
-                        add_task_to_queue(task, TaskType.BUILD)
+                        TaskManager.add_task_to_queue(task, TaskType.BUILD)
             except subprocess.TimeoutExpired:
                 process.kill()
                 task.status = "failed"
@@ -86,7 +83,7 @@ def execute_task(task: Task):
             finally:
                 task.save(_db)
                 # 释放任务锁并获取下一个任务
-                next_task_info = release_task_lock()
+                next_task_info = TaskManager.release_task_lock()
                 if next_task_info:
                     next_task_type, next_task = next_task_info
                     if next_task_type == TaskType.BUILD:
@@ -159,15 +156,15 @@ def handle_tasks_execution(tasks: list["Task"]):
         return {"message": "No tasks to execute"}
 
     # 尝试获取任务锁
-    if not acquire_task_lock(TaskType.BUILD):
+    if not TaskManager.acquire_task_lock(TaskType.BUILD):
         # 将所有任务加入队列
         for task in tasks:
-            add_task_to_queue(task, TaskType.BUILD)
+            TaskManager.add_task_to_queue(task, TaskType.BUILD)
         return JSONResponse(
             content={
                 "message": "Tasks added to queue",
                 "tasks": [task.to_dict() for task in tasks],
-                "position": get_queue_size(TaskType.BUILD),
+                "position": TaskManager.get_queue_size(TaskType.BUILD),
             },
             status_code=202,
         )
@@ -179,6 +176,6 @@ def handle_tasks_execution(tasks: list["Task"]):
     # 如果有多个任务，将剩余任务加入队列
     if len(tasks) > 1:
         for task in tasks[1:]:
-            add_task_to_queue(task, TaskType.BUILD)
+            TaskManager.add_task_to_queue(task, TaskType.BUILD)
 
     return {"message": "Build started successfully", "task": first_task.to_dict()}

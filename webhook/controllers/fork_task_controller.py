@@ -19,11 +19,8 @@ from webhook.types import (
     ForkTaskDetailResp,
 )
 from webhook.utils.notifications import show_toast
-from webhook.utils.task_lock import (
-    acquire_task_lock,
-    release_task_lock,
-    add_task_to_queue,
-    get_queue_size,
+from webhook.utils.task_manager import (
+    TaskManager,
     TaskType,
 )
 
@@ -40,7 +37,7 @@ def fork_task_worker(forked_task: ForkTask):
     )
     if API_TEST:
         # API 测试模式，不执行任务，直接释放锁，退出执行
-        release_task_lock()
+        TaskManager.release_task_lock()
         return
 
     process = subprocess.Popen(
@@ -60,7 +57,7 @@ def fork_task_worker(forked_task: ForkTask):
         except subprocess.TimeoutExpired:
             process.kill()
         finally:
-            next_task_info = release_task_lock()
+            next_task_info = TaskManager.release_task_lock()
             if next_task_info:
                 next_task_type, next_task = next_task_info
                 if next_task_type == TaskType.BUILD:
@@ -90,15 +87,15 @@ async def fork_task(req: ForkTaskReq, db=Depends(get_db)):
         db=db,
     )
 
-    if not acquire_task_lock(TaskType.FORK):
+    if not TaskManager.acquire_task_lock(TaskType.FORK):
         logging.info("无法获取任务锁，将任务加入队列")
-        add_task_to_queue(task, TaskType.FORK)
+        TaskManager.add_task_to_queue(task, TaskType.FORK)
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
             content={
                 "message": "Task added to queue",
                 "fork_task": task.to_dict(),
-                "position": get_queue_size(TaskType.FORK),
+                "position": TaskManager.get_queue_size(TaskType.FORK),
             },
         )
 
