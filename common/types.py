@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, Optional
 from xml.dom.minidom import Element
+
+from dataclasses_json import DataClassJsonMixin
 
 
 class ManifestInfo(TypedDict):
@@ -67,3 +69,41 @@ class ThirdPartyConfig(TypedDict):
     dict_value: str
     # 实际配置的值
     config_value: str
+
+
+@dataclass
+class Metadata:
+    package_name: str
+    version_name: str
+    version_code: int
+    build_type: str
+    flavor: str
+    build_date: str
+    file_size: int
+    md5: str
+    is_normalized: bool
+    is_obfuscated: bool
+
+
+@dataclass
+class TaskInfo(DataClassJsonMixin):
+    # 任务id
+    id: str
+    # 任务提交人
+    author: str
+    commit_title: str
+    commit_message: str
+    commit_url: str
+    priority: int
+    retries: int
+    created_at: Optional[str]
+    started_at: Optional[str]
+    completed_at: Optional[str]
+    status: Optional[str]
+    error: Optional[str]
+    commit_hash: Optional[str]
+    response_hash: Optional[str]
+    metadata: Optional[Metadata]
+    source_task_id: Optional[str]
+    project: str
+    task: str

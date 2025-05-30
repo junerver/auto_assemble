@@ -9,9 +9,9 @@ from datetime import datetime
 from typing import Optional
 
 import patoolib
-import requests
 
 from auto_assemble.build import parse_build_req_message
+from common.api import fetch_task_info
 from common.error import BusinessException
 from common.log import setup_logging
 from auto_assemble.parse_readme import parse_readme
@@ -21,7 +21,7 @@ from auto_assemble.update_control_file import update_control_file
 from common.client_publish import client_publish_async
 from common.config import config
 from common.git import sync_repository, check_git_branch, git_reset_and_clean
-from common.types import ManifestInfo
+from common.types import ManifestInfo, TaskInfo
 
 
 def check_paths():
@@ -313,24 +313,21 @@ def main(prod_name: str, task_dir: str):
             config.PROD_NAME = prod_name
             config.cur_task_dir = os.path.join(config.DISTRIBUTION_PATH, prod_name, task_dir)
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
+
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
-            response = requests.get(f"{config.SERVER_HOST_URL}/task/{config.cur_task_id}")
-            if response.status_code == 200:
-                task_info = response.json()["task"]
-                logging.info(f"获取到提交信息: {task_info}")
-                config.build_mode, commit_message = parse_build_req_message(task_info["commit_message"])
+            def on_task_info(task_info: TaskInfo):
+                config.build_mode, commit_message = parse_build_req_message(task_info.commit_message)
                 config.last_commit_message = textwrap.dedent(
                     f"""
-                    
-                    提交时间：{task_info["created_at"]}
-                    提交人: {task_info["author"]}
+
+                    提交时间：{task_info.created_at}
+                    提交人: {task_info.author}
                     提交信息: {commit_message}
-                    提交哈希: {task_info["commit_hash"]}
+                    提交哈希: {task_info.commit_hash}
                     """
                 )
-            else:
-                logging.error(f"获取提交信息失败: {response.status_code}")
-            logging.info(f"获取到项目名称: {config.PROD_NAME}")
+
+            fetch_task_info(config.cur_task_id, on_task_info, lambda: None)
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
             return 10001
@@ -516,12 +513,3 @@ def main(prod_name: str, task_dir: str):
     finally:
         if temp_dir is not None and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
-
-
-if __name__ == "__main__":
-    _response = requests.get(f"{config.SERVER_HOST_URL}/task/identify_field,202504071846")
-    if _response.status_code == 200:
-        _task_info = _response.json()
-        logging.info(f"获取到任务信息: {_task_info}")
-    else:
-        logging.error(f"获取任务信息失败: {_response.status_code}")

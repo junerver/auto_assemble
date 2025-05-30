@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import textwrap
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -31,7 +32,7 @@ def main():
         # task id，任务id，由`打包项目,请求的任务`目录拼接而成
         parser.add_argument("--task", type=str, help="Task id: prod_name,task_dir")
         args = parser.parse_args()
-        env_file = args.env if args.env else os.path.join(os.getcwd(), ".env")
+        env_file: Path = Path(args.env) if args.env else Path.cwd() / ".env"
         fn = args.fn if args.fn else None
         if fn:
             select_func = fn

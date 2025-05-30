@@ -22,7 +22,7 @@ required_vars = {
 
 missing_vars = [var for var, value in required_vars.items() if value is None]
 if missing_vars:
-    env_path = Path(os.path.dirname(os.path.abspath(__file__))) / ".env"
+    env_path = Path(__file__).resolve().parent / ".env"
     if not env_path.exists():
         logging.info(f"环境变量文件 '{env_path}' 不存在")
     else:

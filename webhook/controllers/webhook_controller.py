@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from datetime import datetime
+from pathlib import Path
 from threading import Thread
 
 from fastapi import APIRouter, Depends, Request, HTTPException
@@ -46,7 +47,7 @@ def build_task_worker(task: Task):
 
         process = subprocess.Popen(
             ["auto-assemble", "--fn", "1", "--task", task.id],
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            cwd=Path(__file__).resolve().parent.parent,
             encoding="utf-8",
             env=os.environ.copy(),  # 传递当前环境变量
         )
