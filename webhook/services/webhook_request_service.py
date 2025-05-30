@@ -111,7 +111,7 @@ class WebhookRequestService:
                 SELECT task_id FROM webhook_requests
                 LEFT JOIN tasks ON webhook_requests.task_id = tasks.id
                 WHERE tasks.status IN ('completed', 'outdated')
-            """)
+            """)  # 执行清理时，完成、过期的请求记录需要清理
             invalid_request_ids = [row[0] for row in cursor.fetchall()]
             logging.info(f"找到{len(invalid_request_ids)}个无效的webhook请求记录")
             for request_id in invalid_request_ids:

@@ -12,6 +12,7 @@ import patoolib
 import requests
 
 from auto_assemble.build import parse_build_req_message
+from common.error import BusinessException
 from common.log import setup_logging
 from auto_assemble.parse_readme import parse_readme
 from auto_assemble.update_android_manifest import update_android_manifest
@@ -19,7 +20,7 @@ from auto_assemble.update_build_gradle import update_build_gradle
 from auto_assemble.update_control_file import update_control_file
 from common.client_publish import client_publish_async
 from common.config import config
-from common.git import sync_repository, check_git_branch
+from common.git import sync_repository, check_git_branch, git_reset_and_clean
 from common.types import ManifestInfo
 
 
@@ -378,22 +379,22 @@ def main(prod_name: str, task_dir: str):
         check_result, temp_dir = check_compressed_file_content(compressed_file)
         if not check_result:
             logging.error("压缩文件内容检查失败，终止执行")
-            return 11005
+            raise BusinessException(11005)
 
         # 检查Git分支
         if not check_git_branch(config.ANDROID_UNI_BASE_PATH, config.PROD_BRANCH):
             logging.error("Git分支检查失败，终止执行")
-            return 12001
+            raise BusinessException(12001)
 
         # 检查APPS_DIRECTORY目录结构
         if not check_apps_directory():
             logging.error("APPS_DIRECTORY目录结构检查失败，终止执行")
-            return 12002
+            raise BusinessException(12002)
 
         # 清空目标目录
         if not clear_directory(config.APPS_DIRECTORY):
             logging.error("清空目标目录失败，终止执行")
-            return 12003
+            raise BusinessException(12003)
 
         if config.build_mode != "dev":
             obfuscated_dir = None
@@ -464,7 +465,7 @@ def main(prod_name: str, task_dir: str):
         # 解压文件
         if not extract_compressed_file(compressed_file, config.APPS_DIRECTORY, temp_dir):
             logging.error("解压文件失败，终止执行")
-            return 12004
+            raise BusinessException(12004)
 
         # 更新build.gradle
         client_publish_async("build", "构建任务:copy_res", "开始执行更新基座工程构建脚本...")
@@ -475,10 +476,10 @@ def main(prod_name: str, task_dir: str):
                 readme_info,
             ):
                 logging.error("更新build.gradle失败，终止执行")
-                return 12005
+                raise BusinessException(12005)
         except KeyError as e:
             logging.error(f"更新build.gradle失败: {e}")
-            return 12009
+            raise BusinessException(12009)
 
         # 更新 dcloud_control.xml 文件
         if not update_control_file(
@@ -487,24 +488,30 @@ def main(prod_name: str, task_dir: str):
             config.build_mode == "dev",
         ):
             logging.error("更新 dcloud_control.xml 文件失败，终止执行")
-            return 12006
+            raise BusinessException(12006)
 
         # 跟新 AndroidManifest.xml 文件，更新权限
         if not update_android_manifest(config.ANDROID_MANIFEST_PATH, readme_info):
             logging.error("更新 AndroidManifest.xml 文件失败，终止执行")
-            return 12007
+            raise BusinessException(12007)
 
         logging.info("所有操作执行成功")
         client_publish_async("build", "构建任务:copy_res", "基座工程更新完成...")
         return 0
     except Exception as e:
+        # 清理
+        git_reset_and_clean(repo_path=config.DISTRIBUTION_PATH)
         if isinstance(e, FileNotFoundError):
             logging.error(f"目录不存在: {e}")
             return 10004
-        if isinstance(e, ImportError):
+        elif isinstance(e, ImportError):
             logging.error(f"配置文件错误: {e}")
             return 10005
-        logging.error(f"执行过程中发生错误: {e}")
+        elif isinstance(e, BusinessException):
+            logging.error(f"业务错误: {e.code} {e.message}")
+            return e.code
+        else:
+            logging.error(f"执行过程中发生错误: {e}")
         return 1
     finally:
         if temp_dir is not None and os.path.exists(temp_dir):

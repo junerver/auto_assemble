@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from webhook.config import PORT
 from webhook.extensions.db import get_db
+from webhook.models.task import TaskStatus
 from webhook.types import (
     BaseRespModel,
     QueueDetailResp,
@@ -32,7 +33,7 @@ async def get_task_info(task_id: Annotated[str, Path(..., description="任务id"
 @router.delete("/task/{task_id}", response_model=BaseRespModel)
 async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """标记任务为过期"""
-    if TaskService.update_task_status(task_id, "outdated", db=db) is not None:
+    if TaskService.update_task_status(task_id, TaskStatus.OUTDATED, db=db) is not None:
         return {"message": "Task outdated"}
     raise HTTPException(status_code=404, detail="Task not found")
 

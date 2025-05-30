@@ -230,6 +230,7 @@ def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
         repo_path: Git仓库路径
         is_lfs: 是否为LFS仓库，默认False
     """
+    logging.info(f"开始清理仓库{repo_path} git 缓存")
     try:
         if is_lfs:
             # 清理LFS缓存
@@ -526,8 +527,14 @@ def _git_fetch_branch(repo_path: str, branch: str = None):
         return False
 
 
-def get_untracked_files(repo_path: str):
-    """获取未跟踪的文件列表"""
+def get_untracked_files(repo_path: str) -> list[str]:
+    """获取未跟踪的文件列表
+
+    Args:
+        repo_path: 仓库路径
+    Returns
+        list[]: 未跟踪的文件列表
+    """
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],

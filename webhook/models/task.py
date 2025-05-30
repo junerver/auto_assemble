@@ -1,12 +1,34 @@
+from enum import Enum
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 
 from common.time import safe_convert_datetime
 
-# 任务状态，包含：pending（待处理）、running（运行中）、completed（已完成）、failed（失败）、outdated（过期）
-TaskStatus = Literal["pending", "running", "completed", "failed", "outdated"]
+
+class TaskStatus(Enum):
+    """任务状态枚举"""
+
+    PENDING = "pending"  # 待处理
+    RUNNING = "running"  # 运行中
+    STOPPED = "stopped"  # 手动停止
+    TIMEOUT = "timeout"  # 超时结束
+    COMPLETED = "completed"  # 已完成
+    FAILED = "failed"  # 失败
+    OUTDATED = "outdated"  # 过期（逻辑删除）
+
+    @classmethod
+    def from_str(cls, status_str: str) -> "TaskStatus":
+        """从字符串转换为枚举值"""
+        try:
+            return cls(status_str)
+        except ValueError:
+            raise ValueError(f"Invalid task status: {status_str}")
+
+    def __str__(self) -> str:
+        """转换为字符串，用于数据库存储"""
+        return self.value
 
 
 @dataclass
@@ -87,7 +109,7 @@ class Task:
                 self.created_at,
                 self.started_at,
                 self.completed_at,
-                self.status,
+                str(self.status),  # 使用枚举的字符串值
                 self.error,
                 self.commit_hash,
                 self.response_hash,
@@ -237,8 +259,8 @@ class Task:
                      FROM tasks t
                               LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
                               LEFT JOIN fork_tasks ft ON t.id = ft.id
-                     WHERE t.status IN ('completed', 'failed')
-        """
+                     WHERE t.status IN ('stopped', 'timeout', 'completed', 'failed')
+        """  # 近期任务列表隐藏过期任务
 
         if build_mode:
             base_query += """
@@ -315,7 +337,7 @@ class Task:
         """更新任务状态"""
         cursor = db.cursor()
 
-        if status == "running":
+        if status is TaskStatus.RUNNING:
             self.started_at = datetime.now()
             cursor.execute(
                 """
@@ -323,9 +345,9 @@ class Task:
                 SET status = ?, started_at = ?, error = ?
                 WHERE id = ?
             """,
-                (status, self.started_at, error, self.id),
+                (str(status), self.started_at, error, self.id),
             )
-        elif status in ["completed", "failed"]:
+        elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
             self.completed_at = datetime.now()
             cursor.execute(
                 """
@@ -333,7 +355,7 @@ class Task:
                 SET status = ?, completed_at = ?, error = ?
                 WHERE id = ?
             """,
-                (status, self.completed_at, error, self.id),
+                (str(status), self.completed_at, error, self.id),
             )
         else:
             cursor.execute(
@@ -342,7 +364,7 @@ class Task:
                 SET status = ?, error = ?
                 WHERE id = ?
             """,
-                (status, error, self.id),
+                (str(status), error, self.id),
             )
 
         self.status = status
@@ -364,7 +386,7 @@ class Task:
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "status": self.status,
+            "status": str(self.status),  # 使用枚举的字符串值
             "error": self.error,
             "commit_hash": self.commit_hash,
             "response_hash": self.response_hash,

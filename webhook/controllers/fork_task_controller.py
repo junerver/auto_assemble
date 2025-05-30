@@ -57,15 +57,8 @@ def fork_task_worker(forked_task: ForkTask):
         except subprocess.TimeoutExpired:
             process.kill()
         finally:
-            next_task_info = TaskManager.release_task_lock()
-            if next_task_info:
-                next_task_type, next_task = next_task_info
-                if next_task_type == TaskType.BUILD:
-                    from webhook.controllers.webhook_controller import execute_task
-
-                    Thread(target=execute_task, args=(next_task,), daemon=True).start()
-                else:
-                    Thread(target=fork_task_worker, args=(next_task,), daemon=True).start()
+            # 释放任务锁并获取下一个任务
+            TaskManager.exec_next_task()
 
     Thread(target=cleanup, daemon=True).start()
 

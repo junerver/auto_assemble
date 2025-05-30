@@ -13,6 +13,7 @@ from webhook.utils.validators import (
     is_valid_build_task,
     parse_build_task,
 )
+from webhook.utils.task_manager import TaskManager
 
 
 class TaskService:
@@ -94,9 +95,9 @@ class TaskService:
         task_id = f"{prod_name},{task_name}"
         task = Task.get_by_id(task_id, db)
         if task:
-            if task.status == "failed" or task.status == "pending":
-                if task.status == "failed":
-                    task.update_status("pending", db=db)
+            if task.status in (TaskStatus.FAILED, TaskStatus.PENDING, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
+                if task.status in (TaskStatus.FAILED, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
+                    task.update_status(TaskStatus.PENDING, db=db)
                 logging.warning(f"任务id：{task_id} 存在（失败/待执行），加入队列")
                 return task
             else:
@@ -109,7 +110,7 @@ class TaskService:
             task_name=task_name,
             priority=priority,
             retries=retries,
-            status="pending",
+            status=TaskStatus.PENDING,
             created_at=datetime.now(),
         )
 
@@ -249,11 +250,20 @@ class TaskService:
         if not task:
             return None, "Task not found", 404
 
-        if task.status != "running":
+        if task.status != TaskStatus.RUNNING:
             return None, "Task is not running", 400
 
-        task.update_status("failed", format_error(10003), db=db)
-        return task, "Task stopped successfully", 200
+        # 使用 TaskManager 终止进程
+        process_killed = TaskManager.kill_process(task_id)
+
+        # 更新任务状态为 stopped，服务器主动停止
+        task.update_status(TaskStatus.STOPPED, format_error(10003), db=db)
+
+        message = "Task stopped successfully"
+        if not process_killed:
+            message += " (process may have already finished)"
+
+        return task, message, 200
 
     @staticmethod
     def get_tasks_statistics(db: sqlite3.Connection = None):

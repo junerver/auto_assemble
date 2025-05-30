@@ -406,7 +406,6 @@ def main(target_dir: str = None, release: bool = True, is_distribution: bool = T
         return 1
     finally:
         # 清理
-        logging.info("开始清理基座项目git缓存")
         git_reset_and_clean(repo_path=config.ANDROID_UNI_BASE_PATH)
 
 
