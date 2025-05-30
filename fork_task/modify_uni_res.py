@@ -82,5 +82,5 @@ def modify_uni_res(temp_dir: Path, fork_task_info: dict) -> None:
 
 
 if __name__ == "__main__":
-    path = Path(r"E:\dev\identify_field\202504141101")
+    path = Path(r"E:\app\temp\202505281803")
     modify_uni_res(path, {"target_version_name": "1.0.11", "target_version_code": "111"})

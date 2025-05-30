@@ -2,29 +2,13 @@
 封装网络请求
 """
 
-import logging
 from collections.abc import Callable
-from pathlib import Path
 from typing import Optional
 
 import requests
 
 from common.config import config
 from common.types import TaskInfo
-
-
-def download_file(url: str, dest_path: Path):
-    try:
-        headers = {"PRIVATE-TOKEN": "glpat-xJ1c27FLEcMFvtvn6Gzp"}
-        response = requests.get(url, headers=headers, stream=True, timeout=10)
-        response.raise_for_status()  # 自动抛出 4xx/5xx 错误
-        with open(dest_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        logging.info(f"✅ 下载成功: {url} -> {dest_path}")
-    except requests.RequestException as e:
-        logging.error(f"❌ 下载失败: {url}\n原因: {e}")
 
 
 def fetch_task_info(

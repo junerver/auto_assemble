@@ -8,6 +8,12 @@ BuildMode = Literal["dev", "test", "release"]
 
 class Config:
     def __init__(self):
+        # gitlab 地址
+        self.GITLAB_URL = "http://192.168.187.232:28088"
+        # 访问令牌
+        self.ACCESS_TOKEN = "glpat-xJ1c27FLEcMFvtvn6Gzp"
+        # 分发仓库项目id
+        self.PROJECT_ID = "377"
         # 应用分发资源包目录
         self._distribution_path = None
         # Android基座的项目目录
