@@ -6,6 +6,7 @@ import shutil
 import time
 import zipfile
 from datetime import datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
 from win11toast import toast
@@ -48,8 +49,8 @@ def create_build_req():
         parser.add_argument("-r", "--release", action="store_true", help="Release mode")
         args = parser.parse_args()
 
-        env_file = os.path.join(os.getcwd(), ".env")
-        if not os.path.exists(env_file):
+        env_file: Path = Path.cwd() / ".env"
+        if not env_file.exists():
             logging.error("没有找到.env文件，请检查是否存在")
             return 1
         load_dotenv(env_file)
@@ -79,7 +80,7 @@ def create_build_req():
 
         # 扫描uni项目，获取项目配置。此操作同时会赋值config.DISTRIBUTION_PATH
         try:
-            env_vars, third_party_configs = scan_uni_project(args.uni, os.getcwd())
+            env_vars, third_party_configs = scan_uni_project(Path(args.uni), Path.cwd())
         except Exception as e:
             logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
             return 1
@@ -99,18 +100,17 @@ def create_build_req():
         # 创建时间
         req_date = datetime.now().strftime("%Y%m%d%H%M")
         # 压缩资源目录下的名称为config.UNI_APP_ID的目录，并重命名为req_date.zip
-        zip_file_path: str = os.path.join(resources_dir, f"{req_date}.zip")
+        zip_file_path: Path = resources_dir / f"{req_date}.zip"
         # 压缩资源目录下的名称为config.UNI_APP_ID的目录
-        target_dir = os.path.join(resources_dir, config.UNI_APP_ID)
-        if not os.path.exists(target_dir):
+        target_dir = resources_dir / config.UNI_APP_ID
+        if not target_dir.exists():
             logging.error(f"目录 {target_dir} 不存在")
             return 1
         # 压缩资源目录下的名称为config.UNI_APP_ID的目录
         with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(target_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.join(config.UNI_APP_ID, os.path.relpath(file_path, target_dir))
+            for file_path in target_dir.rglob("*"):
+                if file_path.is_file():
+                    arcname = Path(config.UNI_APP_ID) / file_path.relative_to(target_dir)
                     zipf.write(file_path, arcname)
         logging.info(f"已将 {target_dir} 目录压缩为 {zip_file_path}")
 
@@ -140,16 +140,16 @@ def create_build_req():
             return 1
 
         # 在分发目录的PROD_NAME目录下创建req_date目录
-        req_date_dir = os.path.join(config.DISTRIBUTION_PATH, config.PROD_NAME, req_date)
+        req_date_dir: Path = Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / req_date
         config.cur_task_id = f"{config.PROD_NAME},{req_date}"
-        config.cur_task_dir = req_date_dir
+        config.cur_task_dir = str(req_date_dir.resolve())
         logging.info(f"本次请求id:{config.cur_task_id}")
-        os.makedirs(req_date_dir, exist_ok=True)
+        req_date_dir.mkdir(parents=True, exist_ok=True)
         # 复制zip文件到指定目录
         shutil.copy(zip_file_path, str(req_date_dir))
-        os.remove(zip_file_path)
+        zip_file_path.unlink()
         logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
-        create_readme_file(str(req_date_dir), manifest_info)
+        create_readme_file(req_date_dir, manifest_info)
         # 在分发目录执行git add
         os.chdir(config.DISTRIBUTION_PATH)
         # 检查是否有任何修改
@@ -264,13 +264,13 @@ def rolling_req_build_status():
             break
 
 
-def check_git_lfs_installed(repo_path=".") -> bool:
+def check_git_lfs_installed(repo_path: str) -> bool:
     """
     检查git lfs是否安装，检查.git/hooks目录下的pre-push文件是否存在git-lfs
     """
-    hooks_path = os.path.join(repo_path, ".git", "hooks")
-    pre_push_hook = os.path.join(hooks_path, "pre-push")
-    if os.path.exists(pre_push_hook):
+    hooks_path = Path(repo_path) / ".git" / "hooks"
+    pre_push_hook = hooks_path / "pre-push"
+    if pre_push_hook.exists():
         with open(pre_push_hook, "r") as f:
             content = f.read()
             if "git-lfs" in content:

@@ -1,18 +1,18 @@
 import logging
-import os
+from pathlib import Path
 from textwrap import dedent
 
 from common.types import ManifestInfo
 
 
-def create_readme_file(req_dir: str, manifest_info: ManifestInfo):
+def create_readme_file(req_dir: Path, manifest_info: ManifestInfo):
     """
     创建readme.txt文件
     Args:
         req_dir: 请求目录路径
         manifest_info: manifest.json解析信息
     """
-    readme_file_path = os.path.join(req_dir, "README.md")
+    readme_file_path = req_dir / "README.md"
     with open(readme_file_path, "w", encoding="utf-8") as f:
         # 写入标题和基本要求
         f.write(

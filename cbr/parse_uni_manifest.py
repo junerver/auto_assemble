@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import json5
 
@@ -8,7 +9,7 @@ from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
 def parse_uni_manifest(
-    manifest_path: str,
+    manifest_path: Path,
     env_vars: CbrEnvVars | None = None,
     third_party_configs: list[ThirdPartyConfig] | None = None,
 ) -> ManifestInfo:

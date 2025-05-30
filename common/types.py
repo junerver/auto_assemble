@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import NotRequired, TypedDict, Optional
 from xml.dom.minidom import Element
 
@@ -43,7 +44,7 @@ class ManifestPermissions(TypedDict):
 @dataclass
 class CbrEnvVars:
     # 分发仓库位置
-    DISTRIBUTION_PATH: str
+    DISTRIBUTION_PATH: Path
     # 项目标识
     PROD_NAME: str
     # hbuilderx 版本
@@ -53,7 +54,7 @@ class CbrEnvVars:
     # 项目key
     UNIAPP_APPKEY: str
     # 本地地址
-    UNIAPP_WORKSPACE: str
+    UNIAPP_WORKSPACE: Path
     # 是否为cli项目
     UNIAPP_IS_CLI: bool
 

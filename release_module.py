@@ -1,8 +1,8 @@
 import argparse
-import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import toml
 
@@ -63,7 +63,7 @@ VSVersionInfo(
 def clean_old_builds():
     """删除旧的 dist 和 build 目录"""
     for folder in ["build", "dist"]:
-        if os.path.exists(folder):
+        if Path(folder).exists():
             shutil.rmtree(folder)
             print(f"🗑️ 已删除 {folder}/ 目录")
 
@@ -99,14 +99,14 @@ def run_pyinstaller(version: str, module_name: str, exe_name: str = None):
 def copy_to_release(exe_name):
     """将打包好的文件复制到 release 目录"""
     release_dir = "release"
-    if not os.path.exists(release_dir):
-        os.makedirs(release_dir)
+    if not (r_dir := Path(release_dir)).exists():
+        r_dir.mkdir(parents=True, exist_ok=True)
         print(f"📁 创建 {release_dir} 目录")
 
     src_path = f"dist/{exe_name}.exe"
     dst_path = f"{release_dir}/{exe_name}.exe"
 
-    if os.path.exists(src_path):
+    if Path(src_path).exists():
         shutil.copy2(src_path, dst_path)
         print(f"📋 已复制到 {dst_path}")
     else:
@@ -117,7 +117,7 @@ def copy_to_release(exe_name):
 def check_exe_version(metadata):
     """检查 .exe 的版本信息"""
     exe_path = f"dist/{metadata['product_name']}.exe"
-    if os.path.exists(exe_path):
+    if Path(exe_path).exists():
         print("🔍 检查 EXE 版本信息...")
         subprocess.run(["powershell", "-Command", f'(Get-Item "{exe_path}").VersionInfo'])
 
@@ -130,14 +130,14 @@ def clear_temp_files():
     - *.spec，以spec结尾的文件
     """
     # 删除 version.txt
-    if os.path.exists("version.txt"):
-        os.remove("version.txt")
+    if (v_txt := Path("version.txt")).exists():
+        v_txt.unlink()
         print("🗑️ 已删除 version.txt")
 
     # 删除所有 .spec 文件
-    for file in os.listdir():
-        if file.endswith(".spec"):
-            os.remove(file)
+    for file in Path().cwd().iterdir():
+        if file.name.endswith(".spec"):
+            file.unlink()
             print(f"🗑️ 已删除 {file}")
 
 

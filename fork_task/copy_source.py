@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from pathlib import Path
 
 import requests
@@ -56,7 +55,7 @@ def copy_source(fork_task_id: str) -> tuple[Path, dict]:
     modern_extract(temp_zip_path, outdir=temp_extract_dir)
     logging.info(f"解压zip文件到临时目录: {temp_extract_dir}")
 
-    os.remove(temp_zip_path)
+    temp_zip_path.unlink()
     logging.info(f"删除zip文件: {temp_zip_path}")
 
     return temp_dir, fork_task_info

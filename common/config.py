@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Literal
 
 
@@ -30,7 +31,7 @@ class Config:
         # 应用的version.toml文件路径
         self._versions_toml_path = None
         # 日志文件路径
-        self.LOG_FILE = os.path.join(os.getcwd(), "auto_assemble.log")
+        self.LOG_FILE: Path = Path.cwd() / "auto_assemble.log"
 
         # 构建输出配置
         self._build_release_output_dir = None

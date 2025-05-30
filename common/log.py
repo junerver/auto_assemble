@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import datetime
 
 import colorlog
@@ -23,8 +22,8 @@ def setup_logging(clear_log_file: bool = False, task_name: str = "任务"):
         logger.removeHandler(handler)
 
     # 如果需要清空日志文件且文件存在
-    if clear_log_file and os.path.exists(config.LOG_FILE):
-        os.remove(config.LOG_FILE)
+    if clear_log_file and config.LOG_FILE.exists():
+        config.LOG_FILE.unlink()
 
     # 文件处理器
     file_handler = logging.FileHandler(config.LOG_FILE, encoding="utf-8")
