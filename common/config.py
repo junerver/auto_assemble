@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
-from typing import Literal
-
+from typing import Literal, Optional
 
 Work_Mode = Literal["ui", "cli"]
 BuildMode = Literal["dev", "test", "release"]
@@ -48,7 +47,7 @@ class Config:
         # 工作模式：ui 或 cli , 默认ui，ui模式下需要用户确认，cli 模式下通过 --fn 直接指定功能序号，不再进行input确认
         self.work_mode: Work_Mode = "ui"
         # 当前任务目录，用于指向本次构建任务的目录
-        self.cur_task_dir: str = ""
+        self.cur_task_dir: Optional[Path] = None
         # 构建模式，默认dev，可选值：dev、test、release
         self.build_mode: BuildMode = "release"
         # 当前任务id，即 prod_name,req_date

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from common.config import config
 from common.types import ManifestInfo
@@ -189,7 +190,7 @@ def _process_line(
 
 
 def update_build_gradle(
-    build_gradle_path: str,
+    build_gradle_path: Path,
     artifact_name: str,
     version_info: ManifestInfo,
 ) -> bool:

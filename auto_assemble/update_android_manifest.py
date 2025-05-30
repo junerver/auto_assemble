@@ -1,5 +1,6 @@
 import logging
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from xml.dom import minidom
 
 from common.types import ManifestInfo
@@ -37,7 +38,7 @@ namespaces = {
 
 
 def update_android_manifest(
-    android_manifest_path: str,
+    android_manifest_path: Path,
     update_info: ManifestInfo,
     launch_activity: str = "io.dcloud.PandoraEntry",
 ) -> bool:

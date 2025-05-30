@@ -347,7 +347,7 @@ def update_git_info(commit_message):
         return 12014
 
 
-def main(target_dir: str = None, release: bool = True, is_distribution: bool = True):
+def main(target_dir: Optional[Path] = None, release: bool = True, is_distribution: bool = True):
     """
     主函数：执行整个构建流程
     1. 配置日志系统

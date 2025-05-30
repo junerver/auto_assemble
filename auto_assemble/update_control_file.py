@@ -1,5 +1,6 @@
 import logging
 import re
+from pathlib import Path
 
 
 def update_debug_status(content: str, debug: bool = False) -> str:
@@ -39,7 +40,7 @@ def update_debug_status(content: str, debug: bool = False) -> str:
     return content
 
 
-def update_control_file(control_file_path: str, uniapp_id: str, debug: bool = False) -> bool:
+def update_control_file(control_file_path: Path, uniapp_id: str, debug: bool = False) -> bool:
     """
     更新 dcloud_control.xml 文件中的 uniapp_id 和 debug 状态
 
