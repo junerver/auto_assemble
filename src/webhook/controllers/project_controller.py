@@ -1,8 +1,9 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
 from webhook.extensions.db import get_db
+from webhook.models.project import Project
 from webhook.types import (
     AllProjectsResp,
     ConfigureProjectResp,
@@ -48,7 +49,7 @@ async def get_project_config(
         if not project_url and not prod_name:
             raise HTTPException(status_code=400, detail="Must provide either url or name parameter")
 
-        project = ProjectService.get_project(project_url=project_url, prod_name=prod_name, db=db)
+        project: Optional[Project] = ProjectService.get_project(project_url=project_url, prod_name=prod_name, db=db)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 

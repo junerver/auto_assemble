@@ -1,5 +1,6 @@
 import sqlite3
 import uuid
+from typing import Optional
 
 from webhook.models.project import Project
 
@@ -28,7 +29,9 @@ class ProjectService:
         return project
 
     @staticmethod
-    def get_project(project_id=None, project_url=None, prod_name=None, db: sqlite3.Connection = None):
+    def get_project(
+        project_id=None, project_url=None, prod_name=None, db: sqlite3.Connection = None
+    ) -> Optional[Project]:
         if project_id:
             return Project.get_by_id(project_id, db)
         elif project_url:

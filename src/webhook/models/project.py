@@ -7,15 +7,17 @@ LastEditTime: 2025-05-15 18:06:21
 """
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
+
+from dataclasses_json import DataClassJsonMixin, config
 
 from common.time import safe_convert_datetime
 
 
 @dataclass
-class Project:
+class Project(DataClassJsonMixin):
     """项目配置"""
 
     id: Optional[str] = None
@@ -25,14 +27,26 @@ class Project:
     uniapp_id: Optional[str] = None
     uniapp_appkey: Optional[str] = None
     uniapp_is_cli: bool = False
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = field(
+        default=None,
+        metadata=config(
+            encoder=datetime.isoformat,
+            decoder=datetime.fromisoformat,
+        ),
+    )
+    updated_at: Optional[datetime] = field(
+        default=None,
+        metadata=config(
+            encoder=datetime.isoformat,
+            decoder=datetime.fromisoformat,
+        ),
+    )
 
     def __post_init__(self):
         """在初始化后确保datetime字段的类型正确"""
-        for field in ["created_at", "updated_at"]:
-            value = getattr(self, field)
-            setattr(self, field, safe_convert_datetime(value))
+        for _field in ["created_at", "updated_at"]:
+            value = getattr(self, _field)
+            setattr(self, _field, safe_convert_datetime(value))
 
     @classmethod
     def get_by_id(cls, project_id: str, db: sqlite3.Connection) -> Optional["Project"]:
@@ -43,9 +57,9 @@ class Project:
         if row:
             row_dict = dict(row)
             # 转换datetime字段
-            for field in ["created_at", "updated_at"]:
+            for _field in ["created_at", "updated_at"]:
                 # noinspection PyTypeChecker
-                row_dict[field] = safe_convert_datetime(row_dict.get(field))
+                row_dict[_field] = safe_convert_datetime(row_dict.get(_field))
             return cls(**row_dict)
         return None
 
@@ -58,9 +72,9 @@ class Project:
         if row:
             row_dict = dict(row)
             # 转换datetime字段
-            for field in ["created_at", "updated_at"]:
+            for _field in ["created_at", "updated_at"]:
                 # noinspection PyTypeChecker
-                row_dict[field] = safe_convert_datetime(row_dict.get(field))
+                row_dict[_field] = safe_convert_datetime(row_dict.get(_field))
             return cls(**row_dict)
         return None
 
@@ -73,9 +87,9 @@ class Project:
         if row:
             row_dict = dict(row)
             # 转换datetime字段
-            for field in ["created_at", "updated_at"]:
+            for _field in ["created_at", "updated_at"]:
                 # noinspection PyTypeChecker
-                row_dict[field] = safe_convert_datetime(row_dict.get(field))
+                row_dict[_field] = safe_convert_datetime(row_dict.get(_field))
             return cls(**row_dict)
         return None
 
@@ -88,9 +102,9 @@ class Project:
         for row in cursor.fetchall():
             row_dict = dict(row)
             # 转换datetime字段
-            for field in ["created_at", "updated_at"]:
+            for _field in ["created_at", "updated_at"]:
                 # noinspection PyTypeChecker
-                row_dict[field] = safe_convert_datetime(row_dict.get(field))
+                row_dict[_field] = safe_convert_datetime(row_dict.get(_field))
             projects.append(cls(**row_dict))
         return projects
 
@@ -141,17 +155,3 @@ class Project:
                 update_values,
             )
             db.commit()
-
-    def to_dict(self) -> dict:
-        """转换为字典"""
-        return {
-            "id": self.id,
-            "project_url": self.project_url,
-            "prod_name": self.prod_name,
-            "hbx_version": self.hbx_version,
-            "uniapp_id": self.uniapp_id,
-            "uniapp_appkey": self.uniapp_appkey,
-            "uniapp_is_cli": self.uniapp_is_cli,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-        }

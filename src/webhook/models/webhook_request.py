@@ -1,11 +1,13 @@
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from dataclasses_json import config, DataClassJsonMixin
+
 
 @dataclass
-class WebhookRequest:
+class WebhookRequest(DataClassJsonMixin):
     """webhook请求记录"""
 
     # 主键
@@ -17,7 +19,13 @@ class WebhookRequest:
     # 请求头
     headers: Optional[dict] = None
     # 创建时间
-    created_at: Optional[datetime] = None
+    created_at: Optional[datetime] = field(
+        default=None,
+        metadata=config(
+            encoder=datetime.isoformat,
+            decoder=datetime.fromisoformat,
+        ),
+    )
     # 重放次数
     replay_count: Optional[int] = None
 
@@ -92,13 +100,3 @@ class WebhookRequest:
             (task_id,),
         )
         db.commit()
-
-    def to_dict(self):
-        """转换为字典格式"""
-        return {
-            "id": self.id,
-            "task_id": self.task_id,
-            "request_body": self.request_body,
-            "headers": self.headers,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-        }

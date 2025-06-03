@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "auto_assemble"
 version = "0.4.2"
 description = "自动化打包工具"
-authors = [
-    { name = "Junerver", email = "junerver@gmail.com" }
-]
+authors = [{ name = "Junerver", email = "junerver@gmail.com" }]
 dependencies = [
     "pyyaml>=6.0.2",
     "patool>=4.0.0",
@@ -42,8 +40,15 @@ manager-client = "manager_client.__main__:main"
 fork-task = "fork_task.__main__:main"
 
 [tool.setuptools]
-packages = ["auto_assemble", "cbr", "webhook", "manager_client", "fork_task", "common"]
-package-dir = {"" = "src"}
+packages = [
+    "auto_assemble",
+    "cbr",
+    "webhook",
+    "manager_client",
+    "fork_task",
+    "common",
+]
+package-dir = { "" = "src" }
 
 [tool.black]
 line-length = 100
@@ -55,9 +60,15 @@ profile = "black"
 line_length = 100
 multi_line_output = 3
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error"]
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
     "ruff>=0.11.11",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.1",
 ]
-

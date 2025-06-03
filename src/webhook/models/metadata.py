@@ -1,14 +1,16 @@
 import logging
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
+
+from dataclasses_json import config, DataClassJsonMixin
 
 from common.time import safe_convert_datetime
 
 
 @dataclass
-class BuildMetadata:
+class BuildMetadata(DataClassJsonMixin):
     """构建任务产物元数据"""
 
     # 主键
@@ -32,7 +34,13 @@ class BuildMetadata:
     # md5
     md5: Optional[str] = None
     # 创建时间
-    created_at: Optional[datetime] = None
+    created_at: Optional[datetime] = field(
+        default=None,
+        metadata=config(
+            encoder=datetime.isoformat,
+            decoder=datetime.fromisoformat,
+        ),
+    )
     # 是否已经ApkNormalize归一化
     is_normalized: Optional[bool] = None
     # 是否UniApp资源已经混淆
@@ -87,21 +95,3 @@ class BuildMetadata:
                 row_dict["created_at"] = safe_convert_datetime(row_dict["created_at"])
             return cls(**row_dict)
         return None
-
-    def to_dict(self) -> dict:
-        """转换为字典"""
-        return {
-            "id": self.id,
-            "task_id": self.task_id,
-            "package_name": self.package_name,
-            "version_name": self.version_name,
-            "version_code": self.version_code,
-            "build_type": self.build_type,
-            "flavor": self.flavor,
-            "build_date": self.build_date,
-            "file_size": self.file_size,
-            "md5": self.md5,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "is_normalized": self.is_normalized,
-            "is_obfuscated": self.is_obfuscated,
-        }

@@ -1,11 +1,13 @@
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+from dataclasses_json import DataClassJsonMixin, config
+
 
 @dataclass
-class ForkTask:
+class ForkTask(DataClassJsonMixin):
     """派生任务"""
 
     # 派生任务ID
@@ -23,7 +25,13 @@ class ForkTask:
     # 提交消息
     commit_message: Optional[str] = None
     # 创建时间
-    created_at: Optional[datetime] = None
+    created_at: Optional[datetime] = field(
+        default=None,
+        metadata=config(
+            encoder=datetime.isoformat,
+            decoder=datetime.fromisoformat,
+        ),
+    )
     # 操作人
     operator: Optional[str] = None
 
@@ -55,17 +63,3 @@ class ForkTask:
         if row:
             return ForkTask(**row)
         return None
-
-    def to_dict(self) -> dict:
-        """转换为字典"""
-        return {
-            "id": self.id,
-            "source_task_id": self.source_task_id,
-            "source_branch": self.source_branch,
-            "target_branch": self.target_branch,
-            "target_version_name": self.target_version_name,
-            "target_version_code": self.target_version_code,
-            "commit_message": self.commit_message,
-            "created_at": self.created_at,
-            "operator": self.operator,
-        }

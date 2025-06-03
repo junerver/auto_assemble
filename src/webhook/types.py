@@ -14,6 +14,8 @@ class BaseRespModel(BaseModel):
 
 
 class AuthResponse(BaseModel):
+    """鉴权接口响应"""
+
     authorized: bool = Field(..., description="是否是允许访问其他功能")
     client_ip: str = Field(..., description="客户端访问ip")
     role: str = Field(..., description="访问者角色")
@@ -21,6 +23,8 @@ class AuthResponse(BaseModel):
 
 
 class ForkTaskReq(BaseModel):
+    """请求创建派生任务的请求体"""
+
     source_task_id: str = Field(..., description="源任务的任务id")
     source_branch: str = Field(..., description="源任务所在分支")
     target_branch: str = Field(..., description="派生任务目标分支")
@@ -38,15 +42,21 @@ class ForkTaskModel(ForkTaskReq):
 
 
 class ForkTaskResp(BaseModel):
+    """创建派生任务后响应的内容"""
+
     message: str = Field(..., description="派生任务响应说明")
     fork_task: ForkTaskModel = Field(..., description="派生任务详情")
 
 
 class ForkTaskDetailResp(BaseModel):
+    """派生任务详情接口响应"""
+
     fork_task: ForkTaskModel = Field(..., description="派生任务详情")
 
 
 class MetaDataModel(BaseModel):
+    """任务元数据"""
+
     package_name: str = Field(..., description="包名")
     version_name: str = Field(..., description="版本名")
     version_code: int = Field(..., description="版本号")
@@ -60,6 +70,8 @@ class MetaDataModel(BaseModel):
 
 
 class MetaDataPostResp(MetaDataModel):
+    """元数据响应值"""
+
     id: int = Field(..., description="主键id")
     task_id: str = Field(..., description="构建任务id")
     created_at: Optional[datetime] = Field(None, description="添加事件")
@@ -93,6 +105,8 @@ class ProjectConfigDetailResp(BaseRespModel):
 
 
 class AllProjectsResp(BaseModel):
+    """全部项目列表接口响应体"""
+
     projects: list[ProjectModel]
 
 
@@ -219,6 +233,8 @@ class ProjectInfo(BaseModel):
 
 
 class RepositoryInfo(BaseModel):
+    """git仓库信息"""
+
     name: str
     url: str
     description: str
