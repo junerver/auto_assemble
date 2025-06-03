@@ -19,7 +19,7 @@ if %errorlevel% neq 0 (
 
 :: 构建Docker镜像
 echo 开始构建Docker镜像...
-docker build -t auto_assemble-webhook:fast_api -f Dockerfile .
+docker build -t auto_assemble-webhook:fast_api -f docker/Dockerfile .
 if %errorlevel% neq 0 (
     echo Docker镜像构建失败
     exit /b 1

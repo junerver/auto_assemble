@@ -48,8 +48,8 @@ Thumbs.db
 .gitignore
 
 # Docker
-Dockerfile
-docker-compose.yml
+docker/Dockerfile
+docker/docker-compose.yml
 .dockerignore
 
 # Project specific
