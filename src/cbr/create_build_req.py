@@ -85,10 +85,11 @@ def create_build_req():
             logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
             return 1
 
-        is_ready, manifest_info, resources_dir = check_uni_project(env_vars, third_party_configs)
-        if not is_ready:
+        check_result = check_uni_project(env_vars, third_party_configs)
+        if check_result is None:
             logging.error("本地资源文件校验失败，请检查HBX版本是否正确，产物输出目录是否正确！")
             return 1
+        manifest_info, resources_dir = check_result
         # 美观的打印manifest_info，但排除permissions字段
         manifest_info_without_permissions = manifest_info.copy()
         manifest_info_without_permissions.pop("permissions", {})

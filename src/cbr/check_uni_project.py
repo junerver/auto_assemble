@@ -87,8 +87,9 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
 
 
 def check_uni_project(
-    env_vars: CbrEnvVars, third_party_configs: list[ThirdPartyConfig]
-) -> tuple[bool, Optional[ManifestInfo], Optional[Path]]:
+    env_vars: CbrEnvVars,
+    third_party_configs: list[ThirdPartyConfig],
+) -> Optional[tuple[ManifestInfo, Path]]:
     """
     根据环境变量设置的 UniApp 项目地址、是否为CLI创建项目，来确定 manifest.json 文件所在目录
     如果是cli项目，则位于{项目目录}/src/manifest.json下
@@ -105,7 +106,7 @@ def check_uni_project(
         - third_party_configs: 第三方配置文件对应的数据类列表
 
     Returns:
-        tuple[bool, Optional[ManifestInfo], Path]: (是否校验通过, manifest解析结果, 资源目录(app_id目录的上级目录))
+        tuple[ManifestInfo], Path]: (manifest解析结果, 资源目录(app_id目录的上级目录))
     """
     try:
         workspace: Path = env_vars.UNIAPP_WORKSPACE
@@ -113,40 +114,40 @@ def check_uni_project(
 
         if not workspace:
             logging.error("未设置 UNIAPP_WORKSPACE 环境变量")
-            return False, None, None
+            return None
 
         # 确定 manifest.json 文件位置
         manifest_path: Path = (workspace / "src" / "manifest.json") if is_cli else (workspace / "manifest.json")
 
         if not manifest_path.exists():
             logging.error(f"manifest.json 文件不存在: {manifest_path}")
-            return False, None, None
+            return None
 
         # 解析 manifest.json 文件
         manifest_info: ManifestInfo = parse_uni_manifest(manifest_path, env_vars, third_party_configs)
         if not manifest_info.get("uniapp_id"):
             logging.error("未能在 manifest.json 中解析到 uniapp_id")
-            return False, manifest_info, None
+            return None
 
         # 检查资源目录
         resources_dir = workspace / "unpackage" / "resources"
         if not resources_dir.exists():
             logging.error(f"资源目录不存在: {resources_dir}")
-            return False, manifest_info, None
+            return None
 
         # 检查资源目录中是否存在名称为uniapp_id的目录
         resources_contents = resources_dir.iterdir()
         if not resources_contents:
             logging.error("资源目录为空")
-            return False, manifest_info, None
+            return None
         for content in resources_contents:
             if content.name == manifest_info["uniapp_id"]:
                 logging.info(f"资源目录{resources_dir}名称与 uniapp_id 匹配: {content} == {manifest_info['uniapp_id']}")
-                return True, manifest_info, resources_dir
+                return manifest_info, resources_dir
         logging.error(f"资源目录{resources_dir}中不存在名称为{manifest_info['uniapp_id']}的目录")
-        return False, manifest_info, None
+        return None
 
     except Exception as e:
         error_msg = f"检查 UniApp 项目时发生错误: {str(e)}"
         logging.error(error_msg)
-        return False, None, None
+        return None
