@@ -231,7 +231,7 @@ def main(prod_name: str, task_dir: str):
     Returns:
         int: 返回0表示成功，返回1表示失败
     """
-    temp_dir = None  # 初始化为None
+    temp_dir: Optional[Path] = None  # 初始化为None
     try:
         # 配置日志
         setup_logging(clear_log_file=True, task_name="执行资源同步流程")
@@ -246,7 +246,7 @@ def main(prod_name: str, task_dir: str):
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
 
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
-            def on_task_info(task_info: TaskInfo):
+            def on_success(task_info: TaskInfo):
                 config.build_mode, commit_message = parse_build_req_message(task_info.commit_message)
                 config.last_commit_message = textwrap.dedent(
                     f"""
@@ -258,7 +258,7 @@ def main(prod_name: str, task_dir: str):
                     """
                 )
 
-            fetch_task_info(config.cur_task_id, on_task_info, lambda: None)
+            fetch_task_info(config.cur_task_id, on_success, lambda: None)
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
             return 10001
@@ -441,5 +441,5 @@ def main(prod_name: str, task_dir: str):
             logging.error(f"执行过程中发生错误: {e}")
         return 1
     finally:
-        if temp_dir is not None and os.path.exists(temp_dir):
+        if temp_dir is not None and temp_dir.exists():
             shutil.rmtree(temp_dir)

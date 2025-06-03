@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -146,9 +147,9 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
         # 根据构建模式确定输出目录
         output_dir: Path = Path(config.BUILD_RELEASE_OUTPUT_DIR if release else config.BUILD_DEBUG_OUTPUT_DIR)
         # 复制APK文件
-        source_apk = output_dir / apk_name
-        normalized_apk = output_dir / apk_name.replace(".apk", "_normalized.apk")
-        target_apk = target_dir / apk_name
+        source_apk: Path = output_dir / apk_name
+        normalized_apk: Path = output_dir / apk_name.replace(".apk", "_normalized.apk")
+        target_apk: Path = target_dir / apk_name
         is_normalized = False
 
         if source_apk.exists():
@@ -173,7 +174,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
                     logging.info(f"ApkNormalized命令执行完成，输出文件: {normalized_apk}，准备重新签名")
                     # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
                     client_publish_async("build", "构建任务:build", "开始产物签名...")
-                    signed_apk, signed_size, signed_md5 = sign_apk(str(normalized_apk), sign_config, target_apk)
+                    signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
                     logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
                     is_normalized = True
                 except Exception as e:
@@ -411,25 +412,25 @@ def main(target_dir: Optional[Path] = None, release: bool = True, is_distributio
         git_reset_and_clean(repo_path=config.ANDROID_UNI_BASE_PATH)
 
 
-def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tuple[str, int, str]:
+def sign_apk(origin_apk_path: Path, sign_config: SignConfig, output_path: Path = None) -> tuple[Path, int, str]:
     """
     对APK文件进行签名
 
     Args:
-        origin_apk (str): 输入的原始文件路径字符串
+        origin_apk_path (str): 输入的原始文件路径字符串
         sign_config (SignConfig): 签名配置
-        output (str, optional): 输出文件，如不配置则默认输出到.apk同目录下，文件名称为原文件名+_signed.apk
+        output_path (str, optional): 输出文件，如不配置则默认输出到.apk同目录下，文件名称为原文件名+_signed.apk
 
     Returns:
-        str,int,str: 签名后的文件路径, 重新签名后的文件体积, 重签名后的文件md5
+        str,int,str: 签名后的文件路径, 重新签名后的文件体积(字节), 重签名后的文件md5
     """
-    apk_signer = "/opt/android-sdk/build-tools/34.0.0/apksigner"
-    if not os.path.exists(apk_signer):
+    apk_signer = Path("/opt/android-sdk/build-tools/34.0.0/apksigner")
+    if not apk_signer.exists():
         raise FileNotFoundError(f"apksigner 文件不存在: {apk_signer}")
-    if output is None:
-        output = os.path.splitext(origin_apk)[0] + "_signed.apk"
+    if output_path is None:
+        output_path = origin_apk_path.with_stem(origin_apk_path.stem + "_signed").with_suffix(".apk")
     cmd = [
-        apk_signer,
+        str(apk_signer),
         "sign",
         "--ks",
         str(sign_config.key_store),
@@ -444,10 +445,10 @@ def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tu
         "--v2-signing-enabled",
         "true",
         "--out",
-        output,
-        origin_apk,
+        str(output_path),
+        str(origin_apk_path),
     ]
-    logging.info(f"执行命令: {' '.join(cmd)}")
+    logging.info(f"执行命令: {shlex.join(cmd)}")
     subprocess.run(
         cmd,
         stdout=sys.stdout,
@@ -457,11 +458,12 @@ def sign_apk(origin_apk: str, sign_config: SignConfig, output: str = None) -> tu
         errors="replace",  # ✅ 可选，避免报错，替换非法字符
     )
     # 检查输出目录下是否存在签名创建的idsig文件
-    if os.path.exists(f"{output}.idsig"):
-        # 删除idsig文件
-        os.remove(f"{output}.idsig")
+    idsig_file = output_path.with_suffix(output_path.suffix + ".idsig")
+    if idsig_file.exists():
+        idsig_file.unlink()
+
     # 获取重新签名后的文件体积\重新计算文件的md5
-    return output, os.path.getsize(output), calculate_file_md5(output)
+    return output_path, output_path.stat().st_size, calculate_file_md5(output_path)
 
 
 if __name__ == "__main__":
