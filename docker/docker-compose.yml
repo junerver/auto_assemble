@@ -1,12 +1,12 @@
 services:
   webhook:
-    image: auto_assemble-webhook:fast_api
+    image: auto_assemble-webhook:test
     container_name: auto_assemble_webhook
     restart: unless-stopped
     ports:
       - "5005:5005"
     volumes:
-      - ./webhook/webhook_server.db:/app/webhook/webhook_server.db
+      - ../src/webhook/webhook_server.db:/app/webhook/webhook_server.db
       # Android构建环境
       - android_sdk:/opt/android-sdk
       - gradle_cache:/home/appuser/.gradle
@@ -22,7 +22,7 @@ services:
       - PORT=5005
       - FLASK_DEBUG=false
       - OBFUSCATOR_PRESET=low
-      - API_TEST=false
+      - API_TEST=true
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5005/health"]
       interval: 30s

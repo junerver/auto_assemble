@@ -86,7 +86,7 @@ def run_pyinstaller(version: str, module_name: str, exe_name: str = None):
         "--onefile",
         f"--name={exe_name}",
         "--version-file=version.txt",
-        f"{module_name}/__main__.py",
+        f"src/{module_name}/__main__.py",
     ]
 
     print("🚀 开始打包...")

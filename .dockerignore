@@ -59,4 +59,4 @@ dist/
 release/
 *.spec 
 
-webhook/.env
+src/webhook/.env

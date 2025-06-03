@@ -43,6 +43,7 @@ fork-task = "fork_task.__main__:main"
 
 [tool.setuptools]
 packages = ["auto_assemble", "cbr", "webhook", "manager_client", "fork_task", "common"]
+package-dir = {"" = "src"}
 
 [tool.black]
 line-length = 100

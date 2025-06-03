@@ -8,13 +8,13 @@ RUN git config --global credential.helper store && \
     git config --global user.email "assemble_bot@jkr.com"
 
 # 复制项目文件
-COPY --chown=appuser:appuser ../auto_assemble ./auto_assemble
-COPY --chown=appuser:appuser ../webhook ./webhook
-COPY --chown=appuser:appuser ../common ./common
-COPY --chown=appuser:appuser ../fork_task ./fork_task
-COPY --chown=appuser:appuser docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --chown=appuser:appuser ../pyproject.docker.toml ./pyproject.toml
-COPY --chown=appuser:appuser cleanup.sh ./cleanup.sh
+COPY --chown=appuser:appuser ../src/auto_assemble ./auto_assemble
+COPY --chown=appuser:appuser ../src/webhook ./webhook
+COPY --chown=appuser:appuser ../src/common ./common
+COPY --chown=appuser:appuser ../src/fork_task ./fork_task
+COPY --chown=appuser:appuser docker/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --chown=appuser:appuser docker/pyproject.docker.toml ./pyproject.toml
+COPY --chown=appuser:appuser docker/cleanup.sh ./cleanup.sh
 COPY --chown=appuser:appuser ../resource/ApkDiffPatch_v1.8.0 ./ApkDiffPatch
 
 # ADP 可执行
