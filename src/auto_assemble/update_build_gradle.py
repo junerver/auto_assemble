@@ -260,7 +260,7 @@ def update_build_gradle(
         deps = []
         for m in modules:
             if m not in MODULE_DEPENDENCY_MAP:
-                raise KeyError(f"Module '{m}' not found in MODULE_DEPENDENCY_MAP")
+                raise KeyError(m)  # 只传递模块名称
             dep = MODULE_DEPENDENCY_MAP[m]
             if dep is not None:
                 deps.append(dep)
@@ -314,6 +314,7 @@ def update_build_gradle(
     except Exception as e:
         logging.error(f"更新build.gradle文件时发生错误: {e}")
         if isinstance(e, KeyError):
-            logging.error(f"模块 '{e.args[0]}' 未找到在MODULE_DEPENDENCY_MAP中")
-            raise e
+            module_name = e.args[0]  # 现在直接是模块名称
+            logging.error(f"模块 '{module_name}' 未找到在MODULE_DEPENDENCY_MAP中")
+            raise KeyError(f"Module '{module_name}' not found in MODULE_DEPENDENCY_MAP")
         return False
