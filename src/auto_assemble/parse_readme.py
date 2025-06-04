@@ -40,9 +40,9 @@ def parse_uni_modules(content: str) -> list[str]:
         return []
 
 
-def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
+def parse_yaml_block(content: str) -> dict[str, dict[str, str]] | None:
     """
-    从内容中解析 YAML 代码块
+    从内容中解析 YAML 代码块，注意现在使用从接口直接读取，这是接口请求失败时的备用方案
     Args:
         content: 文件内容
     Returns:
@@ -75,6 +75,12 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
 
         # 解析 YAML 内容
         third_party_config_yaml = yaml.safe_load(yaml_content)
+
+        # 检查是否包含预定义的键
+        predefined_keys = {"wechat", "amap", "getui", "jpush", "oppo", "vivo", "honor", "huawei"}
+        if not any(key in third_party_config_yaml for key in predefined_keys):
+            # 如果没有预定义的键，直接返回解析结果
+            return {}
 
         # 重新组织配置结构
         result = {}
