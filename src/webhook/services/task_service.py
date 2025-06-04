@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from common.err_code import format_error
 from webhook.services.webhook_request_service import WebhookRequestService
-from webhook.types import Commit, GitLabPushEventModel
+from webhook.types import CommitModel, GitLabPushEventReq
 from webhook.models.task import Task, TaskStatus
 from webhook.utils.validators import (
     is_valid_assemble_response,
@@ -19,7 +19,7 @@ from webhook.utils.task_manager import TaskManager
 class TaskService:
     @staticmethod
     def handle_webhook_request(
-        data: GitLabPushEventModel, db: sqlite3.Connection
+        data: GitLabPushEventReq, db: sqlite3.Connection
     ) -> tuple[Optional[list["Task"]], str, int]:
         """处理webhook请求并创建任务
 
@@ -36,14 +36,14 @@ class TaskService:
             - status_code: HTTP状态码
         """
         # 验证提交信息
-        commits: list[Commit] = data.commits or []
+        commits: list[CommitModel] = data.commits or []
         if not commits:
             return None, "No file changes in commit", 403
 
         logging.info(
             f"收到{len(commits)}个提交信息: {json.dumps([c.model_dump() for c in commits], ensure_ascii=False, indent=2)}"
         )
-        valid_commits: list[Commit] = [commit for commit in commits if is_valid_build_task(commit)]
+        valid_commits: list[CommitModel] = [commit for commit in commits if is_valid_build_task(commit)]
         logging.info(
             f"有效提交（{len(valid_commits)}）：\n{json.dumps([c.model_dump() for c in valid_commits], ensure_ascii=False, indent=2)}"
         )
@@ -59,7 +59,7 @@ class TaskService:
                 return None, "This's a assemble response, not a build task", 201
             return None, "No valid build task", 404
 
-        def build_task(commit: Commit) -> Optional["Task"]:
+        def build_task(commit: CommitModel) -> Optional["Task"]:
             prod, task = parse_build_task(commit)
             return TaskService.create_task(prod_name=prod, task_name=task, commit_info=commit, db=db)
 
@@ -72,7 +72,7 @@ class TaskService:
     def create_task(
         prod_name,
         task_name,
-        commit_info: Commit = None,
+        commit_info: CommitModel = None,
         priority=0,
         retries=0,
         db: sqlite3.Connection = None,

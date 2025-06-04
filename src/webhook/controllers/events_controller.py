@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from webhook.extensions.sse import sse  # 单例实例
-from webhook.types import PublishSSEModel
+from webhook.types import PublishSSEReq
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -21,7 +21,7 @@ def stream():
 
 
 @router.post("/publish")
-def publish_event(event: PublishSSEModel):
+def publish_event(event: PublishSSEReq):
     """发布事件"""
     sse.publish(event.type, {"title": event.title, "message": event.message})
     return JSONResponse(status_code=200, content={"status": "success", "message": "Event published"})

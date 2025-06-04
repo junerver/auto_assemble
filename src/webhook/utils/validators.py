@@ -1,10 +1,10 @@
 import re
 from typing import Optional
 
-from webhook.types import Commit
+from webhook.types import CommitModel
 
 
-def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
+def is_valid_assemble_response(commit: CommitModel) -> tuple[bool, Optional[str]]:
     """
     验证是否是有效的组装响应
     1. 提交信息以 #(.*)_resp# 格式开头
@@ -32,7 +32,7 @@ def is_valid_assemble_response(commit: Commit) -> tuple[bool, Optional[str]]:
     return True, commit.id or ""
 
 
-def is_valid_build_task(commit: Commit) -> bool:
+def is_valid_build_task(commit: CommitModel) -> bool:
     """
     验证是否是有效的构建任务，有效的任务需要满足：
     1. 提交信息以 #(.*)_req# 格式开头
@@ -75,7 +75,7 @@ def is_valid_build_task(commit: Commit) -> bool:
     return has_archive and has_md
 
 
-def parse_build_task(commit: Commit):
+def parse_build_task(commit: CommitModel):
     """
     解析构建任务信息
     Args:
@@ -111,4 +111,4 @@ if __name__ == "__main__":
         "modified": [],
         "removed": [],
     }
-    print(is_valid_assemble_response(Commit(**commit_dic)))
+    print(is_valid_assemble_response(CommitModel(**commit_dic)))

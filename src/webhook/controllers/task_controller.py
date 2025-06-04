@@ -9,7 +9,7 @@ from webhook.config import PORT
 from webhook.extensions.db import get_db
 from webhook.models.task import TaskStatus
 from webhook.types import (
-    BaseRespModel,
+    BaseResp,
     QueueDetailResp,
     StatisticsResp,
     StopTaskResp,
@@ -30,7 +30,7 @@ async def get_task_info(task_id: Annotated[str, Path(..., description="任务id"
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.delete("/task/{task_id}", response_model=BaseRespModel)
+@router.delete("/task/{task_id}", response_model=BaseResp)
 async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """标记任务为过期"""
     if TaskService.update_task_status(task_id, TaskStatus.OUTDATED, db=db) is not None:

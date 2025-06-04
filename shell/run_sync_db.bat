@@ -10,7 +10,7 @@ set REMOTE_HOST=192.168.189.243
 set REMOTE_FILE=/opt/auto_assemble/webhook/webhook_server.db
 
 :: 设置本地目标目录
-set LOCAL_DIR=E:/dev/auto_assemble/webhook/
+set LOCAL_DIR=E:/dev/auto_assemble/src/webhook/
 set LOCAL_FILE=%LOCAL_DIR%webhook_server.db
 
 :: 检查本地目标目录是否存在

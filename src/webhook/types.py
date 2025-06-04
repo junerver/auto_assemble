@@ -7,7 +7,7 @@ from webhook.models.task import TaskStatus
 
 
 # ========================请求、响应模型============================
-class BaseRespModel(BaseModel):
+class BaseResp(BaseModel):
     """基础响应模型"""
 
     message: str = Field(..., description="消息说明")
@@ -91,13 +91,13 @@ class ProjectModel(BaseModel):
     updated_at: Optional[datetime] = Field(None, description="项目配置更新时间")
 
 
-class ConfigureProjectResp(BaseRespModel):
+class ConfigureProjectResp(BaseResp):
     """配置项目的响应"""
 
     project: ProjectModel = Field(..., description="项目配置信息")
 
 
-class ProjectConfigDetailResp(BaseRespModel):
+class ProjectConfigDetailResp(BaseResp):
     """项目配置查询的详情"""
 
     project_config: ProjectModel = Field(..., description="项目配置信息")
@@ -144,14 +144,14 @@ class TaskDetailResp(BaseModel):
     task: TaskModel = Field(..., description="构建任务详情")
 
 
-class TaskStatistics(BaseModel):
+class TaskStatisticsModel(BaseModel):
     """任务构建统计"""
 
     prod_name: str = Field(..., description="项目名称")
     count: int = Field(..., description="构建次数")
 
 
-class UsageStatistics(BaseModel):
+class UsageStatisticsModel(BaseModel):
     """使用者统计"""
 
     author: str = Field(..., description="使用人")
@@ -161,8 +161,8 @@ class UsageStatistics(BaseModel):
 class StatisticsResp(BaseModel):
     """统计接口响应"""
 
-    tasks: list[TaskStatistics]
-    packer_usage: list[UsageStatistics]
+    tasks: list[TaskStatisticsModel]
+    packer_usage: list[UsageStatisticsModel]
 
 
 class QueueDetailResp(BaseModel):
@@ -174,7 +174,7 @@ class QueueDetailResp(BaseModel):
     recent_tasks: list[TaskModel] = Field(..., description="最近完成的构建任务")
 
 
-class StopTaskResp(BaseRespModel):
+class StopTaskResp(BaseResp):
     """停止任务响应"""
 
     task: TaskModel = Field(..., description="构建任务详情")
@@ -190,14 +190,14 @@ class ThirdPartyConfigModel(BaseModel):
     config_value: str = Field(..., description="第三方服务配置值")
 
 
-class Author(BaseModel):
+class AuthorModel(BaseModel):
     """作者信息"""
 
     name: str = Field(..., description="作者名称")
     email: str = Field(..., description="作者邮箱")
 
 
-class Commit(BaseModel):
+class CommitModel(BaseModel):
     """提交信息"""
 
     id: str = Field(..., description="当前提交的hash值")
@@ -205,13 +205,13 @@ class Commit(BaseModel):
     title: str = Field(..., description="提交标题")
     timestamp: str = Field(..., description="提交时间戳")
     url: str = Field(..., description="当前提交对应仓库快照的url")
-    author: Author = Field(..., description="提交人")
+    author: AuthorModel = Field(..., description="提交人")
     added: list[str] = Field(..., description="添加的文件列表")
     modified: list[str] = Field(..., description="修改的文件列表")
     removed: list[str] = Field(..., description="移除的文件列表")
 
 
-class ProjectInfo(BaseModel):
+class ProjectInfoModel(BaseModel):
     """项目信息"""
 
     id: int = Field(..., description="gitlab项目id")
@@ -232,7 +232,7 @@ class ProjectInfo(BaseModel):
     http_url: str
 
 
-class RepositoryInfo(BaseModel):
+class RepositoryInfoModel(BaseModel):
     """git仓库信息"""
 
     name: str
@@ -244,7 +244,7 @@ class RepositoryInfo(BaseModel):
     visibility_level: int
 
 
-class GitLabPushEventModel(BaseModel):
+class GitLabPushEventReq(BaseModel):
     """webhook 推送事件请求实体类"""
 
     object_kind: str = Field(..., description="事件类型")
@@ -261,14 +261,14 @@ class GitLabPushEventModel(BaseModel):
     user_email: Optional[str] = Field(None, description="用户邮箱（可为空）")
     user_avatar: Optional[str] = Field(None, description="用户头像 URL（可为空）")
     project_id: int = Field(..., description="项目 ID")
-    project: ProjectInfo = Field(..., description="项目信息")
-    commits: list[Commit] = Field(..., description="提交记录列表")
+    project: ProjectInfoModel = Field(..., description="项目信息")
+    commits: list[CommitModel] = Field(..., description="提交记录列表")
     total_commits_count: int = Field(..., description="总提交数量")
     push_options: dict = Field(..., description="推送选项")
-    repository: RepositoryInfo = Field(..., description="仓库基本信息")
+    repository: RepositoryInfoModel = Field(..., description="仓库基本信息")
 
 
-class PublishSSEModel(BaseModel):
+class PublishSSEReq(BaseModel):
     """SSE 推送事件请求实体类"""
 
     type: Optional[str] = Field("toast", description="事件类型")

@@ -15,7 +15,7 @@ from webhook.models.task import Task, TaskStatus
 from webhook.config import API_TEST, TASK_TIMEOUT, MAX_RETRIES
 from webhook.services.task_service import TaskService
 from webhook.services.webhook_request_service import WebhookRequestService
-from webhook.types import GitLabPushEventModel
+from webhook.types import GitLabPushEventReq
 from webhook.utils.notifications import show_build_toast, show_toast
 from webhook.utils.task_manager import TaskManager, TaskType
 
@@ -113,7 +113,7 @@ def build_task_worker(task: Task):
         500: {"description": "处理webhook请求时发生错误"},
     },
 )
-async def webhook(event: GitLabPushEventModel, request: Request, db=Depends(get_db)):
+async def webhook(event: GitLabPushEventReq, request: Request, db=Depends(get_db)):
     """处理Gitlab的webhook请求"""
     logging.info("收到webhook请求")
     try:

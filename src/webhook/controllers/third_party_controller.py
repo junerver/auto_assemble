@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from webhook.extensions.db import get_db
-from webhook.types import BaseRespModel
+from webhook.types import BaseResp
 from webhook.models.third_party import ThirdPartyDict
 from webhook.services.third_party_service import ThirdPartyService
 
@@ -57,7 +57,7 @@ async def get_third_party_dict_item(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/dict/{key}", response_model=BaseRespModel)
+@router.put("/dict/{key}", response_model=BaseResp)
 async def update_third_party_dict_item(
     key: Annotated[str, Path(..., description="第三方服务配置的键值")],
     request: Request,
@@ -81,7 +81,7 @@ async def update_third_party_dict_item(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/dict/{key}", response_model=BaseRespModel)
+@router.delete("/dict/{key}", response_model=BaseResp)
 async def delete_third_party_dict_item(
     key: Annotated[str, Path(..., description="第三方服务配置的键值")],
     db=Depends(get_db),
