@@ -557,7 +557,7 @@ def get_untracked_files(repo_path: str) -> list[str]:
         return []
 
 
-def get_staged_files(repo_path: str):
+def get_staged_files(repo_path: str) -> list[str]:
     """获取已暂存的文件列表"""
     try:
         result = subprocess.run(
@@ -576,7 +576,7 @@ def get_staged_files(repo_path: str):
         return []
 
 
-def git_add(repo_path: str):
+def git_add(repo_path: str) -> bool:
     """执行git add操作"""
     try:
         result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=repo_path)
@@ -590,7 +590,7 @@ def git_add(repo_path: str):
         return False
 
 
-def git_commit(commit_message: str, repo_path: str, author: str = None):
+def git_commit(commit_message: str, repo_path: str, author: str = None) -> bool:
     """
     执行git commit操作，默认工作目录为config.DISTRIBUTION_PATH
 
@@ -627,7 +627,7 @@ def git_commit(commit_message: str, repo_path: str, author: str = None):
         return False
 
 
-def git_push(repo_path: str, is_lfs: bool = False):
+def git_push(repo_path: str, is_lfs: bool = False) -> bool:
     """
     执行git push操作
     当远程分支领先于本地分支时,自动执行rebase操作
@@ -722,7 +722,7 @@ def git_push(repo_path: str, is_lfs: bool = False):
         return False
 
 
-def confirm_push(staged_files, commit_message):
+def confirm_push(staged_files, commit_message) -> bool:
     """确认是否推送"""
     logging.info("=" * 50)
     logging.info("推送确认")

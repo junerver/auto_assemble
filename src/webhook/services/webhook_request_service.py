@@ -61,7 +61,7 @@ class WebhookRequestService:
             return None
 
     @staticmethod
-    def delete_webhook_request(task_id, db: sqlite3.Connection = None):
+    def delete_webhook_request(task_id, db: sqlite3.Connection = None) -> bool:
         """删除webhook请求记录"""
         try:
             WebhookRequest.delete_by_task_id(task_id, db)

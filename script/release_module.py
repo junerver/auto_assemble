@@ -69,13 +69,15 @@ def clean_old_builds():
 
 
 # 运行 PyInstaller 进行打包
-def run_pyinstaller(version: str, module_name: str, exe_name: str = None):
+def run_pyinstaller(version: str, module_name: str, exe_name: str = None) -> str:
     """运行 PyInstaller 打包
 
     Args:
         version 版本信息
         module_name 需要打包的模块
         exe_name 最终可执行文件名称，如果未指定，则使用模块名与版本号拼接
+    Returns:
+        str: exe_name
     """
     version_str = ".".join(map(str, version))
     if exe_name is None:

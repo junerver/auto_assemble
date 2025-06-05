@@ -216,7 +216,7 @@ def rolling_req_build_status():
     轮询请求构建主机，获取构建状态，toast通知成功、失败
     """
     dots = ""  # 用于存储进度点
-    should_exit = True
+    should_exit = False  # 修改为 False，确保循环至少执行一次
     while not should_exit:
         try:
 

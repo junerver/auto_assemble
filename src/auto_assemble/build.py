@@ -23,7 +23,7 @@ from common.git import git_push, git_reset_and_clean
 from common.md5 import calculate_file_md5
 
 
-def get_build_resp_message(commit_message: str):
+def get_build_resp_message(commit_message: str) -> str:
     return f"{get_build_req_label(config.build_mode, 'resp')}{commit_message}"
 
 
@@ -66,7 +66,7 @@ def get_distribution_target_dir(apk_name: str) -> Path:
     return Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / apk_name.replace(".apk", "")
 
 
-def execute_gradle_build(release: bool = True):
+def execute_gradle_build(release: bool = True) -> bool:
     """
     执行gradle构建命令，默认构建 release 包
     Returns:
@@ -248,7 +248,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
         return False, ""
 
 
-def record_task_metadata(metadata: BuildMetadata):
+def record_task_metadata(metadata: BuildMetadata) -> bool:
     """
     调用接口，记录任务对应的元数据
     """
@@ -348,7 +348,7 @@ def update_git_info(commit_message):
         return 12014
 
 
-def build(target_dir: Optional[Path] = None, release: bool = True, is_distribution: bool = True):
+def build(target_dir: Optional[Path] = None, release: bool = True, is_distribution: bool = True) -> int:
     """
     主函数：执行整个构建流程
     1. 配置日志系统

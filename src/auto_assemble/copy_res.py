@@ -207,7 +207,7 @@ def check_apps_directory() -> bool:
         return False
 
 
-def copy_res(prod_name: str, task_dir: str):
+def copy_res(prod_name: str, task_dir: str) -> int:
     """
     主函数：执行整个更新流程
     1. 配置日志系统

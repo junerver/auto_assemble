@@ -78,7 +78,19 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
         )
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
-        logging.info(f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars))}")
+
+        # 使用自定义编码器
+        class PathEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, Path):
+                    return str(obj)
+                # 处理 MagicMock 对象
+                if hasattr(obj, "__class__") and obj.__class__.__name__ == "MagicMock":
+                    return str(obj)
+                return super().default(obj)
+
+        logging.info(f"读取到项目配置如下:\n {json.dumps(dataclasses.asdict(env_vars), cls=PathEncoder)}")
+
         return env_vars, third_party_configs
 
     except Exception as e:

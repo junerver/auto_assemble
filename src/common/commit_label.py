@@ -1,4 +1,4 @@
-def get_build_req_label(build_mode: str, req_resp: str = "req"):
+def get_build_req_label(build_mode: str, req_resp: str = "req") -> str:
     """
     获取构建请求标签
     Args:

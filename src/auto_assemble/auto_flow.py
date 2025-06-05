@@ -13,7 +13,7 @@ from common.client_publish import client_publish_async
 from common.config import config
 
 
-def auto_flow(task_id: str = None):
+def auto_flow(task_id: str = None) -> int:
     """
     主函数，按顺序执行所有步骤
 
