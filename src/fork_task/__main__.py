@@ -41,7 +41,7 @@ def main():
             logging.error(f"业务错误: {e.code} {e.message}")
             return unified_error_code(e.code)
         else:
-            logging.error(f"未知错误: {e}")
+            logging.exception(f"未知错误: {e}")
             return 1
 
 

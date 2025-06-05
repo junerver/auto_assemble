@@ -32,7 +32,7 @@ def show_toast(title: str, message: str):
             toast(title, message)
             loop.close()
         except Exception as e:
-            logging.error(f"Error showing toast: {e}")
+            logging.exception(f"Error showing toast: {e}")
 
     thread = threading.Thread(target=run_toast)
     thread.start()

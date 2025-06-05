@@ -16,7 +16,7 @@ def show_toast(title: str, message: str):
     try:
         sse.publish("toast", {"title": title, "message": message})
     except Exception as e:
-        logging.error(f"发送通知事件时发生错误: {str(e)}")
+        logging.exception(f"发送通知事件时发生错误: {str(e)}")
 
 
 def show_build_toast(task: Task, success: bool):

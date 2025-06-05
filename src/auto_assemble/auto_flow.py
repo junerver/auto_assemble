@@ -59,7 +59,7 @@ def main(task_id: str = None):
         client_publish_async("build", "构建任务:push", "构建任务执行完毕")
         return 0
     except Exception as e:
-        logging.error(f"执行过程中发生错误: {e}")
+        logging.exception(f"执行过程中发生错误: {e}")
         return 1
 
 

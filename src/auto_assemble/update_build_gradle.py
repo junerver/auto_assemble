@@ -312,7 +312,7 @@ def update_build_gradle(
 
         return True
     except Exception as e:
-        logging.error(f"更新build.gradle文件时发生错误: {e}")
+        logging.exception(f"更新build.gradle文件时发生错误: {e}")
         if isinstance(e, KeyError):
             module_name = e.args[0]  # 现在直接是模块名称
             logging.error(f"模块 '{module_name}' 未找到在MODULE_DEPENDENCY_MAP中")

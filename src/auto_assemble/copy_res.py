@@ -59,7 +59,7 @@ def find_compressed_file(directory: Path) -> Optional[Path]:
         logging.warning(f"在 {directory} 中未找到压缩文件")
         return None
     except Exception as e:
-        logging.error(f"查找压缩文件时发生错误: {e}")
+        logging.exception(f"查找压缩文件时发生错误: {e}")
         return None
 
 
@@ -80,7 +80,7 @@ def clear_directory(directory: Path) -> bool:
         logging.info(f"成功清空目录: {directory}")
         return True
     except Exception as e:
-        logging.error(f"清空目录时发生错误: {e}")
+        logging.exception(f"清空目录时发生错误: {e}")
         return False
 
 
@@ -123,7 +123,7 @@ def check_compressed_file_content(compressed_file: Path) -> tuple[bool, Optional
         # 检查通过，保留临时目录
         return True, temp_dir
     except Exception as e:
-        logging.error(f"检查压缩文件内容时发生错误: {e}")
+        logging.exception(f"检查压缩文件内容时发生错误: {e}")
         if temp_dir.exists():
             shutil.rmtree(temp_dir)
         return False, None
@@ -178,7 +178,7 @@ def extract_compressed_file(
             logging.info(f"成功解压文件到: {extract_to}")
             return True
     except Exception as e:
-        logging.error(f"解压文件时发生错误: {e}")
+        logging.exception(f"解压文件时发生错误: {e}")
         return False
 
 
@@ -203,7 +203,7 @@ def check_apps_directory() -> bool:
         logging.info("APPS_DIRECTORY目录结构检查通过")
         return True
     except Exception as e:
-        logging.error(f"检查APPS_DIRECTORY时发生错误: {e}")
+        logging.exception(f"检查APPS_DIRECTORY时发生错误: {e}")
         return False
 
 
@@ -232,6 +232,7 @@ def main(prod_name: str, task_dir: str):
         int: 返回0表示成功，返回1表示失败
     """
     temp_dir: Optional[Path] = None  # 初始化为None
+    obfuscated_dir: Optional[Path] = None  # Initialize obfuscated_dir to None
     try:
         # 配置日志
         setup_logging(clear_log_file=True, task_name="执行资源同步流程")
@@ -325,7 +326,7 @@ def main(prod_name: str, task_dir: str):
             raise BusinessException(12003)
 
         if config.build_mode != "dev":
-            obfuscated_dir: Optional[Path] = None
+            # obfuscated_dir: Optional[Path] = None # Remove this line
             try:
                 client_publish_async("build", "构建任务:copy_res", "开始执行资源混淆...")
                 # release 构建模式下需要对代码进行混淆，执行javascript-obfuscator命令混淆temp_dir目录下的所有js文件
@@ -381,9 +382,9 @@ def main(prod_name: str, task_dir: str):
                         shutil.rmtree(obfuscated_dir)
                     client_publish_async("build", "构建任务:copy_res", "混淆失败，回退使用原始代码")
             except Exception as e:
-                logging.error(f"执行javascript-obfuscator命令失败: {e}")
+                logging.exception(f"执行javascript-obfuscator命令失败: {e}")
                 # 执行失败，不进行混淆
-                if obfuscated_dir.exists():
+                if obfuscated_dir is not None and obfuscated_dir.exists():  # Add is not None check
                     shutil.rmtree(obfuscated_dir)
         else:
             # 无需混淆
@@ -438,7 +439,7 @@ def main(prod_name: str, task_dir: str):
             logging.error(f"业务错误: {e.code} {e.message}")
             return e.code
         else:
-            logging.error(f"执行过程中发生错误: {e}")
+            logging.exception(f"执行过程中发生错误: {e}")
         return 1
     finally:
         if temp_dir is not None and temp_dir.exists():

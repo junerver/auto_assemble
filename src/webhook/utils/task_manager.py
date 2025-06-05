@@ -141,7 +141,7 @@ class TaskManager:
                     logging.info(f"已从进程列表中移除: task_id={task_id}")
                     return True
                 except Exception as e:
-                    logging.error(f"终止进程失败: task_id={task_id}, error={e}")
+                    logging.exception(f"终止进程失败: task_id={task_id}, error={e}")
                     return False
             else:
                 logging.warning(f"未找到要终止的进程: task_id={task_id}")

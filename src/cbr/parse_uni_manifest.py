@@ -130,7 +130,7 @@ def parse_uni_manifest(
 
         return result
     except Exception as e:
-        logging.error(f"解析manifest.json文件时发生错误: {e}")
+        logging.exception(f"解析manifest.json文件时发生错误: {e}")
         return {
             "hbx_version": "",
             "version_name": "",

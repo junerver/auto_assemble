@@ -36,7 +36,7 @@ def parse_uni_modules(content: str) -> list[str]:
         logging.info(f"成功解析模块信息: {modules}")
         return modules
     except Exception as e:
-        logging.error(f"解析模块信息时发生错误: {e}")
+        logging.exception(f"解析模块信息时发生错误: {e}")
         return []
 
 
@@ -102,7 +102,7 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]] | None:
 
         return result
     except Exception as e:
-        logging.error(f"解析 YAML 代码块时发生错误: {e}")
+        logging.exception(f"解析 YAML 代码块时发生错误: {e}")
         return {}
 
 
@@ -201,5 +201,5 @@ def parse_readme(readme_path: Path) -> ManifestInfo | None:
 
         return result
     except Exception as e:
-        logging.error(f"解析 README.md 文件时发生错误: {e}")
+        logging.exception(f"解析 README.md 文件时发生错误: {e}")
         return None

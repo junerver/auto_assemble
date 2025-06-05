@@ -80,8 +80,7 @@ def main():
         # 判断操作系统，如果是Windows，则直接返回，否则将错误码格式化为Unix/Linux规则的0-255的错误码
         return unified_error_code(result)
     except Exception as e:
-        print(f"\n程序发生异常: {e}")
-        print("请查看日志文件了解详细信息。")
+        logging.exception(f"\n程序发生异常: {e}")
         if config.work_mode == "ui":
             input("按回车键退出...")
         return 1

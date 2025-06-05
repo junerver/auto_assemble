@@ -82,7 +82,7 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
         return env_vars, third_party_configs
 
     except Exception as e:
-        logging.error(f"扫描项目时发生错误: {str(e)}")
+        logging.exception(f"扫描项目时发生错误: {str(e)}")
         raise e
 
 
@@ -149,5 +149,5 @@ def check_uni_project(
 
     except Exception as e:
         error_msg = f"检查 UniApp 项目时发生错误: {str(e)}"
-        logging.error(error_msg)
+        logging.exception(error_msg)
         return None

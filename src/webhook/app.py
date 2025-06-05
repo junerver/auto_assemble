@@ -65,7 +65,7 @@ async def index(request: Request):
     try:
         return templates.TemplateResponse("index.html", {"request": request})
     except Exception as e:
-        logger.error(f"渲染模板时出错: {str(e)}")
+        logger.exception(f"渲染模板时出错: {str(e)}")
         raise HTTPException(status_code=500, detail=f"模板渲染失败: {str(e)}")
 
 

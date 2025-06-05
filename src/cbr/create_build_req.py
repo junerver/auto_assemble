@@ -82,7 +82,7 @@ def create_build_req():
         try:
             env_vars, third_party_configs = scan_uni_project(Path(args.uni), Path.cwd())
         except Exception as e:
-            logging.error(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
+            logging.exception(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
             return 1
 
         check_result = check_uni_project(env_vars, third_party_configs)
@@ -207,10 +207,7 @@ def create_build_req():
         logging.info("打包请求已提交，请稍等...")
         return 0
     except Exception as e:
-        logging.error(f"创建构建请求时发生错误: {str(e)}")
-        import traceback
-
-        logging.error(f"错误详情: {traceback.format_exc()}")
+        logging.exception(f"创建构建请求时发生错误: {str(e)}")
         return 1
 
 
@@ -261,7 +258,7 @@ def rolling_req_build_status():
 
             fetch_task_info(config.cur_task_id, on_success, on_error)
         except Exception as e:
-            logging.error(f"轮询任务状态时发生错误: {str(e)}")
+            logging.exception(f"轮询任务状态时发生错误: {str(e)}")
             break
 
 

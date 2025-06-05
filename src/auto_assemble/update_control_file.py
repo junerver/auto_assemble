@@ -73,5 +73,5 @@ def update_control_file(control_file_path: Path, uniapp_id: str, debug: bool = F
         logging.info(f"成功更新 dcloud_control.xml 文件，替换 appid 为: {uniapp_id}")
         return True
     except Exception as e:
-        print(f"更新 dcloud_control.xml 文件失败: {e}")
+        logging.exception(f"更新 dcloud_control.xml 文件失败: {e}")
         return False

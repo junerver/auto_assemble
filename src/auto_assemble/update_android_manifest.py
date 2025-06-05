@@ -147,5 +147,5 @@ def update_android_manifest(
         return True
 
     except Exception as e:
-        logging.error(f"更新 AndroidManifest.xml 文件时发生错误: {e}")
+        logging.exception(f"更新 AndroidManifest.xml 文件时发生错误: {e}")
         return False

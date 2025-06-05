@@ -94,7 +94,7 @@ def get_modified_apk():
                     return file_name.replace(".apk", "")
         return None
     except Exception as e:
-        logging.error(f"获取已修改的apk文件时发生错误: {str(e)}")
+        logging.exception(f"获取已修改的apk文件时发生错误: {str(e)}")
         return None
 
 
@@ -168,7 +168,7 @@ def main():
         logging.info("所有操作执行成功")
         return 0
     except Exception as e:
-        logging.error(f"执行过程中发生错误: {e}")
+        logging.exception(f"执行过程中发生错误: {e}")
         return 1
 
 

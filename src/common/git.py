@@ -47,7 +47,7 @@ def _get_git_info(repo_path: str) -> GitCommitInfo | None:
         else:
             logging.error(f"{repo_path} 获取Git信息失败: {last_commit.stderr}")
     except Exception as e:
-        logging.error(f"{repo_path} 获取Git信息失败: {e}")
+        logging.exception(f"{repo_path} 获取Git信息失败: {e}")
     return None
 
 
@@ -94,7 +94,7 @@ def _git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
             logging.info(f"{repo_path} 本地代码有更新，需要更新")
             return True
     except Exception as e:
-        logging.error(f"{repo_path} Git fetch执行失败: {e}")
+        logging.exception(f"{repo_path} Git fetch执行失败: {e}")
         return False
 
 
@@ -175,7 +175,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
         logging.error(f"{repo_path} Git命令执行失败: {e}")
         return False
     except Exception as e:
-        logging.error(f"{repo_path} 同步仓库时发生错误: {e}")
+        logging.exception(f"{repo_path} 同步仓库时发生错误: {e}")
         return False
 
 
@@ -197,7 +197,7 @@ def _git_reset_hard_head(repo_path: str) -> bool:
         logging.info(f"{repo_path} Git reset --hard HEAD执行成功")
         return True
     except Exception as e:
-        logging.error(f"{repo_path} Git reset --hard HEAD执行失败: {e}")
+        logging.exception(f"{repo_path} Git reset --hard HEAD执行失败: {e}")
         return False
 
 
@@ -219,7 +219,7 @@ def _git_clean_fd(repo_path: str) -> bool:
         logging.info(f"{repo_path} Git clean执行成功")
         return True
     except Exception as e:
-        logging.error(f"{repo_path} Git clean执行失败: {e}")
+        logging.exception(f"{repo_path} Git clean执行失败: {e}")
         return False
 
 
@@ -253,7 +253,7 @@ def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
         logging.info(f"{repo_path} Git reset --hard HEAD和git clean -fd执行成功")
         return True
     except Exception as e:
-        logging.error(f"{repo_path} Git reset --hard HEAD和git clean -fd执行失败: {e}")
+        logging.exception(f"{repo_path} Git reset --hard HEAD和git clean -fd执行失败: {e}")
         return False
 
 
@@ -448,13 +448,13 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
             _git_checkout_branch(repo_path, original_branch)
             return False
         except Exception as e:
-            logging.error(f"{repo_path} 分支操作过程中发生错误: {e}")
+            logging.exception(f"{repo_path} 分支操作过程中发生错误: {e}")
             # 尝试切回原分支
             _git_checkout_branch(repo_path, original_branch)
             return False
 
     except Exception as e:
-        logging.error(f"{repo_path} 检查Git分支时发生错误: {e}")
+        logging.exception(f"{repo_path} 检查Git分支时发生错误: {e}")
         return False
 
 
@@ -493,7 +493,7 @@ def _git_checkout_branch(
             return False
         return True
     except Exception as e:
-        logging.error(f"{repo_path} 切换到目标分支失败: {e}")
+        logging.exception(f"{repo_path} 切换到目标分支失败: {e}")
         return False
 
 
@@ -523,7 +523,7 @@ def _git_fetch_branch(repo_path: str, branch: str = None):
             return False
         return True
     except Exception as e:
-        logging.error(f"{repo_path} 获取指定分支最新提交失败: {e}")
+        logging.exception(f"{repo_path} 获取指定分支最新提交失败: {e}")
         return False
 
 
@@ -553,7 +553,7 @@ def get_untracked_files(repo_path: str) -> list[str]:
                 logging.info(f"     -{line[3:]}")
         return files
     except Exception as e:
-        logging.error(f"{repo_path} 获取未跟踪文件时发生错误: {str(e)}")
+        logging.exception(f"{repo_path} 获取未跟踪文件时发生错误: {str(e)}")
         return []
 
 
@@ -572,7 +572,7 @@ def get_staged_files(repo_path: str):
 
         return [line.strip() for line in result.stdout.splitlines() if line.strip()]
     except Exception as e:
-        logging.error(f"{repo_path} 获取暂存文件列表时发生错误: {str(e)}")
+        logging.exception(f"{repo_path} 获取暂存文件列表时发生错误: {str(e)}")
         return []
 
 
@@ -586,7 +586,7 @@ def git_add(repo_path: str):
         logging.info(f"{repo_path} git add 执行成功")
         return True
     except Exception as e:
-        logging.error(f"{repo_path} git add 执行时发生错误: {str(e)}")
+        logging.exception(f"{repo_path} git add 执行时发生错误: {str(e)}")
         return False
 
 
@@ -623,7 +623,7 @@ def git_commit(commit_message: str, repo_path: str, author: str = None):
         logging.info(f"{repo_path} git commit 执行成功，提交信息: {commit_message}")
         return True
     except Exception as e:
-        logging.error(f"{repo_path} git commit 执行时发生错误: {str(e)}")
+        logging.exception(f"{repo_path} git commit 执行时发生错误: {str(e)}")
         return False
 
 
@@ -718,7 +718,7 @@ def git_push(repo_path: str, is_lfs: bool = False):
             return False
 
     except Exception as e:
-        logging.error(f"{repo_path} git push 执行时发生错误: {str(e)}")
+        logging.exception(f"{repo_path} git push 执行时发生错误: {str(e)}")
         return False
 
 
@@ -768,7 +768,7 @@ def has_changes(cwd=config.DISTRIBUTION_PATH) -> bool:
         # 如果有未跟踪的文件或已修改的文件，返回True
         return bool(result.stdout.strip()) or bool(modified_result.stdout.strip())
     except Exception as e:
-        logging.error(f"检查git状态时发生错误: {str(e)}")
+        logging.exception(f"检查git状态时发生错误: {str(e)}")
         return False
 
 

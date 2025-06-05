@@ -124,7 +124,7 @@ def execute_gradle_build(release: bool = True):
             logging.error(f"Gradle构建失败: {result.stderr}")
             return False
     except Exception as e:
-        logging.error(f"执行gradle构建时发生错误: {e}")
+        logging.exception(f"执行gradle构建时发生错误: {e}")
         return False
 
 
@@ -178,7 +178,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
                     logging.info(f"重新签名APK文件: {signed_apk}，签名后文件体积: {signed_size} 字节")
                     is_normalized = True
                 except Exception as e:
-                    logging.error(f"AppNormalize\重新签名APK文件时发生错误: {e}")
+                    logging.exception(f"AppNormalize\重新签名APK文件时发生错误: {e}")
                     is_normalized = False
                     # 回退到原始APK
                     shutil.copy2(source_apk, target_apk)
@@ -244,7 +244,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
 
         return True, apk_name.replace(".apk", "")
     except Exception as e:
-        logging.error(f"复制构建产物时发生错误: {e}")
+        logging.exception(f"复制构建产物时发生错误: {e}")
         return False, ""
 
 
@@ -261,7 +261,7 @@ def record_task_metadata(metadata: BuildMetadata):
         logging.info(f"调用接口提交元数据成功: {response.status_code} {response.text}")
         return True
     except Exception as e:
-        logging.error(f"调用接口提交元数据失败: {e}")
+        logging.exception(f"调用接口提交元数据失败: {e}")
         return False
 
 
@@ -344,7 +344,7 @@ def update_git_info(commit_message):
             return 12013
         return 0
     except Exception as e:
-        logging.error(f"更新git信息时发生错误: {e}")
+        logging.exception(f"更新git信息时发生错误: {e}")
         return 12014
 
 
@@ -403,7 +403,7 @@ def main(target_dir: Optional[Path] = None, release: bool = True, is_distributio
         client_publish_async("build", "构建任务:build", "构建完毕")
         return 0
     except Exception as e:
-        logging.error(f"执行过程中发生错误: {e}")
+        logging.exception(f"执行过程中发生错误: {e}")
         if isinstance(e, FileNotFoundError):
             return 12010
         return 1

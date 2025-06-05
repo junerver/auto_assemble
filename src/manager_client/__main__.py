@@ -53,7 +53,7 @@ def main():
     except KeyboardInterrupt:
         logging.info("Manager client stopped by user")
     except Exception as e:
-        logging.error(f"Error running manager client: {e}")
+        logging.exception(f"Error running manager client: {e}")
         sys.exit(1)
 
 

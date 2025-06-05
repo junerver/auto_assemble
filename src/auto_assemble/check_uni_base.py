@@ -103,5 +103,5 @@ def check_uni_base() -> SignConfig:
 
     except Exception as e:
         error_msg = f"解析签名配置失败: {str(e)}"
-        logging.error(error_msg)
+        logging.exception(error_msg)
         raise ValueError(error_msg)
