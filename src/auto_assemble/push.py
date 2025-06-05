@@ -98,7 +98,7 @@ def get_modified_apk():
         return None
 
 
-def main():
+def push_distribution():
     """主函数"""
     try:
         # 配置日志
@@ -173,4 +173,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    push_distribution()

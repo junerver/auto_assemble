@@ -348,7 +348,7 @@ def update_git_info(commit_message):
         return 12014
 
 
-def main(target_dir: Optional[Path] = None, release: bool = True, is_distribution: bool = True):
+def build(target_dir: Optional[Path] = None, release: bool = True, is_distribution: bool = True):
     """
     主函数：执行整个构建流程
     1. 配置日志系统
@@ -467,4 +467,4 @@ def sign_apk(origin_apk_path: Path, sign_config: SignConfig, output_path: Path =
 
 
 if __name__ == "__main__":
-    main()
+    build()

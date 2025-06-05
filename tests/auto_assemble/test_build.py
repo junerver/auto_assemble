@@ -10,7 +10,7 @@ from auto_assemble.build import (
     record_task_metadata,
     execute_gradle_build,
     copy_build_outputs,
-    main,
+    build,
     parse_metadata,
     update_git_info,
 )
@@ -565,7 +565,7 @@ class TestMainFunction:
         mock_copy_build_outputs.return_value = (True, "app-release-202312251430")
         mock_update_git_info.return_value = 0
 
-        result = main()
+        result = build()
 
         assert result == 0
         mock_setup_logging.assert_called_once()
@@ -592,7 +592,7 @@ class TestMainFunction:
         mock_check_uni_base.return_value = {"key_store": "/test/keystore"}
         mock_execute_gradle.return_value = False
 
-        result = main()
+        result = build()
 
         assert result == 20001
         mock_git_reset.assert_called_once()
@@ -623,7 +623,7 @@ class TestMainFunction:
         mock_get_distribution_target.return_value = Path("/test/target")
         mock_copy_build_outputs.return_value = (False, "")
 
-        result = main()
+        result = build()
 
         assert result == 20002
         mock_git_reset.assert_called_once()
@@ -657,7 +657,7 @@ class TestMainFunction:
         mock_copy_build_outputs.return_value = (True, "app-release-202312251430")
         mock_update_git_info.return_value = 12008
 
-        result = main()
+        result = build()
 
         assert result == 12008
         mock_git_reset.assert_called_once()
@@ -671,9 +671,9 @@ class TestMainFunction:
         mock_check_uni_base.return_value = {"key_store": "/test/keystore"}
         mock_execute_gradle.side_effect = FileNotFoundError("File not found")
 
-        from auto_assemble.build import main
+        from auto_assemble.build import build
 
-        result = main()
+        result = build()
 
         assert result == 12010
         mock_git_reset.assert_called_once()
@@ -708,12 +708,12 @@ class TestMainFunction:
         mock_update_git_info.return_value = 0
 
         # 测试release模式
-        result = main(release=True)
+        result = build(release=True)
         assert result == 0
         mock_execute_gradle.assert_called_with(True)
 
         # 测试debug模式
-        result = main(release=False)
+        result = build(release=False)
         assert result == 0
         mock_execute_gradle.assert_called_with(False)
 

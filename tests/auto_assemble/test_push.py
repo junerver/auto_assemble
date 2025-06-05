@@ -1,7 +1,7 @@
 from unittest.mock import patch
 import logging
 
-from auto_assemble.push import validate_timestamp_format, validate_files, main
+from auto_assemble.push import validate_timestamp_format, validate_files, push_distribution
 
 
 class TestValidateTimestampFormat:
@@ -197,7 +197,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 0
 
@@ -214,7 +214,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11006
             # 验证日志调用
@@ -230,7 +230,7 @@ class TestPushMain:
         with patch("auto_assemble.push.Path") as mock_path:
             mock_path.return_value.exists.return_value = False
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11001
             # 验证日志调用
@@ -252,7 +252,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11007
 
@@ -264,7 +264,7 @@ class TestPushMain:
         mock_config.DISTRIBUTION_PATH = "/test/path"
 
         with patch("auto_assemble.push.Path", side_effect=Exception("Test error")):
-            result = main()
+            result = push_distribution()
 
             assert result == 1
             # 验证日志调用
@@ -291,7 +291,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 0
 
@@ -309,7 +309,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11008
 
@@ -328,7 +328,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11009
 
@@ -350,7 +350,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11012
 
@@ -374,7 +374,7 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11014
 
@@ -397,6 +397,6 @@ class TestPushMain:
         ):
             mock_path.return_value.exists.return_value = True
 
-            result = main()
+            result = push_distribution()
 
             assert result == 11013

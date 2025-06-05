@@ -285,7 +285,7 @@ class TestFindCompressedFile:
             mock_config.cur_task_id = "test_project,20240604"
             mock_config.is_obfuscated = False
 
-            result = copy_res.main("test_project", "task_dir")
+            result = copy_res.copy_res("test_project", "task_dir")
             captured = capsys.readouterr()
             assert result == 0
             assert (

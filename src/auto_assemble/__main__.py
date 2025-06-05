@@ -11,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from auto_assemble.auto_flow import main as auto_flow
+from auto_assemble.auto_flow import auto_flow
 from auto_assemble.welcome import welcome
 from common.config import config
 from common.err_code import unified_error_code

@@ -13,7 +13,7 @@ from common.client_publish import client_publish_async
 from common.config import config
 
 
-def main(task_id: str = None):
+def auto_flow(task_id: str = None):
     """
     主函数，按顺序执行所有步骤
 
@@ -22,9 +22,9 @@ def main(task_id: str = None):
     """
     try:
         # 导入放在函数内部，避免循环导入
-        from auto_assemble.copy_res import main as copy_res_main
-        from auto_assemble.build import main as build_main
-        from auto_assemble.push import main as push_main
+        from auto_assemble.copy_res import copy_res
+        from auto_assemble.build import build
+        from auto_assemble.push import push_distribution
 
         # 执行copy_res.py
         prod_name = None
@@ -35,14 +35,14 @@ def main(task_id: str = None):
 
         # 执行copy_res.py，拷贝资源，解析请求文件，对基座项目进行写覆盖操作
         client_publish_async("build", "构建任务:copy_res", f"开始执行copy_res，任务id{task_id}")
-        if (copy_res_code := copy_res_main(prod_name, task_dir)) != 0:
+        if (copy_res_code := copy_res(prod_name, task_dir)) != 0:
             logging.warning("copy_res.py执行中断")
             return copy_res_code
 
         # 执行build.py，只有dev模式时才打debug包，其他时候打release包，在copy_res_main执行完毕后cur_task_dir被赋值，可以使用
         client_publish_async("build", "构建任务:build", f"开始执行build，任务id{task_id}")
         if (
-            build_code := build_main(
+            build_code := build(
                 target_dir=config.cur_task_dir,
                 release=False if config.build_mode == "dev" else True,
                 is_distribution=True,
@@ -53,7 +53,7 @@ def main(task_id: str = None):
 
         # 执行push.py
         client_publish_async("build", "构建任务:push", f"开始执行push，任务id{task_id}")
-        if (push_code := push_main()) != 0:
+        if (push_code := push_distribution()) != 0:
             logging.warning("push.py执行中断")
             return push_code
         client_publish_async("build", "构建任务:push", "构建任务执行完毕")
@@ -64,4 +64,4 @@ def main(task_id: str = None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(auto_flow())
