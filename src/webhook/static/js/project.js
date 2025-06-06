@@ -261,7 +261,7 @@ document.getElementById('pageTitle').addEventListener('click', function () {
  * 显示项目列表
  */
 function showProjects() {
-    fetch('/api/config/projects')
+    fetch('/api/config/project/list')
         .then(response => response.json())
         .then(data => {
             if (data.error) {

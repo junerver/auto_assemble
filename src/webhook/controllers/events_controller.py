@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from webhook.extensions.sse import sse  # 单例实例
 from webhook.types import PublishSSEReq
 
-router = APIRouter(prefix="/events", tags=["events"])
+router = APIRouter(prefix="/api/events", tags=["events"])
 
 
 @router.get("")

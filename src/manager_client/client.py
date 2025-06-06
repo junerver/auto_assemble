@@ -33,7 +33,7 @@ class EventManager:
                 async with aiohttp.ClientSession() as session:
                     self.session = session
                     async with session.get(
-                        urljoin(self.base_url, "/events"),
+                        urljoin(self.base_url, "/api/events"),
                         headers={"Accept": "text/event-stream"},
                         timeout=aiohttp.ClientTimeout(total=None),
                     ) as response:

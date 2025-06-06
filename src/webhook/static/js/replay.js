@@ -10,7 +10,7 @@ document.addEventListener('click', function (e) {
             return;
         }
 
-        fetch(`/task/${taskId}/replay`, {
+        fetch(`/api/task/${taskId}/replay`, {
             method: 'POST'
         })
             .then(response => response.json())
@@ -36,7 +36,7 @@ document.addEventListener('click', function (event) {
     if (event.target.closest('.stop-btn')) {
         const taskId = event.target.closest('.stop-btn').getAttribute('data-task-id');
         if (confirm('确定要停止当前任务吗？')) {
-            fetch(`/task/${taskId}/stop`, {
+            fetch(`/api/task/${taskId}/stop`, {
                 method: 'POST'
             })
                 .then(response => response.json())

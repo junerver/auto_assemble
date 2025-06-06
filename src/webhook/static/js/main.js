@@ -31,7 +31,7 @@ const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstra
 
 // 检查IP授权状态
 function checkIPAuthorization() {
-    fetch('/check-ip')
+    fetch('/api/auth/check-ip')
         .then(response => response.json())
         .then(data => {
             isAuthorizedIP = data.authorized;
@@ -432,7 +432,7 @@ function openSourceTask(sourceTaskId) {
  * @param {*} taskId
  */
 function outdatedTask(taskId) {
-    fetch(`/task/${taskId}`, {
+    fetch(`/api/task/${taskId}`, {
         method: 'DELETE'
     })
         .then(updateQueueStatus)

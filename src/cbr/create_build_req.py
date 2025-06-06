@@ -250,7 +250,7 @@ def rolling_req_build_status():
                         toast(f"🔦构建结果:{status_text}", message, button="我知道了！")
                     should_exit = True
 
-            def on_error():
+            def on_error(_: str):
                 nonlocal should_exit
                 logging.info("尚未查询到任务状态，请稍等...")
                 time.sleep(5)  # 等待5秒后继续轮询

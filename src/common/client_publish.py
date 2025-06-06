@@ -10,7 +10,7 @@ def _client_publish(event_type: str, title: str, message: str):
 
     例如，在构建过程中推送构建进度
     """
-    url = f"{config.SERVER_HOST_URL}/events/publish"
+    url = f"{config.SERVER_HOST_URL}/api/events/publish"
     requests.post(url, json={"type": event_type, "title": title, "message": message})
 
 

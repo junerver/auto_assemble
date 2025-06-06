@@ -204,7 +204,7 @@ function reinitTooltips() {
  * 更新队列状态
  */
 function updateQueueStatus() {
-    fetch('/queue?build_mode=' + (currentBuildMode ?? 'all'))
+    fetch('/api/task/queue?build_mode=' + (currentBuildMode ?? 'all'))
         .then(response => response.json())
         .then(data => updateStatus(data))
         .then(reinitTooltips)
@@ -215,7 +215,7 @@ function updateQueueStatus() {
  * 创建sse连接
  */
 function createSSEConnection() {
-    const eventSource = new EventSource('/events');
+    const eventSource = new EventSource('/api/events');
     eventSource.addEventListener('toast', function (event) {
         updateQueueStatus();
     });

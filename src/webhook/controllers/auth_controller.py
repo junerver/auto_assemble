@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 from webhook.types import AuthResponse
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 ROLE_MAP = {
     "admin": [

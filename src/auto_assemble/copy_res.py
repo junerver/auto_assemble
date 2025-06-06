@@ -259,7 +259,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
                     """
                 )
 
-            fetch_task_info(config.cur_task_id, on_success, lambda: None)
+            fetch_task_info(config.cur_task_id, on_success, lambda e: None)
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
             return 10001
