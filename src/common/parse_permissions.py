@@ -93,7 +93,7 @@ def _parse_manifest_permission(permissions_content: str) -> ManifestPermissions:
     }
 
 
-def _merge_permissions(permissions: ManifestPermissions):
+def _merge_permissions(permissions: ManifestPermissions) -> PermissionsFeatures:
     """
     合并 default 和 add 中的权限，并移除 del 里的权限（包括 uses-permission 和 uses-feature），
     但移除的权限不是直接删除，而是添加 tools:node="remove" 属性。
@@ -104,7 +104,7 @@ def _merge_permissions(permissions: ManifestPermissions):
     Returns:
         dict: {"permissions": 合并后的权限, "features": 合并后的特性}
     """
-    merged = {
+    merged: PermissionsFeatures = {
         "permissions": {
             key: ET.Element("uses-permission", {"android:name": key}) for key in permissions["default"]["permissions"]
         },  # 复制 default 的 permissions
@@ -137,7 +137,7 @@ def _merge_permissions(permissions: ManifestPermissions):
     return merged
 
 
-def parse_and_merge_permissions(permissions_content: str) -> dict:
+def parse_and_merge_permissions(permissions_content: str) -> PermissionsFeatures:
     """
     解析包含默认权限、添加权限和移除权限的内容，返回一个字典
 
@@ -149,8 +149,8 @@ def parse_and_merge_permissions(permissions_content: str) -> dict:
             - "permissions": 合并后的权限
             - "features": 合并后的特性
     """
-    permissions = _parse_manifest_permission(permissions_content)
-    merged_permissions = _merge_permissions(permissions)
+    permissions: ManifestPermissions = _parse_manifest_permission(permissions_content)
+    merged_permissions: PermissionsFeatures = _merge_permissions(permissions)
     return merged_permissions
 
 

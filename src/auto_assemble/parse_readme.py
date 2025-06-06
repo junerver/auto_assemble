@@ -8,7 +8,7 @@ import yaml
 from common.parse_permissions import parse_and_merge_permissions
 from common.parse_third_party_configs import parse_third_party_configs
 from common.config import config
-from common.types import ManifestInfo
+from common.types import ManifestInfo, PermissionsFeatures
 
 
 def parse_uni_modules(content: str) -> list[str]:
@@ -40,7 +40,7 @@ def parse_uni_modules(content: str) -> list[str]:
         return []
 
 
-def parse_yaml_block(content: str) -> dict[str, dict[str, str]] | None:
+def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
     """
     从内容中解析 YAML 代码块，注意现在使用从接口直接读取，这是接口请求失败时的备用方案
     Args:
@@ -166,7 +166,7 @@ def parse_readme(readme_path: Path) -> ManifestInfo | None:
             abi_filters = '"armeabi-v7a", "arm64-v8a"'
 
         # 解析权限
-        permissions = parse_and_merge_permissions(content)
+        permissions: PermissionsFeatures = parse_and_merge_permissions(content)
 
         # 解析模块信息
         modules = parse_uni_modules(content)

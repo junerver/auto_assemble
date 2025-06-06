@@ -13,7 +13,7 @@ class ManifestInfo(TypedDict):
     uniapp_id: str
     uniapp_key: str
     third_party_config: dict[str, dict]
-    permissions: dict[str, dict]
+    permissions: "PermissionsFeatures"
     permissions_content: NotRequired[str]
     modules: list[str]
     abi_filters: str
