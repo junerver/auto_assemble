@@ -1,9 +1,9 @@
-from common.types import ThirdPartyConfig
+from common.types import ThirdPartyConfig, AllThirdPartyConfigsDict
 
 
 def parse_third_party_configs(
     third_party_configs: list[ThirdPartyConfig],
-) -> dict[str, dict]:
+) -> AllThirdPartyConfigsDict:
     """
     将从服务器获取的第三方配置列表解析为字典对象，从平铺格式，聚合成对象字典
     Args:

@@ -4,8 +4,9 @@ from pathlib import Path
 import json5
 
 from common.parse_third_party_configs import parse_third_party_configs
+from common.parse_permissions import parse_and_merge_permissions
 from common.const import DEFAULT_PERMISSIONS
-from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
+from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig, PermissionsFeatures, AllThirdPartyConfigsDict
 
 
 def parse_uni_manifest(
@@ -45,10 +46,10 @@ def parse_uni_manifest(
         uniapp_id: str = manifest_data.get("appid", "")
 
         # 提取第三方配置, {供应商-{供应商配置项}}
-        third_party_config: dict[str, dict] = parse_third_party_configs(third_party_configs)
+        third_party_config: AllThirdPartyConfigsDict = parse_third_party_configs(third_party_configs)
 
         # 构建权限处理的内容
-        permissions_content = DEFAULT_PERMISSIONS + "\n\n"
+        permissions_content: str = DEFAULT_PERMISSIONS + "\n\n"
 
         abi_filters: str = '"armeabi-v7a", "arm64-v8a"'
         schemes: str = ""
@@ -82,10 +83,8 @@ def parse_uni_manifest(
                     if "schemes" in android_config:
                         schemes = android_config["schemes"]
 
-        # 使用parse_and_merge_permissions处理权限
-        from common.parse_permissions import parse_and_merge_permissions
-
-        permissions = parse_and_merge_permissions(permissions_content)
+        # 先手动拼接权限说明，然后通过parse_and_merge_permissions函数处理权限获得真实权限
+        permissions: PermissionsFeatures = parse_and_merge_permissions(permissions_content)
 
         # 解析模块信息
         modules = []

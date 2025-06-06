@@ -197,7 +197,3 @@ class TestCheckUniProject(unittest.TestCase):
 
         # 验证结果
         self.assertIsNone(result)
-
-
-if __name__ == "__main__":
-    unittest.main()

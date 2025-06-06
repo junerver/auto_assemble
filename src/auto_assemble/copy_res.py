@@ -291,7 +291,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         readme_path: Path = config.cur_task_dir / "README.md"
         # 解析readme文件拿到本次打包请求所需的内容
         client_publish_async("build", "构建任务:copy_res", "开始解析请求文件 README.md ...")
-        readme_info: ManifestInfo | None = parse_readme(readme_path)
+        readme_info: Optional[ManifestInfo] = parse_readme(readme_path)
         if readme_info is None:
             logging.error("解析readme文件失败，终止执行")
             return 11016

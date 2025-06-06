@@ -100,11 +100,17 @@ class TestUpdateAndroidManifest:
         # 准备权限信息
         permissions = {
             "permissions": {
-                "INTERNET": ET.Element("uses-permission", {"android:name": "android.permission.INTERNET"}),
-                "CAMERA": ET.Element("uses-permission", {"android:name": "android.permission.CAMERA"}),
+                "android.permission.INTERNET": ET.Element(
+                    "uses-permission", {"android:name": "android.permission.INTERNET"}
+                ),
+                "android.permission.CAMERA": ET.Element(
+                    "uses-permission", {"android:name": "android.permission.CAMERA"}
+                ),
             },
             "features": {
-                "CAMERA_AUTOFOCUS": ET.Element("uses-feature", {"android:name": "android.hardware.camera.autofocus"})
+                "android.hardware.camera.autofocus": ET.Element(
+                    "uses-feature", {"android:name": "android.hardware.camera.autofocus"}
+                )
             },
         }
 

@@ -268,7 +268,7 @@ class TestPushMain:
 
             assert result == 1
             # 验证日志调用
-            mock_logging.error.assert_any_call("执行过程中发生错误: Test error")
+            mock_logging.exception.assert_any_call("执行过程中发生错误: Test error")
 
     @patch("auto_assemble.push.config")
     @patch("auto_assemble.push.setup_logging")

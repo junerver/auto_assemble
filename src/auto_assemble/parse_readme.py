@@ -1,6 +1,7 @@
 import logging
 import re
 from pathlib import Path
+from typing import Optional
 
 import requests
 import yaml
@@ -8,7 +9,7 @@ import yaml
 from common.parse_permissions import parse_and_merge_permissions
 from common.parse_third_party_configs import parse_third_party_configs
 from common.config import config
-from common.types import ManifestInfo, PermissionsFeatures
+from common.types import ManifestInfo, PermissionsFeatures, AllThirdPartyConfigsDict
 
 
 def parse_uni_modules(content: str) -> list[str]:
@@ -40,7 +41,7 @@ def parse_uni_modules(content: str) -> list[str]:
         return []
 
 
-def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
+def parse_yaml_block(content: str) -> AllThirdPartyConfigsDict:
     """
     从内容中解析 YAML 代码块，注意现在使用从接口直接读取，这是接口请求失败时的备用方案
     Args:
@@ -106,7 +107,7 @@ def parse_yaml_block(content: str) -> dict[str, dict[str, str]]:
         return {}
 
 
-def parse_readme(readme_path: Path) -> ManifestInfo | None:
+def parse_readme(readme_path: Path) -> Optional[ManifestInfo]:
     """
     从 README.md 文件中解析版本信息
     Args:

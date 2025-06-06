@@ -189,8 +189,11 @@ class TestUpdateControlFile:
         assert lines[1].strip() == "<!--<hbuilder>-->"
         assert lines[3].strip() == '<hbuilder debug="true" syncDebug="true">'
 
-    def test_file_not_found(self, capsys):
+    def test_file_not_found(self, caplog):
         """测试文件不存在时的处理"""
+        # 设置日志捕获
+        caplog.set_level(logging.ERROR)
+
         # 使用不存在的文件路径
         non_existent_file = Path("/path/that/does/not/exist.xml")
 
@@ -200,12 +203,14 @@ class TestUpdateControlFile:
         # 验证返回 False
         assert result is False
 
-        # 验证错误消息
-        captured = capsys.readouterr()
-        assert "更新 dcloud_control.xml 文件失败" in captured.out
+        # 验证错误消息 - 修复：使用 caplog 而不是 capsys
+        assert "更新 dcloud_control.xml 文件失败" in caplog.text
 
     @patch("builtins.open", side_effect=PermissionError("No write permission"))
-    def test_write_permission_error(self, mock_open, capsys):
+    def test_write_permission_error(self, mock_open, caplog):
+        # 设置日志捕获
+        caplog.set_level(logging.ERROR)
+
         # 创建临时文件路径
         file_path = Path("/fake/path/dcloud_control.xml")
 
@@ -215,10 +220,9 @@ class TestUpdateControlFile:
         # 验证返回 False
         assert result is False
 
-        # 验证错误消息
-        captured = capsys.readouterr()
-        assert "更新 dcloud_control.xml 文件失败" in captured.out
-        assert "No write permission" in captured.out
+        # 验证错误消息 - 修复：使用 caplog 而不是 capsys
+        assert "更新 dcloud_control.xml 文件失败" in caplog.text
+        assert "No write permission" in caplog.text
 
     @patch("auto_assemble.update_control_file.update_debug_status", return_value=VALID_XML_TEMPLATE)
     def test_appid_replacement_only(self, mock_update, setup_files):

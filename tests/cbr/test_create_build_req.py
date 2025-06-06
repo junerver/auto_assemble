@@ -331,7 +331,3 @@ class TestCheckGitLfsInstalled(unittest.TestCase):
 
         # 验证结果
         self.assertFalse(result)
-
-
-if __name__ == "__main__":
-    unittest.main()
