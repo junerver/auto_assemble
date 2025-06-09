@@ -2,10 +2,11 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 from dataclasses_json import config, DataClassJsonMixin
 
+from common.normalize import normalize_bool_fields
 from common.time import safe_convert_datetime
 
 
@@ -42,9 +43,9 @@ class BuildMetadata(DataClassJsonMixin):
         ),
     )
     # 是否已经ApkNormalize归一化
-    is_normalized: Optional[bool] = None
+    is_normalized: Optional[bool] = False
     # 是否UniApp资源已经混淆
-    is_obfuscated: Optional[bool] = None
+    is_obfuscated: Optional[bool] = False
 
     def save(self, db: sqlite3.Connection):
         """保存构建任务产物元数据"""
@@ -89,9 +90,10 @@ class BuildMetadata(DataClassJsonMixin):
         )
         row = cursor.fetchone()
         if row:
-            row_dict = dict(row)
+            row_dict: dict[str, Any] = dict(row)
             if row_dict.get("created_at"):
-                # noinspection PyTypeChecker
                 row_dict["created_at"] = safe_convert_datetime(row_dict["created_at"])
+
+            row_dict = normalize_bool_fields(row_dict, ["is_normalized", "is_obfuscated"])
             return cls(**row_dict)
         return None

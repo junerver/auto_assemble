@@ -70,6 +70,8 @@ class Task:
     metadata: Optional[dict] = None
     # 派生任务源任务ID
     source_task_id: Optional[str] = None
+    # 资源包指纹
+    res_fp: Optional[str] = None
 
     def __post_init__(self):
         """在初始化后确保datetime字段的类型正确"""
@@ -152,10 +154,12 @@ class Task:
             row_dict.pop("is_obfuscated")
 
         source_task_id = row_dict.pop("source_task_id")
+        res_fp = row_dict.pop("res_fp")
 
         task = cls(**row_dict)
         task.metadata = metadata
         task.source_task_id = source_task_id
+        task.res_fp = res_fp
         return task
 
     # noinspection PyTypeChecker
@@ -183,6 +187,36 @@ class Task:
             WHERE t.id = ?
             """,
             (task_id,),
+        )
+        row = cursor.fetchone()
+        if row:
+            return Task._task_row_to_task(row)
+        return None
+
+    @classmethod
+    def get_by_res_fp(cls, res_fp: str, db: sqlite3.Connection) -> Optional["Task"]:
+        """根据资源包指纹获取任务"""
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            SELECT t.*,
+                   btm.package_name,
+                   btm.version_name,
+                   btm.version_code,
+                   btm.build_type,
+                   btm.flavor,
+                   btm.build_date,
+                   btm.file_size,
+                   btm.md5,
+                   btm.is_normalized,
+                   btm.is_obfuscated,
+                   ft.source_task_id
+            FROM tasks t
+                     LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
+                     LEFT JOIN fork_tasks ft ON t.id = ft.id
+            WHERE t.res_fp =?
+            """,
+            (res_fp,),
         )
         row = cursor.fetchone()
         if row:
@@ -331,6 +365,12 @@ class Task:
         """更新任务响应哈希"""
         cursor = db.cursor()
         cursor.execute("UPDATE tasks SET response_hash = ? WHERE id = ?", (response_hash, self.id))
+        db.commit()
+
+    def update_res_fp(self, res_fp: str, db: sqlite3.Connection) -> None:
+        """更新任务资源包指纹"""
+        cursor = db.cursor()
+        cursor.execute("UPDATE tasks SET res_fp =? WHERE id =?", (res_fp, self.id))
         db.commit()
 
     def update_status(self, status: TaskStatus, error: Optional[str] = None, db: sqlite3.Connection = None) -> None:

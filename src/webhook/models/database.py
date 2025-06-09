@@ -27,7 +27,8 @@ def init_db():
             status TEXT NOT NULL,
             error TEXT,
             commit_hash TEXT,
-            response_hash TEXT
+            response_hash TEXT,
+            res_fp TEXT
         )
     """
     )
@@ -136,12 +137,14 @@ def init_db():
         )
         """
     )
-    # 25.05.08 迁移添加operator字段为可空
+    # 25.05.08 迁移添加 operator 字段到 fork_tasks 表
     migrate_add_operator_to_fork_tasks_nullable(cursor)
-    # 25.05.14 迁移添加response_hash字段
+    # 25.05.14 迁移添加 response_hash 字段到 tasks 表
     migrate_add_response_hash_to_tasks_nullable(cursor)
-    # 25.05.28 迁移添加is_normalized和is_obfuscated字段
+    # 25.05.28 迁移添加 is_normalized 和 is_obfuscated 字段到 metadata 表
     migrate_add_is_normalized_and_is_obfuscated_to_metadata_nullable(cursor)
+    # 25.06.09 迁移添加 res_fp 字段到 tasks 表
+    migrate_add_res_fp_to_tasks_nullable(cursor)
 
     # 提交更改并关闭连接
     conn.commit()
@@ -219,3 +222,18 @@ def migrate_add_is_normalized_and_is_obfuscated_to_metadata_nullable(cursor: sql
     except sqlite3.Error as e:
         # 记录错误但不中断迁移过程
         print(f"迁移警告: 添加字段时出错 - {e}")
+
+
+def migrate_add_res_fp_to_tasks_nullable(cursor: sqlite3.Cursor):
+    """
+    迁移添加res_fp字段为可空
+    """
+    if _column_exists(cursor, "tasks", "res_fp"):
+        return
+    # 直接添加可空字段
+    cursor.execute(
+        """
+        ALTER TABLE tasks
+            ADD COLUMN res_fp TEXT NULL
+        """
+    )

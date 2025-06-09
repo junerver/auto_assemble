@@ -230,7 +230,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
 
             # 创建MD5空白文件
             md5_path = target_dir / md5
-            open(md5_path, "w").close()
+            md5_path.touch()
             logging.info("成功复制并更新metadata文件")
 
             # 解析metadata并记录到服务器

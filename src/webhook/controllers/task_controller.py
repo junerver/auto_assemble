@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse
 
 from webhook.config import PORT
@@ -21,26 +21,7 @@ from webhook.services.webhook_request_service import WebhookRequestService
 router = APIRouter(tags=["task"])
 
 
-@router.get("/task/{task_id}", response_model=TaskDetailResp)
-async def get_task_info(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
-    """获取任务详细信息
-
-    注意，该接口同时被cbr、auto_assemble程序调用，不能轻易修改
-    """
-    task = TaskService.get_task(task_id, db=db)
-    if task:
-        return {"task": format_task_info(task.to_dict())}
-    raise HTTPException(status_code=404, detail="Task not found")
-
-
-@router.delete("/api/task/{task_id}", response_model=BaseResp)
-async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
-    """标记任务为过期"""
-    if TaskService.update_task_status(task_id, TaskStatus.OUTDATED, db=db) is not None:
-        return {"message": "Task outdated"}
-    raise HTTPException(status_code=404, detail="Task not found")
-
-
+@router.get("/task/statistics", response_model=StatisticsResp)
 @router.get("/api/task/statistics", response_model=StatisticsResp)
 async def get_tasks_statistics(db=Depends(get_db)):
     """获取所有任务的统计情况"""
@@ -49,6 +30,7 @@ async def get_tasks_statistics(db=Depends(get_db)):
     return {"tasks": tasks, "packer_usage": packer_usage}
 
 
+@router.get("/queue", response_model=QueueDetailResp)
 @router.get("/api/task/queue", response_model=QueueDetailResp)
 async def get_queue_status(
     build_mode: str = Query(default="all", description="构建模式"),
@@ -68,6 +50,42 @@ async def get_queue_status(
     }
 
     return formatted_status
+
+
+@router.get("/task/{task_id}", response_model=TaskDetailResp)
+@router.get("/api/task/{task_id}", response_model=TaskDetailResp)
+async def get_task_info(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
+    """获取任务详细信息
+
+    注意，该接口同时被cbr、auto_assemble程序调用，不能轻易修改
+    """
+    task = TaskService.get_task(task_id, db=db)
+    if task:
+        return {"task": format_task_info(task.to_dict())}
+    raise HTTPException(status_code=404, detail="Task not found")
+
+
+@router.delete("/api/task/{task_id}", response_model=BaseResp)
+async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
+    """标记任务为过期"""
+    if TaskService.update_task_status(task_id, TaskStatus.OUTDATED, db=db) is not None:
+        return {"message": "Task outdated"}
+    raise HTTPException(status_code=404, detail="Task not found")
+
+
+@router.put("/api/task/{task_id}", response_model=BaseResp)
+async def update_task(
+    task_id: Annotated[str, Path(..., description="任务id")],
+    request: Request,
+    db=Depends(get_db),
+):
+    """更新任务接口，通过请求体中指定的键值，更新对应任务的指定字段"""
+    data = await request.json()
+    if data["response_hash"]:
+        TaskService.update_response_hash(task_id, data["response_hash"], db=db)
+    if data["res_fp"]:
+        TaskService.update_res_fp(task_id, data["res_fp"], db=db)
+    return {"message": "Task updated"}
 
 
 @router.post("/api/task/{task_id}/replay")

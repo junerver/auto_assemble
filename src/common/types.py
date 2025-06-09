@@ -108,11 +108,19 @@ class TaskInfo(DataClassJsonMixin):
     created_at: Optional[str]
     started_at: Optional[str]
     completed_at: Optional[str]
+    # 状态
     status: Optional[str]
+    # 错误信息
     error: Optional[str]
+    # 构建请求hash，通过该hash可以指向构建请求的Uni资源包
     commit_hash: Optional[str]
+    # 构建响应hash，通过该hash可以指向构建响应apk文件
     response_hash: Optional[str]
+    # 构建成功后的apk文件元信息
     metadata: Optional[Metadata]
+    # 如果来自派生任务，则为派生任务id
     source_task_id: Optional[str]
+    # 项目标识
     project: str
+    # 任务时间戳
     task: str

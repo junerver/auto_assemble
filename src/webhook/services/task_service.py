@@ -186,6 +186,15 @@ class TaskService:
         return None
 
     @staticmethod
+    def update_res_fp(task_id: str, res_fp: str, db: sqlite3.Connection = None) -> Optional["Task"]:
+        """更新任务资源包指纹"""
+        task = Task.get_by_id(task_id, db)
+        if task:
+            task.update_res_fp(res_fp, db)
+            return task
+        return None
+
+    @staticmethod
     def update_task_status(
         task_id: str,
         status: TaskStatus,
