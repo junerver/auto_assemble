@@ -179,7 +179,7 @@ class Task:
                    ft.source_task_id
             FROM tasks t
                      LEFT JOIN build_task_metadata btm ON t.id = btm.task_id
-                     LEFT JOIN fork_tasks ft ON t.id = ft.source_task_id
+                     LEFT JOIN fork_tasks ft ON t.id = ft.id
             WHERE t.id = ?
             """,
             (task_id,),
