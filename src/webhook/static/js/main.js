@@ -119,7 +119,6 @@ function zoomOut() {
  */
 function applyZoom() {
     document.body.style.zoom = currentZoom;
-    document.getElementById('zoomLevel').textContent = `${Math.round(currentZoom * 100)}%`;
     localStorage.setItem('pageZoom', currentZoom);
 }
 
