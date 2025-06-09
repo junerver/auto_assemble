@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 import logging
 
 from auto_assemble.check_uni_base import check_uni_base
-from auto_assemble.types import SignConfig
+from common.types import SignConfig
 
 # 测试用的build.gradle内容模板
 BUILD_GRADLE_TEMPLATE = """

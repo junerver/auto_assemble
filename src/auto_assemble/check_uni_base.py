@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 from common.config import config
-from auto_assemble.types import SignConfig
+from common.types import SignConfig
 
 
 def check_uni_base() -> SignConfig:

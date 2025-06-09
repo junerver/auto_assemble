@@ -6,13 +6,18 @@ import xml.etree.ElementTree as ET
 from dataclasses_json import DataClassJsonMixin
 
 
+# 在业务逻辑使用的折叠后的第三方配置的总字典，键值为第三方[服务提供者的名称]，值为实际该服务的[配置字典]
+# 配置字典键值为[第三方服务的key]，值为[第三方服务的value]
+AllThirdPartyConfigsDict: TypeAlias = dict[str, dict[str, str]]
+
+
 class ManifestInfo(TypedDict):
     hbx_version: str
     version_name: str
     version_code: str
     uniapp_id: str
     uniapp_key: str
-    third_party_config: NotRequired[dict[str, dict]]
+    third_party_config: NotRequired["AllThirdPartyConfigsDict"]
     # 解析权限文本后，合并的完整权限、特性字典
     permissions: NotRequired["PermissionsFeatures"]
     # 用于构建 README.md 文件填充到权限说明的完整文本内容
@@ -75,11 +80,6 @@ class ThirdPartyConfig(TypedDict):
     config_value: str
 
 
-# 在业务逻辑使用的折叠后的第三方配置的总字典，键值为第三方[服务提供者的名称]，值为实际该服务的[配置字典]
-# 配置字典键值为[第三方服务的key]，值为[第三方服务的value]
-AllThirdPartyConfigsDict: TypeAlias = dict[str, dict[str, str]]
-
-
 @dataclass
 class Metadata:
     package_name: str
@@ -124,3 +124,34 @@ class TaskInfo(DataClassJsonMixin):
     project: str
     # 任务时间戳
     task: str
+
+
+class BuildMetadata(TypedDict):
+    """
+    构建任务产物元数据
+    """
+
+    package_name: NotRequired[str]
+    version_name: NotRequired[str]
+    version_code: NotRequired[int]
+    build_type: NotRequired[str]
+    flavor: NotRequired[str]
+    build_date: NotRequired[str]
+    file_size: NotRequired[int]
+    md5: NotRequired[str]
+    is_normalized: NotRequired[bool]
+    is_obfuscated: NotRequired[bool]
+
+
+@dataclass
+class SignConfig:
+    """签名配置"""
+
+    # 签名文件别名
+    alias: str
+    # 签名文件密码
+    ks_pass: str
+    # 签名文件别名密码
+    key_pass: str
+    # 签名文件路径
+    key_store: Path

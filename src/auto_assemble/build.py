@@ -10,13 +10,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import requests
-
 from auto_assemble.check_uni_base import check_uni_base
+from common.api import record_task_metadata
 from common.commit_label import get_build_req_label
 from common.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
-from auto_assemble.types import BuildMetadata, SignConfig
+from common.types import BuildMetadata, SignConfig
 from common.client_publish import client_publish_async
 from common.config import config
 from common.git import git_push, git_reset_and_clean
@@ -236,7 +235,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
             # 解析metadata并记录到服务器
             metadata = parse_metadata(content)
             logging.info(f"解析metadata文件结果: {json.dumps(metadata)}")
-            record_task_metadata(metadata)
+            record_task_metadata(config.cur_task_id, metadata)
 
         else:
             logging.error(f"源metadata文件不存在: {source_metadata}")
@@ -246,23 +245,6 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
     except Exception as e:
         logging.exception(f"复制构建产物时发生错误: {e}")
         return False, ""
-
-
-def record_task_metadata(metadata: BuildMetadata) -> bool:
-    """
-    调用接口，记录任务对应的元数据
-    """
-    try:
-        request_url = f"{config.SERVER_HOST_URL}/api/metadata/{config.cur_task_id}"
-        response = requests.post(request_url, json=metadata)
-        if response.status_code != 201:
-            logging.error(f"调用接口提交元数据失败: {response.status_code} {response.text}")
-            return False
-        logging.info(f"调用接口提交元数据成功: {response.status_code} {response.text}")
-        return True
-    except Exception as e:
-        logging.exception(f"调用接口提交元数据失败: {e}")
-        return False
 
 
 # noinspection PyTypedDict

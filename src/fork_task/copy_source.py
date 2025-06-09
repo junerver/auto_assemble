@@ -2,9 +2,8 @@ import json
 import logging
 from pathlib import Path
 
-import requests
 
-from common.api import fetch_task_info
+from common.api import fetch_task_info, fetch_fork_task_info
 from common.gitlab import download_file
 from common.error import BusinessException
 from common.extract import modern_extract
@@ -21,12 +20,18 @@ def copy_source(fork_task_id: str) -> tuple[Path, dict]:
     """
 
     # 请求 /api/fork-task/<fork_task_id> ，获取派生任务详情
-    logging.info(f"请求派生任务详情: {f'{SERVER_HOST_URL}/api/fork_task/{fork_task_id}'}")
-    response = requests.get(f"{SERVER_HOST_URL}/api/fork_task/{fork_task_id}")
-    if response.status_code != 200:
+    fork_task_info = {}
+
+    def on_success(task_info: dict):
+        nonlocal fork_task_info
+        fork_task_info = task_info
+        logging.info(f"派生任务详情: {json.dumps(task_info, indent=4)}")
+
+    def on_error(_: str):
         raise BusinessException(13001)
-    fork_task_info = response.json()["fork_task"]
-    logging.info(f"派生任务详情: {json.dumps(fork_task_info, indent=4)}")
+
+    logging.info(f"请求派生任务详情: {f'{SERVER_HOST_URL}/api/fork_task/{fork_task_id}'}")
+    fetch_fork_task_info(SERVER_HOST_URL, fork_task_id, on_success, on_error)
     # 源分支、项目id
     source_task_id: str = fork_task_info["source_task_id"]
     _, source_task_timestamp = source_task_id.split(",")

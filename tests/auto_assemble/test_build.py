@@ -7,14 +7,14 @@ from auto_assemble.build import (
     parse_build_req_message,
     get_build_output_name,
     get_distribution_target_dir,
-    record_task_metadata,
     execute_gradle_build,
     copy_build_outputs,
     build,
     parse_metadata,
     update_git_info,
 )
-from auto_assemble.types import BuildMetadata, SignConfig
+from common.api import record_task_metadata
+from common.types import BuildMetadata, SignConfig
 
 
 class TestGetBuildRespMessage:
@@ -181,11 +181,13 @@ class TestExecuteGradleBuild:
 
 
 class TestRecordTaskMetadata:
-    @patch("auto_assemble.build.requests.post")
+    @patch("common.api.config")
+    @patch("common.api.requests.post")
     @patch("auto_assemble.build.config")
-    def test_successful_metadata_recording(self, mock_config, mock_post):
+    def test_successful_metadata_recording(self, mock_config, mock_post, mock_api_config):
         """测试成功记录元数据"""
         mock_config.SERVER_HOST_URL = "http://test.com"
+        mock_api_config.SERVER_HOST_URL = "http://test.com"
         mock_config.cur_task_id = "test_task_123"
         mock_response = Mock()
         mock_response.status_code = 201
@@ -194,22 +196,22 @@ class TestRecordTaskMetadata:
         metadata: BuildMetadata = {
             "package_name": "com.test.app",
             "version_name": "1.0.0",
-            "version_code": "1",
+            "version_code": 1,
             "build_type": "release",
             "flavor": "default",
             "build_date": "2023-12-25 14:30:00",
             "file_size": 1024,
             "md5": "abc123",
-            "is_normalized": "true",
-            "is_obfuscated": "false",
+            "is_normalized": True,
+            "is_obfuscated": False,
         }
 
-        result = record_task_metadata(metadata)
+        result = record_task_metadata("test_task_123", metadata)
 
         assert result is True
         mock_post.assert_called_once_with("http://test.com/api/metadata/test_task_123", json=metadata)
 
-    @patch("auto_assemble.build.requests.post")
+    @patch("common.api.requests.post")
     @patch("auto_assemble.build.config")
     def test_failed_metadata_recording(self, mock_config, mock_post):
         """测试记录元数据失败"""
@@ -221,11 +223,11 @@ class TestRecordTaskMetadata:
         mock_post.return_value = mock_response
 
         metadata: BuildMetadata = {}
-        result = record_task_metadata(metadata)
+        result = record_task_metadata("test_task_123", metadata)
 
         assert result is False
 
-    @patch("auto_assemble.build.requests.post")
+    @patch("common.api.requests.post")
     @patch("auto_assemble.build.config")
     def test_network_error(self, mock_config, mock_post):
         """测试网络错误"""
@@ -234,7 +236,7 @@ class TestRecordTaskMetadata:
         mock_post.side_effect = Exception("Network error")
 
         metadata: BuildMetadata = {}
-        result = record_task_metadata(metadata)
+        result = record_task_metadata("test_task_123", metadata)
 
         assert result is False
 
@@ -330,7 +332,7 @@ class TestCopyBuildOutputs:
     @patch("auto_assemble.build.shutil.copy2")
     @patch("auto_assemble.build.open")
     @patch("auto_assemble.build.parse_metadata")
-    @patch("auto_assemble.build.record_task_metadata")
+    @patch("common.api.record_task_metadata")
     def test_successful_copy(
         self,
         mock_record_metadata,
@@ -408,7 +410,7 @@ class TestCopyBuildOutputs:
     @patch("auto_assemble.build.shutil.copy2")
     @patch("auto_assemble.build.open")
     @patch("auto_assemble.build.parse_metadata")
-    @patch("auto_assemble.build.record_task_metadata")
+    @patch("common.api.record_task_metadata")
     def test_normalized_apk_handling(
         self,
         mock_record_metadata,
@@ -436,7 +438,7 @@ class TestCopyBuildOutputs:
             "app-release.apk",
             Path("/test/target"),
             True,
-            {"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"},
+            SignConfig(**{"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"}),
         )
 
         assert result is True

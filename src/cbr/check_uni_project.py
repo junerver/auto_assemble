@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from cbr.parse_uni_manifest import parse_uni_manifest
+from common.api import fetch_project_info_by_url
 from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
@@ -47,24 +48,20 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
             raise ValueError("未能在git配置中找到origin远程仓库的URL")
 
         # 2. 调用API获取项目配置
-        import requests
-        from common.config import config
+        project_config = {}
+        third_party_configs = []
 
-        api_url = f"{config.SERVER_HOST_URL}/api/config/project"
-        params = {"url": project_url}
+        def on_success(data):
+            nonlocal project_config
+            nonlocal third_party_configs
+            project_config = data["project_config"]
+            third_party_configs = data["third_party_configs"]
 
-        response = requests.get(api_url, params=params)
-        if response.status_code != 200:
-            logging.error(f"获取项目配置失败: {response.text}")
-            raise ValueError(f"从服务器获取项目配置失败: {response.text}")
+        def on_error(error):
+            logging.error(f"获取项目配置失败: {error}")
+            raise ValueError(f"从服务器获取项目配置失败: {error}")
 
-        data = response.json()
-        if "error" in data:
-            logging.error(f"获取项目配置错误: {data['error']}")
-            raise ValueError(f"从服务器获取项目配置错误: {data['error']}")
-
-        project_config = data["project_config"]
-        third_party_configs = data["third_party_configs"]
+        fetch_project_info_by_url(project_url, on_success, on_error)
 
         # 3. 构建环境变量字典
         env_vars = CbrEnvVars(
@@ -76,6 +73,8 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
             UNIAPP_APPKEY=project_config["uniapp_appkey"],
             UNIAPP_IS_CLI=project_config["uniapp_is_cli"],
         )
+        from common.config import config
+
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
 

@@ -141,7 +141,7 @@ class TestParseUniManifest(unittest.TestCase):
 
     # 新增测试用例 - 权限处理测试
     # 修复权限处理测试
-    @patch("common.parse_permissions.parse_and_merge_permissions")  # 修改这里
+    @patch("cbr.parse_uni_manifest.parse_and_merge_permissions")  # 修改这里
     @patch("cbr.parse_uni_manifest.parse_third_party_configs")
     @patch("builtins.open", new_callable=mock_open)
     def test_permissions_content_processing(self, mock_file, mock_parse_third_party, mock_parse_permissions):
