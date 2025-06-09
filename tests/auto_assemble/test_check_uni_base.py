@@ -67,7 +67,7 @@ class TestCheckUniBase:
             result = check_uni_base()
 
             assert isinstance(result, SignConfig)
-            assert result.alias == "test_alias"
+            assert result.key_alias == "test_alias"
             assert result.ks_pass == "test_store_pass"
             assert result.key_pass == "test_key_pass"
             assert result.key_store.name == "test.keystore"

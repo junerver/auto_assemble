@@ -45,7 +45,11 @@ def init_db():
             uniapp_appkey TEXT,
             uniapp_is_cli BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
-            updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime'))
+            updated_at TIMESTAMP DEFAULT (datetime('now', 'localtime')),
+            key_store TEXT,
+            ks_pass TEXT,
+            key_alias TEXT,
+            key_pass TEXT
         )
     """
     )
@@ -145,6 +149,8 @@ def init_db():
     migrate_add_is_normalized_and_is_obfuscated_to_metadata_nullable(cursor)
     # 25.06.09 迁移添加 res_fp 字段到 tasks 表
     migrate_add_res_fp_to_tasks_nullable(cursor)
+    # 25.06.09 迁移添加sign_config的相关字段到project_config表
+    migrate_add_sign_config_to_project_config_nullable(cursor)
 
     # 提交更改并关闭连接
     conn.commit()
@@ -237,3 +243,43 @@ def migrate_add_res_fp_to_tasks_nullable(cursor: sqlite3.Cursor):
             ADD COLUMN res_fp TEXT NULL
         """
     )
+
+
+def migrate_add_sign_config_to_project_config_nullable(cursor: sqlite3.Cursor):
+    """
+    迁移添加sign_config的相关字段到project_config表
+    """
+    try:
+        if not _column_exists(cursor, "project_config", "key_store"):
+            cursor.execute(
+                """
+                ALTER TABLE project_config
+                    ADD COLUMN key_store TEXT NULL
+                """
+            )
+        if not _column_exists(cursor, "project_config", "ks_pass"):
+            cursor.execute(
+                """
+                ALTER TABLE project_config
+                    ADD COLUMN ks_pass TEXT NULL
+                """
+            )
+
+        if not _column_exists(cursor, "project_config", "key_alias"):
+            cursor.execute(
+                """
+                ALTER TABLE project_config
+                    ADD COLUMN key_alias TEXT NULL
+                """
+            )
+
+        if not _column_exists(cursor, "project_config", "key_pass"):
+            cursor.execute(
+                """
+                ALTER TABLE project_config
+                    ADD COLUMN key_pass TEXT NULL
+                """
+            )
+    except sqlite3.Error as e:
+        # 记录错误但不中断迁移过程
+        print(f"迁移警告: 添加字段时出错 - {e}")

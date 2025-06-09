@@ -89,6 +89,14 @@ class ProjectModel(BaseModel):
     uniapp_is_cli: bool = Field(..., description="项目是否为cli创建项目")
     created_at: Optional[datetime] = Field(None, description="项目配置创建时间")
     updated_at: Optional[datetime] = Field(None, description="项目配置更新时间")
+    # 签名文件路径
+    key_store: Optional[str] = Field(None, description="签名文件路径")
+    # 签名文件密码
+    ks_pass: Optional[str] = Field(None, description="签名文件密码")
+    # 签名文件别名
+    key_alias: Optional[str] = Field(None, description="签名文件别名")
+    # 签名文件别名密码
+    key_pass: Optional[str] = Field(None, description="签名文件别名密码")
 
 
 class ConfigureProjectResp(BaseResp):
@@ -274,3 +282,16 @@ class PublishSSEReq(BaseModel):
     type: Optional[str] = Field("toast", description="事件类型")
     title: str = Field(..., description="事件标题")
     message: str = Field(..., description="事件消息")
+
+
+class ProjectSignConfigReq(BaseModel):
+    """项目签名配置请求实体类"""
+
+    # 签名文件路径
+    key_store: str = Field(..., description="签名文件路径")
+    # 签名文件密码
+    ks_pass: str = Field(..., description="签名文件密码")
+    # 签名文件别名
+    key_alias: str = Field(..., description="签名文件别名")
+    # 签名文件别名密码
+    key_pass: str = Field(..., description="签名文件别名密码")

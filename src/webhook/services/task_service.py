@@ -146,6 +146,10 @@ class TaskService:
         return Task.get_by_id(task_id, db)
 
     @staticmethod
+    def get_task_by_fp(res_fp: str, db: sqlite3.Connection = None):
+        return Task.get_by_res_fp(res_fp, db)
+
+    @staticmethod
     def get_running_task(db: sqlite3.Connection = None) -> Optional["Task"]:
         """获取正在执行的任务
 

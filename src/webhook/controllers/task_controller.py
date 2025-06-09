@@ -65,6 +65,18 @@ async def get_task_info(task_id: Annotated[str, Path(..., description="任务id"
     raise HTTPException(status_code=404, detail="Task not found")
 
 
+@router.get("/api/task", response_model=TaskDetailResp)
+async def get_task_by_fp(
+    res_fp: str = Query(default=None, description="资源包指纹"),
+    db=Depends(get_db),
+):
+    """获取正在运行的任务"""
+    task = TaskService.get_task_by_fp(res_fp, db=db)
+    if task:
+        return {"task": format_task_info(task.to_dict())}
+    raise HTTPException(status_code=404, detail="Task not found")
+
+
 @router.delete("/api/task/{task_id}", response_model=BaseResp)
 async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """标记任务为过期"""
@@ -81,10 +93,10 @@ async def update_task(
 ):
     """更新任务接口，通过请求体中指定的键值，更新对应任务的指定字段"""
     data = await request.json()
-    if data["response_hash"]:
-        TaskService.update_response_hash(task_id, data["response_hash"], db=db)
-    if data["res_fp"]:
-        TaskService.update_res_fp(task_id, data["res_fp"], db=db)
+    if data.get("response_hash"):
+        TaskService.update_response_hash(task_id, data.get("response_hash"), db=db)
+    if data.get("res_fp"):
+        TaskService.update_res_fp(task_id, data.get("res_fp"), db=db)
     return {"message": "Task updated"}
 
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
@@ -55,7 +56,7 @@ async def get_project_config(
 
         # 获取项目的第三方配置
         third_party_configs = ThirdPartyService.get_project_configs(project.id, db=db)
-
+        logging.info(f"获取项目配置成功 {project.to_dict()}")
         return {
             "project_config": project.to_dict(),
             "third_party_configs": [config.to_dict() for config in third_party_configs],
@@ -83,7 +84,7 @@ async def update_project_config(
         third_party_configs = data.get("third_party_configs", [])
 
         # 更新基础配置
-        project = ProjectService.update_project(project_id, db=db, **base_config)
+        project: Optional[Project] = ProjectService.update_project(project_id, db=db, **base_config)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 

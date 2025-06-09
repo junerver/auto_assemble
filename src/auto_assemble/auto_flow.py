@@ -8,9 +8,11 @@
 
 import logging
 import sys
+from pathlib import Path
 
 from common.client_publish import client_publish_async
 from common.config import config
+from common.error import BusinessException
 
 
 def auto_flow(task_id: str = None) -> int:
@@ -32,6 +34,8 @@ def auto_flow(task_id: str = None) -> int:
         if task_id is not None:
             prod_name, task_dir = task_id.split(",")
             config.cur_task_id = task_id
+            config.PROD_NAME = prod_name
+            config.cur_task_dir = Path(config.DISTRIBUTION_PATH) / prod_name / task_dir
 
         # 执行copy_res.py，拷贝资源，解析请求文件，对基座项目进行写覆盖操作
         client_publish_async("build", "构建任务:copy_res", f"开始执行copy_res，任务id{task_id}")
@@ -59,6 +63,9 @@ def auto_flow(task_id: str = None) -> int:
         client_publish_async("build", "构建任务:push", "构建任务执行完毕")
         return 0
     except Exception as e:
+        if isinstance(e, BusinessException) and e.code == 0:
+            logging.info("触发径直release，直接执行归一化成功，结束任务执行！")
+            return 0
         logging.exception(f"执行过程中发生错误: {e}")
         return 1
 

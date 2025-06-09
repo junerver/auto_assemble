@@ -3,6 +3,7 @@ import uuid
 from typing import Optional
 
 from webhook.models.project import Project
+from webhook.types import ProjectSignConfigReq
 
 
 class ProjectService:
@@ -79,4 +80,19 @@ class ProjectService:
                 uniapp_is_cli=project_data.get("uniapp_is_cli", False),
             )
 
+        return project
+
+    @staticmethod
+    def configure_project_sign_config(prod_name: str, sign_config: ProjectSignConfigReq, db: sqlite3.Connection):
+        """配置项目签名配置"""
+        project = Project.get_by_name(prod_name, db)
+        if not project:
+            return None
+        project.update(
+            db=db,
+            key_store=sign_config.key_store,
+            ks_pass=sign_config.ks_pass,
+            key_alias=sign_config.key_alias,
+            key_pass=sign_config.key_pass,
+        )
         return project

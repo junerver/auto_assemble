@@ -51,7 +51,9 @@ def copy_source(fork_task_id: str) -> tuple[Path, dict]:
         source_md_url = f"{task_info.project}/{task_info.task}/README.md"
         # 下载文件
         download_file(task_info.commit_hash, source_zip_url, temp_zip_path)
+        logging.info(f"下载文件: {source_zip_url} 完毕")
         download_file(task_info.commit_hash, source_md_url, temp_md_path)
+        logging.info(f"下载文件: {source_md_url} 完毕")
 
     fetch_task_info(source_task_id, on_success, None)
 

@@ -1,10 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NotRequired, TypedDict, Optional, TypeAlias
 import xml.etree.ElementTree as ET
 
-from dataclasses_json import DataClassJsonMixin
-
+from dataclasses_json import DataClassJsonMixin, config
 
 # 在业务逻辑使用的折叠后的第三方配置的总字典，键值为第三方[服务提供者的名称]，值为实际该服务的[配置字典]
 # 配置字典键值为[第三方服务的key]，值为[第三方服务的value]
@@ -144,14 +143,51 @@ class BuildMetadata(TypedDict):
 
 
 @dataclass
-class SignConfig:
+class SignConfig(DataClassJsonMixin):
     """签名配置"""
 
-    # 签名文件别名
-    alias: str
+    # 签名文件路径
+    key_store: Path = field(
+        metadata=config(
+            encoder=str,
+            decoder=Path,
+        )
+    )
     # 签名文件密码
     ks_pass: str
+    # 签名文件别名
+    key_alias: str
     # 签名文件别名密码
     key_pass: str
-    # 签名文件路径
-    key_store: Path
+
+
+@dataclass
+class ProjectConfig(DataClassJsonMixin):
+    id: str
+    project_url: str
+    prod_name: str
+    hbx_version: str
+    uniapp_id: str
+    uniapp_appkey: str
+    uniapp_is_cli: bool
+    created_at: str
+    updated_at: str
+    key_store: str
+    ks_pass: str
+    key_alias: str
+    key_pass: str
+
+    def is_sign_config_valid(self) -> bool:
+        """校验是否是有效的签名配置"""
+        has_value = self.key_store and self.ks_pass and self.key_alias and self.key_pass
+        if not has_value:
+            return False
+        return has_value and Path(self.key_store).exists()
+
+    def get_sign_config(self) -> SignConfig:
+        return SignConfig(
+            key_store=Path(self.key_store),
+            ks_pass=self.ks_pass,
+            key_alias=self.key_alias,
+            key_pass=self.key_pass,
+        )

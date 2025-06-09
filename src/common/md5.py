@@ -20,7 +20,7 @@ def calculate_file_md5(file_path: Path, chunk_size=8192) -> str:
     return md5.hexdigest()
 
 
-def get_zip_content_fingerprint(zip_path):
+def calculate_zip_fingerprint(zip_path: Path) -> str:
     """
     生成 zip 包的“内容感知” fingerprint（与元数据、顺序无关），
     通过该函数可以为原始Uni资源包计算出一个资源包指纹，如果资源包

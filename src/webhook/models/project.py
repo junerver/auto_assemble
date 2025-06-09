@@ -41,6 +41,14 @@ class Project(DataClassJsonMixin):
             decoder=datetime.fromisoformat,
         ),
     )
+    # 签名文件路径
+    key_store: Optional[str] = None
+    # 签名文件密码
+    ks_pass: Optional[str] = None
+    # 签名文件别名
+    key_alias: Optional[str] = None
+    # 签名文件别名密码
+    key_pass: Optional[str] = None
 
     def __post_init__(self):
         """在初始化后确保datetime字段的类型正确"""

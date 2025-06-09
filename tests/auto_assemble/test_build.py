@@ -482,7 +482,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
 
         # 直接使用mock对象而不是Path构造函数
         result = sign_apk(mock_input_path, sign_config, mock_output_path)
@@ -515,7 +515,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
 
         with pytest.raises(FileNotFoundError):
             sign_apk(Path("/test/input.apk"), sign_config)
@@ -531,7 +531,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
 
         with pytest.raises(Exception):
             sign_apk(Path("/test/input.apk"), sign_config)

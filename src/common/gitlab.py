@@ -65,6 +65,7 @@ def download_file(ref_hash: str, file_name: str, dest_path: Path):
         dest_path,
         True,
     )
+    logging.info(f"✅ 下载成功: {file_name} -> {dest_path}")
 
 
 def download_task_readme(task_info: TaskInfo, dest_dir: Optional[Path] = None) -> Path:
@@ -107,8 +108,6 @@ def download_task_resp(task_info: TaskInfo, dest_dir: Path):
 
     """
     target_task = dest_dir.name
-    md5_path = dest_dir / task_info.metadata.package_name
-    md5_path.touch()
     download_file(task_info.commit_hash, "release-metadata.md", dest_dir / "release-metadata.md")
     download_file(task_info.commit_hash, f"{task_info.task}_obfuscated.bak", dest_dir / f"{target_task}_obfuscated.bak")
     download_file(task_info.commit_hash, f"{task_info.task}.apk", dest_dir / f"{target_task}.apk")

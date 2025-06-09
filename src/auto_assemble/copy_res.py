@@ -10,9 +10,11 @@ from typing import Optional
 
 
 from auto_assemble.build import parse_build_req_message
-from common.api import fetch_task_info
+from auto_assemble.migrate_test import migrate_test
+from common.api import fetch_task_info, record_task_res_fp, fetch_task_info_by_res_fp
 from common.error import BusinessException
 from common.extract import modern_extract
+from common.gitlab import compare_readme_file
 from common.log import setup_logging
 from auto_assemble.parse_readme import parse_readme
 from auto_assemble.update_android_manifest import update_android_manifest
@@ -21,6 +23,7 @@ from auto_assemble.update_control_file import update_control_file
 from common.client_publish import client_publish_async
 from common.config import config
 from common.git import sync_repository, check_git_branch, git_reset_and_clean
+from common.md5 import calculate_zip_fingerprint
 from common.types import ManifestInfo, TaskInfo
 
 
@@ -242,8 +245,6 @@ def copy_res(prod_name: str, task_dir: str) -> int:
 
         # 获取项目名称和最新目录
         try:
-            config.PROD_NAME = prod_name
-            config.cur_task_dir = Path(config.DISTRIBUTION_PATH) / prod_name / task_dir
             logging.info(f"本次构建任务ID: {config.cur_task_id}")
 
             # 请求webhook服务的/task/<task_id>接口，获取提交信息
@@ -303,6 +304,28 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         if not compressed_file:
             logging.error("未找到压缩文件，终止执行")
             return 11004
+
+        # 计算本次资源包指纹，存储在数据库中
+        fingerprint = calculate_zip_fingerprint(compressed_file)
+        record_task_res_fp(config.cur_task_id, fingerprint)
+
+        if config.build_mode == "release":
+            # 本次构建是release，查找是否存在相同指纹的构建任务，对比其readme文件、构建是否成功
+            # 如果构建成功，指纹一致，则直接复用构建结果，无需再次构建
+            old_task = fetch_task_info_by_res_fp(fingerprint)
+            if old_task and old_task.status == "success" and old_task.commit_title.startswith("#test_req#"):
+                if compare_readme_file(old_task, readme_path):
+                    logging.info("该资源包构建结果已存在，归一化后即可复用，开始尝试径直release")
+                    try:
+                        migrate_test(old_task)
+                    except Exception as e:
+                        if isinstance(e, BusinessException) and e.code == 0:
+                            raise e
+                        logging.error("径直归一化 release 失败，回退到常规操作")
+                else:
+                    logging.info("该资源包构建结果已存在，但readme文件不一致，需要再次构建")
+            else:
+                logging.info("该资源包构建结果不存在，需要构建")
 
         # 检查压缩文件内容
         check_result, temp_dir = check_compressed_file_content(compressed_file)
