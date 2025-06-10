@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from auto_assemble.build import exec_normalized_apk, sign_apk, update_metadata_md, parse_metadata
+from auto_assemble.push import push_distribution
 from common.api import fetch_project_info_by_prod_name, record_task_metadata
 from common.config import config
 from common.error import BusinessException
@@ -28,6 +29,16 @@ def migrate_test(old_task: TaskInfo):
     obfuscated_bak: Path = config.cur_task_dir / f"{config.cur_task_dir.name}_obfuscated.bak"
     # 归一化后的apk文件（注意使用完毕后删除）
     normalized_apk: Path = Path("/app") / "temp" / "normalized.apk"
+
+    def cleanup():
+        if source_apk.exists():
+            source_apk.unlink()
+        if normalized_apk.exists():
+            normalized_apk.unlink()
+        if metadata_md.exists():
+            metadata_md.unlink()
+        if obfuscated_bak.exists():
+            obfuscated_bak.unlink()
 
     project_config: Optional[ProjectConfig] = fetch_project_info_by_prod_name(config.PROD_NAME)
     if project_config and project_config.is_sign_config_valid():
@@ -65,21 +76,17 @@ def migrate_test(old_task: TaskInfo):
             metadata: BuildMetadata = parse_metadata(content)
             logging.info(f"解析metadata文件结果: {json.dumps(metadata)}，请求接口提交元数据")
             record_task_metadata(config.cur_task_id, metadata)
-            # todo: 执行推送步骤
+            # 此时文件已经全部到位，推送分发仓库
+            if (push_code := push_distribution()) != 0:
+                logging.warning("push.py执行中断")
+                raise BusinessException(push_code)
             # 执行成功跳出后续步骤
             raise BusinessException(0)
         except Exception as e:
             logging.exception(f"执行归一化时发生错误: {e}")
-            if source_apk.exists():
-                source_apk.unlink()
-                logging.info("源文件已删除")
-            if normalized_apk.exists():
-                normalized_apk.unlink()
-                logging.info("归一化文件已删除")
-            if metadata_md.exists():
-                metadata_md.unlink()
-                logging.info("metadata文件已删除")
-            if obfuscated_bak.exists():
-                obfuscated_bak.unlink()
-                logging.info("混淆资源备份已删除")
-            raise BusinessException("12015")
+            cleanup()
+            raise BusinessException(12015)
+    else:
+        logging.info("签名配置无效")
+        cleanup()
+        raise BusinessException(12016)
