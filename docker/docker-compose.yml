@@ -14,6 +14,7 @@ services:
       # Git仓库（从git-repo服务挂载）
       - git_repo_distribution:/app/distribution
       - git_repo_uni_base:/app/uni-base
+      - git_repo_sign_file:/app/sign
     environment:
       - TZ=Asia/Shanghai
       - DISTRIBUTION_PATH=/app/distribution
@@ -52,3 +53,5 @@ volumes:
     name: auto_assemble_git_repo_distribution
   git_repo_uni_base:
     name: auto_assemble_git_repo_uni_base
+  sign_file_cache:
+    name: auto_assemble_sign_file_cache
