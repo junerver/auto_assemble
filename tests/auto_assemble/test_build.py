@@ -333,8 +333,14 @@ class TestCopyBuildOutputs:
     @patch("auto_assemble.build.open")
     @patch("auto_assemble.build.parse_metadata")
     @patch("common.api.record_task_metadata")
-    def test_successful_copy(
+    @patch("auto_assemble.build.exec_normalized_apk")
+    @patch("auto_assemble.build.sign_apk")
+    @patch("auto_assemble.build.update_metadata_md")
+    def test_normalized_apk_handling(
         self,
+        mock_update_metadata,
+        mock_sign_apk,
+        mock_exec_normalized,
         mock_record_metadata,
         mock_parse_metadata,
         mock_open,
@@ -344,10 +350,22 @@ class TestCopyBuildOutputs:
         mock_config,
         mock_path,
     ):
-        """测试成功复制构建产物"""
-        # 设置mock
+        """测试APK归一化处理"""
         mock_config.build_mode = "release"
+        mock_config.BUILD_RELEASE_OUTPUT_DIR = "/test/output"
+        mock_config.cur_task_id = "test_task_123"
+
+        # 设置Path mock的行为
         mock_path.return_value.exists.return_value = True
+        mock_path.return_value.mkdir = MagicMock()
+
+        # 设置sign_apk的返回值
+        mock_target_apk = MagicMock()
+        mock_sign_apk.return_value = (mock_target_apk, 512000, "abc123")
+
+        # 设置update_metadata_md的返回值
+        mock_update_metadata.return_value = ("abc123", "updated content")
+
         mock_parse_metadata.return_value = {"package_name": "com.test.app"}
         mock_record_metadata.return_value = True
 
@@ -360,12 +378,13 @@ class TestCopyBuildOutputs:
             "app-release.apk",
             Path("/test/target"),
             True,
-            {"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"},
+            SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass"),
         )
 
         assert result is True
         assert apk_name == "app-release"
-        mock_copy2.assert_called()
+        mock_exec_normalized.assert_called_once()
+        mock_sign_apk.assert_called_once()
         mock_publish.assert_called()
 
     @patch("auto_assemble.build.Path")
@@ -379,7 +398,7 @@ class TestCopyBuildOutputs:
             "app-release.apk",
             Path("/test/target"),
             True,
-            {"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"},
+            SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass"),
         )
 
         assert result is False
@@ -397,62 +416,18 @@ class TestCopyBuildOutputs:
             "app-release.apk",
             Path("/test/target"),
             True,
-            {"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"},
+            SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass"),
         )
 
         assert result is False
         assert apk_name == ""
 
-    @patch("auto_assemble.build.Path")
-    @patch("auto_assemble.build.config")
-    @patch("auto_assemble.build.client_publish_async")
-    @patch("auto_assemble.build.subprocess.run")
-    @patch("auto_assemble.build.shutil.copy2")
-    @patch("auto_assemble.build.open")
-    @patch("auto_assemble.build.parse_metadata")
-    @patch("common.api.record_task_metadata")
-    def test_normalized_apk_handling(
-        self,
-        mock_record_metadata,
-        mock_parse_metadata,
-        mock_open,
-        mock_copy2,
-        mock_run,
-        mock_publish,
-        mock_config,
-        mock_path,
-    ):
-        """测试APK归一化处理"""
-        mock_config.build_mode = "release"
-        mock_path.return_value.exists.return_value = True
-        mock_run.return_value.returncode = 0
-        mock_parse_metadata.return_value = {"package_name": "com.test.app"}
-        mock_record_metadata.return_value = True
-
-        # 模拟文件内容
-        mock_file = MagicMock()
-        mock_file.read.return_value = "MD5: abc123\nFile Size: 1024 bytes (1 KB)"
-        mock_open.return_value.__enter__.return_value = mock_file
-
-        result, apk_name = copy_build_outputs(
-            "app-release.apk",
-            Path("/test/target"),
-            True,
-            SignConfig(**{"key_store": "/test/keystore", "alias": "test", "ks_pass": "pass", "key_pass": "pass"}),
-        )
-
-        assert result is True
-        assert apk_name == "app-release"
-        mock_run.assert_called()
-        mock_publish.assert_called()
-
 
 class TestSignApk:
     @patch("auto_assemble.build.calculate_file_md5")
     @patch("auto_assemble.build.subprocess.run")
-    @patch("pathlib.Path.stat")
     @patch("auto_assemble.build.Path")  # 直接 mock build 模块中的 Path
-    def test_successful_sign(self, mock_path_class, mock_os_stat, mock_run, mock_calculate_md5):
+    def test_successful_sign(self, mock_path_class, mock_run, mock_calculate_md5):
         """测试成功签名APK"""
         # 设置mock对象
         mock_input_path = MagicMock()
@@ -472,7 +447,7 @@ class TestSignApk:
         mock_idsig_path.exists.return_value = True
         mock_idsig_path.unlink = mock_unlink
 
-        # 配置stat的返回值
+        # 配置stat的返回值 - sign_apk函数中调用了两次stat()
         mock_stat = MagicMock()
         mock_stat.st_size = 1024
         mock_output_path.stat.return_value = mock_stat
@@ -482,7 +457,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass")
 
         # 直接使用mock对象而不是Path构造函数
         result = sign_apk(mock_input_path, sign_config, mock_output_path)
@@ -497,8 +472,8 @@ class TestSignApk:
         mock_run.assert_called_once()
         mock_calculate_md5.assert_called_once()
 
-        # 验证stat只被调用一次（获取文件大小）
-        mock_output_path.stat.assert_called_once()
+        # 验证stat被调用两次（sign_apk函数中第489行和第492行各调用一次）
+        assert mock_output_path.stat.call_count == 2
 
         # 验证 Path 构造函数被调用（用于创建 apksigner 路径）
         mock_path_class.assert_called_with("/opt/android-sdk/build-tools/34.0.0/apksigner")
@@ -515,7 +490,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass")
 
         with pytest.raises(FileNotFoundError):
             sign_apk(Path("/test/input.apk"), sign_config)
@@ -531,7 +506,7 @@ class TestSignApk:
 
         from auto_assemble.build import sign_apk
 
-        sign_config = SignConfig(key_store="/test/keystore", key_alias="test", ks_pass="pass", key_pass="pass")
+        sign_config = SignConfig(key_store=Path("/test/keystore"), key_alias="test", ks_pass="pass", key_pass="pass")
 
         with pytest.raises(Exception):
             sign_apk(Path("/test/input.apk"), sign_config)

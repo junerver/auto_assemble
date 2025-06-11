@@ -56,13 +56,27 @@ class TestCheckUniBase:
 
         return android_dir
 
-    def test_successful_check(self, setup_android_project, caplog):
+    @patch("auto_assemble.check_uni_base.fetch_project_info_by_prod_name")
+    def test_successful_check(self, mock_fetch_project_info, setup_android_project, caplog):
         """测试成功的基座检查"""
         caplog.set_level(logging.INFO)
 
-        with patch("auto_assemble.check_uni_base.config") as mock_config:
+        # 创建一个 mock 的 ProjectConfig 对象，但签名配置无效
+        mock_project_config = MagicMock()
+        mock_project_config.id = "test_project_id"
+        mock_project_config.is_sign_config_valid.return_value = False
+        mock_fetch_project_info.return_value = mock_project_config
+
+        with (
+            patch("auto_assemble.check_uni_base.config") as mock_config,
+            patch("auto_assemble.check_uni_base.record_project_sign_config") as mock_record,
+        ):
             # 直接设置属性，不使用PropertyMock
             mock_config.ANDROID_UNI_BASE_PATH = str(setup_android_project)
+            mock_config.PROD_NAME = "test_project"  # 添加这行，设置具体的项目名称
+
+            # Mock record_project_sign_config 来避免实际的API调用
+            mock_record.return_value = None
 
             result = check_uni_base()
 
@@ -70,9 +84,14 @@ class TestCheckUniBase:
             assert result.key_alias == "test_alias"
             assert result.ks_pass == "test_store_pass"
             assert result.key_pass == "test_key_pass"
-            assert result.key_store.name == "test.keystore"
+            assert result.key_store.name == "test_project_test.keystore"  # 更新断言，包含项目名前缀
             assert "项目结构检查通过" in caplog.text
             assert "签名配置解析成功" in caplog.text
+
+            # 验证 fetch_project_info_by_prod_name 被调用
+            mock_fetch_project_info.assert_called_once_with("test_project")
+            # 验证 record_project_sign_config 被调用
+            mock_record.assert_called_once_with("test_project_id", result)
 
     def test_project_directory_not_exists(self, caplog):
         """测试项目目录不存在"""
