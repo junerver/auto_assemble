@@ -140,12 +140,19 @@
                                 <input type="text" class="form-control" id="uniappAppkey" name="uniapp_appkey">
                             </div>
                             <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="uniappIsCli"
-                                        name="uniapp_is_cli">
-                                    <label class="form-check-label" for="uniappIsCli">UniApp CLI模式</label>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <input class="form-check-input" type="checkbox" id="uniappIsCli"
+                                            name="uniapp_is_cli">
+                                        <label class="form-check-label" for="uniappIsCli">UniApp CLI模式</label>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-success" id="addSignatureBtn"
+                                        onclick="showProjectSignConfig()">
+                                        <i class="bi bi-highlighter"></i> 配置签名
+                                    </button>
                                 </div>
                             </div>
+                            <hr />
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0">第三方配置</h6>
@@ -161,6 +168,47 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                         <button type="button" class="btn btn-primary" id="saveProjectConfig">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 项目签名配置模态窗 -->
+        <div class="modal fade" id="signatureModal" tabindex="-1" aria-labelledby="signatureModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="signatureModalLabel">项目签名配置</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="signatureForm">
+                            <div class="mb-3">
+                                <label class="form-label">签名文件</label>
+                                <input type="file" class="form-control" id="signFile" required>
+                            </div>
+                            <div class="mb-3" id="keyStoreDiv" style="display: none;">
+                                <label class="form-label">签名文件路径</label>
+                                <input type="text" class="form-control" id="keyStorePath" readonly disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">签名文件密码</label>
+                                <input type="text" class="form-control" id="ksPass" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">签名文件别名</label>
+                                <input type="text" class="form-control" id="keyAlias" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">签名文件别名密码</label>
+                                <input type="text" class="form-control" id="keyPass" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" id="saveSignature">保存</button>
                     </div>
                 </div>
             </div>

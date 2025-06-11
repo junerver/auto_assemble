@@ -519,6 +519,45 @@ function saveNewProject() {
  */
 document.getElementById('saveNewProject').onclick = saveNewProject;
 
+
+function showProjectSignConfig() {
+    // 从form中获取项目ID（该数据在form显示时被灌入）
+    const projectId = document.getElementById('projectConfigForm').dataset.projectId;
+    fetch(`/api/config/project/${projectId}/sign`)
+        .then(response => response.json())
+        .then(data => {
+            const modal = new bootstrap.Modal(document.getElementById('signatureModal'));
+            const form = document.getElementById('signatureForm');
+            const signFile = document.getElementById('signFile');
+            const keyStoreDiv = document.getElementById('keyStoreDiv');
+            const keyStorePath = document.getElementById('keyStorePath');
+            const ksPass = document.getElementById('ksPass');
+            const keyAlias = document.getElementById('keyAlias');
+            const keyPass = document.getElementById('keyPass');
+            document.getElementById('saveSignature').onclick = function () {
+                updateProjectSignConfig(projectId, {
+                    ks_pass: ksPass.value,
+                    key_alias: keyAlias.value,
+                    key_pass: keyPass.value
+                }, signFile.files[0]).then(data => {
+                    alert('签名配置保存成功');
+                    bootstrap.Modal.getInstance(document.getElementById('signatureModal')).hide();
+                })
+            }
+            if (data.signConfig) {
+                ksPass.value = data.signConfig.ks_pass;
+                keyAlias.value = data.signConfig.key_alias;
+                keyPass.value = data.signConfig.key_pass;
+                // 显示签名配置的路径
+                keyStoreDiv.style.display = 'block';
+                keyStorePath.value = data.signConfig.key_store;
+            } else {
+                keyStoreDiv.style.display = 'none';
+            }
+            modal.show();
+        });
+}
+
 async function updateProjectSignConfig(projectId, signConfig, file) {
     try {
         // 创建 FormData 对象
