@@ -6,6 +6,7 @@ LastEditors: 侯文君
 LastEditTime: 2025-05-15 18:06:21
 """
 
+import pathlib
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -163,3 +164,21 @@ class Project(DataClassJsonMixin):
                 update_values,
             )
             db.commit()
+
+    def get_sign_config(self) -> dict | None:
+        """获取项目签名配置"""
+        if (
+            self.key_store
+            and pathlib.Path(self.key_store).exists()
+            and self.key_alias
+            and self.key_pass
+            and self.ks_pass
+        ):
+            return {
+                "key_store": self.key_store,
+                "ks_pass": self.ks_pass,
+                "key_alias": self.key_alias,
+                "key_pass": self.key_pass,
+            }
+        else:
+            return None

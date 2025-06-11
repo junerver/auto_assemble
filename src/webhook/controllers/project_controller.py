@@ -195,3 +195,13 @@ async def update_project_sign_config(
         raise HTTPException(status_code=500, detail=f"配置签名失败: {str(e)}")
 
     return {"message": "项目签名配置更新成功", "file_path": str(new_sign_file_path)}
+
+
+@router.get("/{project_id}/sign")
+async def get_project_sign_config(
+    project_id: Annotated[str, Path(..., description="项目的uuid主键")],
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """获取项目签名配置信息"""
+    project: Project = ProjectService.get_project(project_id=project_id, db=db)
+    return {"signConfig": project.get_sign_config()}
