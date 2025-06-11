@@ -41,6 +41,19 @@ async def add_third_party_dict(request: Request, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/dict/unconfigured")
+async def get_unconfigured_dict_items(project_id: str = Query(default=None, description="项目URL"), db=Depends(get_db)):
+    """获取项目未配置的字典项"""
+    try:
+        if not project_id:
+            raise HTTPException(status_code=400, detail="Project ID is required")
+
+        unconfigured_items = ThirdPartyService.get_unconfigured_dict_items(project_id, db=db)
+        return {"items": [item.to_dict() for item in unconfigured_items]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/dict/{key}")
 async def get_third_party_dict_item(
     key: Annotated[str, Path(..., description="第三方服务配置的键值")],
@@ -92,19 +105,6 @@ async def delete_third_party_dict_item(
             return {"message": "Third party dictionary item deleted successfully"}
         else:
             raise HTTPException(status_code=400, detail="Dictionary item not found or is in use")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/dict/unconfigured")
-async def get_unconfigured_dict_items(project_id: str = Query(default=None, description="项目URL"), db=Depends(get_db)):
-    """获取项目未配置的字典项"""
-    try:
-        if not project_id:
-            raise HTTPException(status_code=400, detail="Project ID is required")
-
-        unconfigured_items = ThirdPartyService.get_unconfigured_dict_items(project_id, db=db)
-        return {"items": [item.to_dict() for item in unconfigured_items]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
