@@ -1,8 +1,8 @@
 import logging
+import pathlib
 import shutil
 import sqlite3
 from typing import Annotated, Optional
-from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
@@ -162,17 +162,17 @@ async def update_project_sign_config(
         raise HTTPException(status_code=404, detail="项目不存在")
 
     # 删除旧签名文件
-    if project.key_store and FilePath(project.key_store).exists():
-        FilePath(project.key_store).unlink()
+    if project.key_store and (key_store_path := pathlib.Path(project.key_store)).exists():
+        key_store_path.unlink()
 
     # 定义签名文件存储目录
-    sign_path: FilePath = FilePath("/app") / "sign"
+    sign_path = pathlib.Path("/app") / "sign"
     sign_path.mkdir(parents=True, exist_ok=True)  # 确保目录存在
 
     # 生成带项目前缀的文件名
     original_filename = sign_config.key_store.filename
     prefixed_filename = f"{project.prod_name}_{original_filename}"
-    new_sign_file_path: FilePath = sign_path / prefixed_filename
+    new_sign_file_path = sign_path / prefixed_filename
 
     # 保存上传的文件
     try:

@@ -2,12 +2,12 @@
 
 import logging
 import os
+import pathlib
 import subprocess
-from pathlib import Path
 from threading import Thread
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path as FPath, status
+from fastapi import APIRouter, Depends, Path, status
 from fastapi.responses import JSONResponse
 
 from webhook.config import API_TEST, TASK_TIMEOUT
@@ -43,7 +43,7 @@ def fork_task_worker(forked_task: ForkTask):
 
     process = subprocess.Popen(
         ["fork-task", "--fork", forked_task.id],
-        cwd=Path(__file__).resolve().parent.parent,
+        cwd=pathlib.Path(__file__).resolve().parent.parent,
         encoding="utf-8",
         env=os.environ.copy(),
     )
@@ -101,7 +101,7 @@ async def fork_task(req: ForkTaskReq, db=Depends(get_db)):
 
 @router.get("/{fork_task_id}", response_model=ForkTaskDetailResp)
 async def get_fork_task(
-    fork_task_id: Annotated[str, FPath(..., title="fork_task_id", description="需要查询的派生任务id")],
+    fork_task_id: Annotated[str, Path(..., title="fork_task_id", description="需要查询的派生任务id")],
     db=Depends(get_db),
 ):
     """获取派生任务"""

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -47,6 +49,7 @@ async def check_ip(request: Request):
             content=response_date.model_dump(),
         )
     except Exception:
+        logging.exception("检查客户端IP授权失败")
         return JSONResponse(
             status_code=404,
             content={
