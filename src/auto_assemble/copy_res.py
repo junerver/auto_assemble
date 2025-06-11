@@ -313,7 +313,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
             # 本次构建是release，查找是否存在相同指纹的构建任务，对比其readme文件、构建是否成功
             # 如果构建成功，指纹一致，则直接复用构建结果，无需再次构建
             old_task = fetch_task_info_by_res_fp(fingerprint)
-            if old_task and old_task.status == "success" and old_task.commit_title.startswith("#test_req#"):
+            if old_task and old_task.status == "completed" and old_task.commit_title.startswith("#test_req#"):
                 if compare_readme_file(old_task, readme_path):
                     logging.info("该资源包构建结果已存在，归一化后即可复用，开始尝试径直release")
                     try:
@@ -459,6 +459,8 @@ def copy_res(prod_name: str, task_dir: str) -> int:
             logging.error(f"配置文件错误: {e}")
             return 10005
         elif isinstance(e, BusinessException):
+            if e.code == 0:
+                raise e
             logging.error(f"业务错误: {e.code} {e.message}")
             return e.code
         else:

@@ -59,7 +59,7 @@ def migrate_test(old_task: TaskInfo):
                 source_apk,
             )
             normalized_apk.unlink()
-            # todo: 更新 metadata 文件，需要更新更多字段
+            # 更新 metadata 文件
             md5, content = update_metadata_md(
                 metadata_md,
                 signed_md5,
@@ -77,11 +77,17 @@ def migrate_test(old_task: TaskInfo):
             logging.info(f"解析metadata文件结果: {json.dumps(metadata)}，请求接口提交元数据")
             record_task_metadata(config.cur_task_id, metadata)
             # 此时文件已经全部到位，推送分发仓库
-            if (push_code := push_distribution()) != 0:
+            push_code = push_distribution()
+            if push_code != 0:
                 logging.warning("push.py执行中断")
                 raise BusinessException(push_code)
-            # 执行成功跳出后续步骤
+            # 执行成功
             raise BusinessException(0)
+        except BusinessException as e:
+            # 直接抛出 BusinessException，保留原始错误码
+            if e.code != 0:
+                cleanup()
+            raise
         except Exception as e:
             logging.exception(f"执行归一化时发生错误: {e}")
             cleanup()
