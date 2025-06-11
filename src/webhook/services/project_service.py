@@ -83,14 +83,18 @@ class ProjectService:
         return project
 
     @staticmethod
-    def configure_project_sign_config(prod_name: str, sign_config: ProjectSignConfigReq, db: sqlite3.Connection):
+    def configure_project_sign_config(
+        project: Project,
+        sign_config: ProjectSignConfigReq,
+        file_path: str,
+        db: sqlite3.Connection,
+    ):
         """配置项目签名配置"""
-        project = Project.get_by_name(prod_name, db)
         if not project:
             return None
         project.update(
             db=db,
-            key_store=sign_config.key_store,
+            key_store=file_path,
             ks_pass=sign_config.ks_pass,
             key_alias=sign_config.key_alias,
             key_pass=sign_config.key_pass,

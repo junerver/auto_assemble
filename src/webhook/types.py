@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from fastapi import Form, UploadFile, File
 from pydantic import BaseModel, Field
 
 from webhook.models.task import TaskStatus
@@ -287,11 +288,21 @@ class PublishSSEReq(BaseModel):
 class ProjectSignConfigReq(BaseModel):
     """项目签名配置请求实体类"""
 
-    # 签名文件路径
-    key_store: str = Field(..., description="签名文件路径")
+    # 签名文件
+    key_store: UploadFile = (Field(..., description="签名文件"),)
     # 签名文件密码
     ks_pass: str = Field(..., description="签名文件密码")
     # 签名文件别名
     key_alias: str = Field(..., description="签名文件别名")
     # 签名文件别名密码
     key_pass: str = Field(..., description="签名文件别名密码")
+
+    @classmethod
+    def as_form(
+        cls,
+        key_store: UploadFile = File(..., description="签名文件"),
+        ks_pass: str = Form(..., description="签名文件密码"),
+        key_alias: str = Form(..., description="签名文件别名"),
+        key_pass: str = Form(..., description="签名文件别名密码"),
+    ):
+        return cls(key_store=key_store, ks_pass=ks_pass, key_alias=key_alias, key_pass=key_pass)

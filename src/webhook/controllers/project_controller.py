@@ -1,5 +1,8 @@
 import logging
+import shutil
+import sqlite3
 from typing import Annotated, Optional
+from pathlib import Path as FilePath
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
@@ -9,6 +12,7 @@ from webhook.types import (
     AllProjectsResp,
     ConfigureProjectResp,
     ProjectConfigDetailResp,
+    ProjectSignConfigReq,
 )
 from webhook.models.third_party import ThirdPartyConfig
 from webhook.services.project_service import ProjectService
@@ -143,3 +147,51 @@ async def get_projects(db=Depends(get_db)):
         return {"projects": [project.to_dict() for project in projects]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{project_id}/sign")
+async def update_project_sign_config(
+    project_id: Annotated[str, Path(..., description="项目的uuid主键")],
+    sign_config: ProjectSignConfigReq = Depends(ProjectSignConfigReq.as_form),
+    db: sqlite3.Connection = Depends(get_db),
+):
+    """更新项目签名配置信息"""
+    # 获取项目
+    project = ProjectService.get_project(project_id=project_id, db=db)
+    if not project:
+        raise HTTPException(status_code=404, detail="项目不存在")
+
+    # 删除旧签名文件
+    if project.key_store and FilePath(project.key_store).exists():
+        FilePath(project.key_store).unlink()
+
+    # 定义签名文件存储目录
+    sign_path: FilePath = FilePath("/app") / "sign"
+    sign_path.mkdir(parents=True, exist_ok=True)  # 确保目录存在
+
+    # 生成带项目前缀的文件名
+    original_filename = sign_config.key_store.filename
+    prefixed_filename = f"{project.prod_name}_{original_filename}"
+    new_sign_file_path: FilePath = sign_path / prefixed_filename
+
+    # 保存上传的文件
+    try:
+        with new_sign_file_path.open("wb") as buffer:
+            shutil.copyfileobj(sign_config.key_store.file, buffer)  # type: ignore
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存文件失败: {str(e)}")
+
+    # 存储签名配置，传递生成的文件路径
+    try:
+        ProjectService.configure_project_sign_config(
+            project=project,
+            sign_config=sign_config,
+            file_path=str(new_sign_file_path),  # configure_project_sign_config 接受 file_path 参数
+            db=db,
+        )
+    except Exception as e:
+        # 如果配置存储失败，删除已保存的文件
+        new_sign_file_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"配置签名失败: {str(e)}")
+
+    return {"message": "项目签名配置更新成功", "file_path": str(new_sign_file_path)}

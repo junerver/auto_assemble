@@ -518,3 +518,35 @@ function saveNewProject() {
  * 添加保存新项目按钮的点击事件
  */
 document.getElementById('saveNewProject').onclick = saveNewProject;
+
+async function updateProjectSignConfig(projectId, signConfig, file) {
+    try {
+        // 创建 FormData 对象
+        const formData = new FormData();
+        // 单独添加 sign_config 的字段
+        formData.append('key_store', file);
+        formData.append('ks_pass', signConfig.ks_pass);
+        formData.append('key_alias', signConfig.key_alias);
+        formData.append('key_pass', signConfig.key_pass);
+
+        // 发送 PUT 请求
+        const response = await fetch(`/api/config/project/${projectId}/sign`, {
+            method: 'PUT',
+            body: formData,
+        });
+
+        // 检查响应
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || '请求失败');
+        }
+
+        // 处理成功响应
+        const data = await response.json();
+        console.log('成功:', data.message, data.file_path);
+        return data;
+    } catch (error) {
+        console.error('错误:', error.message);
+        throw error;
+    }
+}
