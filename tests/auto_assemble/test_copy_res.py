@@ -4,7 +4,8 @@ from unittest.mock import patch, Mock, PropertyMock, MagicMock
 import logging
 
 import auto_assemble.copy_res as copy_res
-from common.config import config
+from common.error import BusinessException
+from common.types import TaskInfo
 
 
 class TestCheckPaths:
@@ -180,111 +181,168 @@ class TestFindCompressedFile:
         assert result is not None
         assert result.suffix in [".zip", ".rar"]
 
-    @pytest.mark.usefixtures("caplog")
-    def test_copy_res_main_flow(self, tmp_path, caplog, capsys):
+
+@pytest.fixture
+def directory_structure(tmp_path):
+    """Set up common directory structure for tests."""
+    distribution_dir = tmp_path / "distribution"
+    distribution_dir.mkdir()
+    apps_dir = tmp_path / "apps"
+    apps_dir.mkdir()
+    project_dir = apps_dir / "test_project"
+    project_dir.mkdir()
+    build_gradle = tmp_path / "build.gradle"
+    build_gradle.touch()
+    test_zip = project_dir / "test.zip"
+    test_zip.touch()
+    manifest_json = project_dir / "manifest.json"
+    manifest_json.touch()
+    cur_task_dir = distribution_dir / "test_project" / "task_dir"
+    cur_task_dir.mkdir(parents=True, exist_ok=True)
+    apk_file = cur_task_dir / "task_dir.apk"
+    temp_check_dir = cur_task_dir / "temp_check"
+    temp_check_dir.mkdir(parents=True, exist_ok=True)
+    test_project_dir = temp_check_dir / "test_project"
+    test_project_dir.mkdir()
+
+    return {
+        "distribution_dir": distribution_dir,
+        "apps_dir": apps_dir,
+        "project_dir": project_dir,
+        "build_gradle": build_gradle,
+        "test_zip": test_zip,
+        "manifest_json": manifest_json,
+        "cur_task_dir": cur_task_dir,
+        "apk_file": apk_file,
+        "temp_check_dir": temp_check_dir,
+        "test_project_dir": test_project_dir,
+    }
+
+
+@pytest.fixture
+def mock_path_methods(directory_structure):
+    """Mock Path methods for consistent behavior."""
+    apk_file = directory_structure["apk_file"]
+    apps_dir = directory_structure["apps_dir"]
+    project_dir = directory_structure["project_dir"]
+    test_zip = directory_structure["test_zip"]
+    manifest_json = directory_structure["manifest_json"]
+
+    def mock_exists(self):
+        return str(self) != str(apk_file)
+
+    def iterdir_side_effect(self):
+        path_str = str(self)
+        if "temp_check" in path_str:
+            return [Path(path_str) / "test_project"]
+        elif path_str == str(apps_dir):
+            return [project_dir]
+        elif path_str == str(project_dir):
+            return [test_zip, manifest_json]
+        return []
+
+    with (
+        patch.object(Path, "exists", mock_exists),
+        patch.object(Path, "mkdir", Mock()),
+        patch.object(Path, "iterdir", side_effect=iterdir_side_effect),
+        patch.object(Path, "is_file", Mock(return_value=True)),
+        patch.object(Path, "is_dir", Mock(return_value=True)),
+    ):
+        yield
+
+
+@pytest.fixture
+def common_copy_res_patches():
+    """Common mock patches for copy_res module."""
+    return {
+        "sync_repository": Mock(return_value=True),
+        "check_git_branch": Mock(return_value=True),
+        "git_reset_and_clean": Mock(return_value=None),
+        "find_compressed_file": Mock(return_value=None),  # Will be overridden in tests if needed
+        "modern_extract": Mock(return_value=["test_project/"]),
+        "check_compressed_file_content": Mock(return_value=(True, None)),  # Will be overridden
+        "extract_compressed_file": Mock(return_value=True),
+        "clear_directory": Mock(return_value=True),
+        "check_apps_directory": Mock(return_value=True),
+        "parse_readme": Mock(
+            return_value={
+                "uniapp_id": "test_project",
+                "hbx_version": "3.99.0",
+                "version_name": "1.0.0",
+                "version_code": 1,
+                "uniapp_key": "key",
+                "abi_filters": ["armeabi-v7a"],
+                "schemes": ["test"],
+                "modules": [],
+                "third_party_config": {},
+            }
+        ),
+        "update_build_gradle": Mock(return_value=True),
+        "update_control_file": Mock(return_value=True),
+        "update_android_manifest": Mock(return_value=True),
+    }
+
+
+@pytest.fixture
+def shutil_patches():
+    """Mock patches for shutil module."""
+    return {
+        "rmtree": Mock(),
+        "copy2": Mock(),
+        "copytree": Mock(),
+    }
+
+
+@pytest.fixture
+def mock_config(tmp_path, directory_structure):
+    """Mock configuration settings."""
+    with patch("auto_assemble.copy_res.config") as mock_config:
+        mock_config.DISTRIBUTION_PATH = str(directory_structure["distribution_dir"])
+        mock_config.APPS_DIRECTORY = str(directory_structure["apps_dir"])
+        mock_config.BUILD_GRADLE_PATH = str(directory_structure["build_gradle"])
+        mock_config.ANDROID_UNI_BASE_PATH = str(tmp_path)
+        mock_config.CONTROL_FILE_PATH = str(tmp_path / "dcloud_control.xml")
+        mock_config.ANDROID_MANIFEST_PATH = str(tmp_path / "AndroidManifest.xml")
+        mock_config.PROD_NAME = "test_project"
+        mock_config.PROD_BRANCH = "prod_test_project"
+        mock_config.UNI_APP_ID = "test_project"
+        mock_config.cur_task_dir = directory_structure["cur_task_dir"]
+        mock_config.build_mode = "release"
+        mock_config.cur_task_id = "test_project,20240604"
+        mock_config.is_obfuscated = False
+        yield mock_config
+
+
+@pytest.fixture
+def common_patches(shutil_patches, mock_path_methods, mock_config):
+    """Apply common patches for os, zipfile, and subprocess."""
+    with (
+        patch.multiple("shutil", **shutil_patches),
+        patch("os.unlink", Mock()),
+        patch("zipfile.ZipFile", MagicMock()),
+        patch("subprocess.run", Mock(return_value=Mock(returncode=0))),
+    ):
+        yield
+
+
+class TestCopyRes:
+    @pytest.mark.usefixtures("caplog", "common_patches")
+    def test_copy_res_main_flow(
+        self,
+        caplog,
+        capsys,
+        directory_structure,
+        common_copy_res_patches,
+    ):
         caplog.set_level(logging.INFO)
-        # 1. 构造目录结构
-        distribution_dir = tmp_path / "distribution"
-        distribution_dir.mkdir()
-        apps_dir = tmp_path / "apps"
-        apps_dir.mkdir()
-        project_dir = apps_dir / "test_project"
-        project_dir.mkdir()
-        build_gradle = tmp_path / "build.gradle"
-        build_gradle.touch()
-        test_zip = project_dir / "test.zip"
-        test_zip.touch()
-        manifest_json = project_dir / "manifest.json"
-        manifest_json.touch()
-        # 额外：产物apk路径
-        cur_task_dir = distribution_dir / "test_project" / "task_dir"
-        cur_task_dir.mkdir(parents=True, exist_ok=True)
-        apk_file = cur_task_dir / "task_dir.apk"
+        test_zip = directory_structure["test_zip"]
+        temp_check_dir = directory_structure["temp_check_dir"]
 
-        # 创建临时目录用于模拟 check_compressed_file_content 的返回值
-        temp_check_dir = cur_task_dir / "temp_check"
-        temp_check_dir.mkdir(parents=True, exist_ok=True)
-        test_project_dir = temp_check_dir / "test_project"
-        test_project_dir.mkdir()
+        # Override specific mocks
+        common_copy_res_patches["find_compressed_file"].return_value = test_zip
+        common_copy_res_patches["check_compressed_file_content"].return_value = (True, temp_check_dir)
 
-        # 创建一个 mock 对象来替代 Path.exists 方法
-        def mock_exists(self):
-            return str(self) != str(apk_file)
-
-        def iterdir_side_effect(self):
-            path_str = str(self)
-            if "temp_check" in path_str:
-                # 在临时目录中返回一个与 UNI_APP_ID 同名的目录
-                return [Path(path_str) / "test_project"]
-            elif path_str == str(apps_dir):
-                return [project_dir]
-            elif path_str == str(project_dir):
-                return [test_zip, manifest_json]
-            return []
-
-        # 按模块分组 mock 对象
-        copy_res_patches = {
-            "sync_repository": Mock(return_value=True),
-            "check_git_branch": Mock(return_value=True),
-            "git_reset_and_clean": Mock(return_value=None),
-            "find_compressed_file": Mock(return_value=test_zip),
-            "modern_extract": Mock(return_value=[f"{config.UNI_APP_ID}/"]),
-            "check_compressed_file_content": Mock(return_value=(True, temp_check_dir)),
-            "extract_compressed_file": Mock(return_value=True),
-            "clear_directory": Mock(return_value=True),
-            "check_apps_directory": Mock(return_value=True),
-            "parse_readme": Mock(
-                return_value={
-                    "uniapp_id": "test_project",
-                    "hbx_version": "3.99.0",
-                    "version_name": "1.0.0",
-                    "version_code": 1,
-                    "uniapp_key": "key",
-                    "abi_filters": ["armeabi-v7a"],
-                    "schemes": ["test"],
-                    "modules": [],
-                    "third_party_config": {},
-                }
-            ),
-            "update_build_gradle": Mock(return_value=True),
-            "update_control_file": Mock(return_value=True),
-            "update_android_manifest": Mock(return_value=True),
-        }
-
-        shutil_patches = {
-            "rmtree": Mock(),
-            "copy2": Mock(),
-            "copytree": Mock(),
-        }
-
-        with (
-            patch.multiple("auto_assemble.copy_res", **copy_res_patches),
-            patch.multiple("shutil", **shutil_patches),
-            patch.object(Path, "exists", mock_exists),
-            patch.object(Path, "mkdir", Mock()),
-            patch.object(Path, "iterdir", side_effect=iterdir_side_effect),
-            patch.object(Path, "is_file", Mock(return_value=True)),
-            patch.object(Path, "is_dir", Mock(return_value=True)),
-            patch("os.unlink", Mock()),
-            patch("zipfile.ZipFile", MagicMock()),
-            patch("subprocess.run", Mock(return_value=Mock(returncode=0))),
-            patch("auto_assemble.copy_res.config") as mock_config,
-        ):
-            # config 路径属性 - 直接设置属性而不是使用PropertyMock
-            mock_config.DISTRIBUTION_PATH = str(distribution_dir)
-            mock_config.APPS_DIRECTORY = str(apps_dir)
-            mock_config.BUILD_GRADLE_PATH = str(build_gradle)
-            mock_config.ANDROID_UNI_BASE_PATH = str(tmp_path)
-            mock_config.CONTROL_FILE_PATH = str(tmp_path / "dcloud_control.xml")
-            mock_config.ANDROID_MANIFEST_PATH = str(tmp_path / "AndroidManifest.xml")
-            mock_config.PROD_NAME = "test_project"
-            mock_config.PROD_BRANCH = "prod_test_project"
-            mock_config.UNI_APP_ID = "test_project"
-            mock_config.cur_task_dir = cur_task_dir
-            mock_config.build_mode = "release"
-            mock_config.cur_task_id = "test_project,20240604"
-            mock_config.is_obfuscated = False
-
+        with patch.multiple("auto_assemble.copy_res", **common_copy_res_patches):
             result = copy_res.copy_res("test_project", "task_dir")
             captured = capsys.readouterr()
             assert result == 0
@@ -293,6 +351,52 @@ class TestFindCompressedFile:
                 or "所有操作执行成功" in captured.err
                 or "所有操作执行成功" in captured.out
             )
-            # patch.multiple 并不返回任何内容，我们需要用自己的字典来管理、验证mock的函数是否被调用
-            assert copy_res_patches["check_compressed_file_content"].called
-            assert copy_res_patches["find_compressed_file"].called
+            assert common_copy_res_patches["check_compressed_file_content"].called
+            assert common_copy_res_patches["find_compressed_file"].called
+
+    @pytest.mark.usefixtures("caplog", "common_patches")
+    def test_copy_res_main_flow_immediate_release(self, caplog, capsys, directory_structure, common_copy_res_patches):
+        caplog.set_level(logging.INFO)
+        test_zip = directory_structure["test_zip"]
+        temp_check_dir = directory_structure["temp_check_dir"]
+
+        # Override specific mocks and add new ones
+        common_copy_res_patches["find_compressed_file"].return_value = test_zip
+        common_copy_res_patches["check_compressed_file_content"].return_value = (True, temp_check_dir)
+        common_copy_res_patches["calculate_zip_fingerprint"] = Mock(return_value="test_project_fingerprint")
+        common_copy_res_patches["fetch_task_info_by_res_fp"] = Mock(
+            return_value=TaskInfo(
+                id="test_project,20240604",
+                author="test_author",
+                commit_title="#test_req# 这是一次成功的test",
+                commit_message="#test_req# 这是一次成功的test",
+                commit_url="http://192.168.187.232:28088/rdcenter/app-distribution/-/commit/b3694af4431f065f06e2c8238a11d163bd2da2c5",
+                priority=0,
+                retries=0,
+                created_at=None,
+                started_at=None,
+                completed_at=None,
+                status="completed",
+                error=None,
+                commit_hash=None,
+                response_hash=None,
+                metadata=None,
+                source_task_id=None,
+                project="test_project",
+                task="20240603",
+            )
+        )
+        common_copy_res_patches["compare_readme_file"] = Mock(return_value=True)
+        common_copy_res_patches["migrate_test"] = Mock(side_effect=BusinessException(0))
+
+        with patch.multiple("auto_assemble.copy_res", **common_copy_res_patches):
+            with patch("logging.Logger.info", Mock()):  # Suppress INFO logs
+                with pytest.raises(BusinessException) as exc_info:
+                    copy_res.copy_res("test_project", "task_dir")
+
+            common_copy_res_patches["migrate_test"].assert_called_once()
+            assert "执行javascript-obfuscator命令" not in caplog.text
+            assert exc_info.value.code == 0
+            common_copy_res_patches["find_compressed_file"].assert_called_once()
+            common_copy_res_patches["calculate_zip_fingerprint"].assert_called_once()
+            common_copy_res_patches["check_compressed_file_content"].assert_not_called()
