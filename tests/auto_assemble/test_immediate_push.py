@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import subprocess
 from common.error import BusinessException
 from common.types import TaskInfo, ProjectConfig, SignConfig, BuildMetadata
-from auto_assemble.migrate_test import migrate_test
+from auto_assemble.immediate_push import migrate_test_to_release
 
 
 # Mock config for testing
@@ -92,7 +92,7 @@ def test_migrate_test_success(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 0  # Success exit code
@@ -125,7 +125,7 @@ def test_migrate_test_invalid_sign_config(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 12016  # Invalid sign config error
@@ -157,7 +157,7 @@ def test_migrate_test_normalization_failure(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 12015  # General error code
@@ -188,7 +188,7 @@ def test_migrate_test_signing_failure(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 12015
@@ -239,7 +239,7 @@ def test_migrate_test_push_distribution_failure(setup_config, task_info, tmp_pat
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 11007  # Push distribution error code
@@ -269,7 +269,7 @@ def test_migrate_test_missing_files(setup_config, task_info):
         with patch.object(Path, "exists", side_effect=lambda: False):  # Simulate no files
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 12015
@@ -320,7 +320,7 @@ def test_migrate_test_invalid_timestamp(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 11007  # Invalid timestamp leads to push failure
@@ -341,7 +341,7 @@ def test_migrate_test_api_failure(setup_config, task_info, tmp_path):
         with patch.object(Path, "exists", side_effect=lambda: True):  # Simulate files exist
             # Run the function
             with pytest.raises(BusinessException) as exc_info:
-                migrate_test(task_info)
+                migrate_test_to_release(task_info)
 
         # Assertions
         assert exc_info.value.code == 12016  # Treated as invalid sign config

@@ -1,5 +1,17 @@
+"""
+这个脚本文件用于处理直接复用的场景，有时候可能存在前端资源包没有任何变化的情况，
+操作人员误操作重新打包，有以下几种情况可以直接推送
+新 <- 旧
+dev <- dev
+test <- test
+release <- test  （特殊迁移，需要重新执行归一化、重签名，因为test分支不执行归一化）
+release <- release
+
+"""
+
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +24,7 @@ from common.gitlab import download_task_resp
 from common.types import TaskInfo, ProjectConfig, SignConfig, BuildMetadata
 
 
-def migrate_test(old_task: TaskInfo):
+def migrate_test_to_release(old_task: TaskInfo):
     """
     跳过构建过程，直接对 test 的产物进行归一化、签名
     Args:
@@ -21,12 +33,8 @@ def migrate_test(old_task: TaskInfo):
     Returns:
 
     """
-    # 下载文件
-    download_task_resp(old_task, config.cur_task_dir)
-    # 未执行归一化的apk
-    source_apk: Path = config.cur_task_dir / f"{config.cur_task_dir.name}.apk"
-    metadata_md: Path = config.cur_task_dir / "release-metadata.md"
-    obfuscated_bak: Path = config.cur_task_dir / f"{config.cur_task_dir.name}_obfuscated.bak"
+    # 下载文件（元数据、混淆后的资源包、原始apk）
+    metadata_md, obfuscated_bak, source_apk = download_task_resp(old_task, config.cur_task_dir)
     # 归一化后的apk文件（注意使用完毕后删除）
     normalized_apk: Path = Path("/app") / "temp" / "normalized.apk"
 
@@ -65,6 +73,7 @@ def migrate_test(old_task: TaskInfo):
                 signed_md5,
                 signed_size,
                 True,
+                datetime.now(),
             )
 
             # 创建MD5空白文件
@@ -96,3 +105,22 @@ def migrate_test(old_task: TaskInfo):
         logging.info("签名配置无效")
         cleanup()
         raise BusinessException(12016)
+
+
+def migrate_same_build_mode(old_task: TaskInfo):
+    # 下载文件
+    metadata_md, obfuscated_bak, apk_file = download_task_resp(old_task, config.cur_task_dir)
+
+    md5, content = update_metadata_md(metadata_md, date_time=datetime.now())
+    metadata: BuildMetadata = parse_metadata(content)
+    md5_path = config.cur_task_dir / md5
+    md5_path.touch()
+    logging.info(f"解析metadata文件结果: {json.dumps(metadata)}，请求接口提交元数据")
+    record_task_metadata(config.cur_task_id, metadata)
+    # 此时文件已经全部到位，推送分发仓库
+    push_code = push_distribution()
+    if push_code != 0:
+        logging.warning("push.py执行中断")
+        raise BusinessException(push_code)
+    # 执行成功
+    raise BusinessException(0)

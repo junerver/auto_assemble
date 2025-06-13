@@ -363,17 +363,22 @@ def build(target_dir: Optional[Path] = None, release: bool = True, is_distributi
 
 def update_metadata_md(
     target_metadata: Path,
-    signed_md5: str,
-    signed_size: int,
+    signed_md5: Optional[str] = None,
+    signed_size: Optional[int] = None,
     is_normalized: bool = False,
+    date_time: Optional[datetime] = None,
 ) -> tuple[str, str]:
     """
     更新元数据文件，如果执行了归一化，需要修改其md5、文件体积信息
+
+    如果几个参数不传递，则直接返回解析后的 md5、content
+
     Args:
         target_metadata:
         signed_md5:
         signed_size:
         is_normalized:
+        date_time:
 
     Returns:
         str,str: md5、正文内容
@@ -397,8 +402,24 @@ def update_metadata_md(
             )
             logging.info(f"原始 file_size: {origin_file_size}，修改后 file_size: {signed_size}")
 
+        if date_time:
+            content = re.sub(
+                r"Build Date: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}",
+                f"Build Date: {date_time.strftime('%Y-%m-%d %H:%M:%S')}",
+                content,
+            )
         # 添加额外信息
-        content += f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated} \n\n是否Normalized: {is_normalized}"
+        if "打包请求:" not in content and "UniApp资源包是否混淆:" not in content and "是否Normalized:" not in content:
+            content += f"\n\n打包请求: {config.last_commit_message}\n\nUniApp资源包是否混淆: {config.is_obfuscated} \n\n是否Normalized: {is_normalized}"
+        else:
+            # 如果 test -> release 更新归一化说明
+            if "是否Normalized:" in content and is_normalized:
+                content = re.sub(r"是否Normalized: \w+", f"是否Normalized: {is_normalized}", content)
+            if "打包请求:" in content:
+                pattern = r"(打包请求: )[\s\S]*?(?=\n\nUniApp资源包是否混淆:|\Z)"
+                # 替换字符串将是第一个捕获组（前缀 "打包请求: "）
+                # 后面跟着新的多行消息。
+                content = re.sub(pattern, r"\1" + config.last_commit_message, content, flags=re.DOTALL)
 
         # 重置文件指针并写入全部内容
         f.seek(0)

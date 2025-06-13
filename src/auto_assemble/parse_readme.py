@@ -126,6 +126,7 @@ def parse_readme(readme_path: Path) -> Optional[ManifestInfo]:
             - modules: 项目使用的模块列表
         如果解析失败则对应值为空字符串
     """
+    logging.info(f"开始解析 README.md 文件: {readme_path}")
     try:
         if not Path(readme_path).exists():
             logging.warning(f"README.md 文件不存在: {readme_path}")

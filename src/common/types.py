@@ -80,7 +80,7 @@ class ThirdPartyConfig(TypedDict):
 
 
 @dataclass
-class Metadata:
+class Metadata(DataClassJsonMixin):
     package_name: str
     version_name: str
     version_code: int

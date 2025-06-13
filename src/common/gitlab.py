@@ -5,6 +5,7 @@ from typing import Optional
 
 import requests
 
+from auto_assemble.build import parse_build_req_message
 from common.config import config
 from common.types import TaskInfo
 
@@ -93,24 +94,32 @@ def compare_readme_file(task_info: TaskInfo, readme_path: Path) -> bool:
         return f1.read() == f2.read()
 
 
-def download_task_resp(task_info: TaskInfo, dest_dir: Path):
+def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path, Path]:
     """下载构建响应文件到目标目录
 
     针对指定任务下载或创建构建响应文件：
-    - md5值为名的空文件
     - README.md 构建自述
     - xxxx_obfuscated.bak 混淆后的资源文件（实际装载到壳工程的资源）
     - xxxx.apk 构建产物
 
+    下载时文件名称保持与原来格式一致，例如旧构建是dev，下载的文件是带 _debug 的，那下载的文件也是如此（只有test可以迁移到release，正常都是同模式迁移）
     Args:
         task_info: 要下载的任务
         dest_dir: 目标目录
 
     """
     target_task = dest_dir.name
-    download_file(task_info.commit_hash, "release-metadata.md", dest_dir / "release-metadata.md")
-    download_file(task_info.commit_hash, f"{task_info.task}_obfuscated.bak", dest_dir / f"{target_task}_obfuscated.bak")
-    download_file(task_info.commit_hash, f"{task_info.task}.apk", dest_dir / f"{target_task}.apk")
+    build_mode = parse_build_req_message(task_info.commit_title)[0]
+    old_apk_file_name = f"{task_info.task}_debug.apk" if build_mode == "dev" else f"{task_info.task}.apk"
+    new_apk_file_name = f"{target_task}_debug.apk" if build_mode == "dev" else f"{target_task}.apk"
+
+    metadata_md = dest_dir / "release-metadata.md"
+    obfuscated_bak = dest_dir / f"{target_task}_obfuscated.bak"
+    apk_file = dest_dir / new_apk_file_name
+    download_file(task_info.commit_hash, "release-metadata.md", metadata_md)
+    download_file(task_info.commit_hash, f"{task_info.task}_obfuscated.bak", obfuscated_bak)
+    download_file(task_info.commit_hash, old_apk_file_name, apk_file)
+    return metadata_md, obfuscated_bak, apk_file
 
 
 def download_task_all_files(task_info: TaskInfo, dest_dir: Path):

@@ -1,7 +1,6 @@
 import logging
 import os
 import subprocess
-import textwrap
 from collections import namedtuple
 
 from common.config import config
@@ -116,16 +115,6 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
             logging.info(
                 f"当前版本 - 提交时间: {before_commit_info.commit_date}, 提交人: {before_commit_info.author}, 提交信息: {before_commit_info.message}"
             )
-            config.last_commit_message = textwrap.dedent(
-                f"""
-                
-                提交时间: {before_commit_info.commit_date}
-                提交人: {before_commit_info.author}
-                提交信息: {before_commit_info.message}
-                提交哈希: {before_commit_info.commit_hash}
-                """
-            )
-
         # 检查远程是否有更新
         if not _git_fetch(repo_path, is_lfs):
             # 不需要拉取更新说明本地已经是最新
@@ -158,15 +147,6 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
                 logging.info(f"提交信息: {after_commit_info.message}")
                 logging.info(f"提交哈希: {after_commit_info.commit_hash}")
 
-            config.last_commit_message = textwrap.dedent(
-                f"""
-                
-                提交时间: {after_commit_info.commit_date}
-                提交人: {after_commit_info.author}
-                提交信息: {after_commit_info.message}
-                提交哈希: {after_commit_info.commit_hash}
-                """
-            )
             return True
         else:
             logging.error(f"{repo_path} Git仓库同步失败: {result.stderr}")

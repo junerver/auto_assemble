@@ -10,7 +10,7 @@ from typing import Optional
 
 
 from auto_assemble.build import parse_build_req_message
-from auto_assemble.migrate_test import migrate_test
+from auto_assemble.immediate_push import migrate_test_to_release, migrate_same_build_mode
 from common.api import fetch_task_info, record_task_res_fp, fetch_task_info_by_res_fp
 from common.error import BusinessException
 from common.extract import modern_extract
@@ -234,7 +234,9 @@ def copy_res(prod_name: str, task_dir: str) -> int:
     Returns:
         int: 返回0表示成功，返回1表示失败
     """
+    # uni资源包的临时解压目录
     temp_dir: Optional[Path] = None  # 初始化为None
+    # 用于混淆资源包的工作目录
     obfuscated_dir: Optional[Path] = None  # Initialize obfuscated_dir to None
     try:
         # 配置日志
@@ -260,6 +262,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
                     """
                 )
 
+            # 请求构建任务相关信息
             fetch_task_info(config.cur_task_id, on_success, lambda e: None)
         except ValueError as e:
             logging.error(f"获取项目名称失败: {e}")
@@ -268,11 +271,11 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         if config.build_mode not in ["dev", "test", "release"]:
             logging.error(f"构建模式错误: {config.build_mode}")
             return 11015
-
-        if config.build_mode == "dev":
-            check_git_branch(config.DISTRIBUTION_PATH, "master")
-        else:
-            check_git_branch(config.DISTRIBUTION_PATH, config.build_mode)
+        # 检查目标分支
+        check_git_branch(
+            config.DISTRIBUTION_PATH,
+            "master" if config.build_mode == "dev" else config.build_mode,
+        )
 
         # 同步仓库
         if not sync_repository(config.DISTRIBUTION_PATH):
@@ -309,23 +312,30 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         fingerprint = calculate_zip_fingerprint(compressed_file)
         record_task_res_fp(config.cur_task_id, fingerprint)
 
-        if config.build_mode == "release":
-            # 本次构建是release，查找是否存在相同指纹的构建任务，对比其readme文件、构建是否成功
-            # 如果构建成功，指纹一致，则直接复用构建结果，无需再次构建
-            old_task = fetch_task_info_by_res_fp(fingerprint)
-            if old_task and old_task.status == "completed" and old_task.commit_title.startswith("#test_req#"):
-                if compare_readme_file(old_task, readme_path):
-                    logging.info("该资源包构建结果已存在，归一化后即可复用，开始尝试径直release")
-                    try:
-                        migrate_test(old_task)
-                    except Exception as e:
-                        if isinstance(e, BusinessException) and e.code == 0:
-                            raise e
-                        logging.error("径直归一化 release 失败，回退到常规操作")
-                else:
-                    logging.info("该资源包构建结果已存在，但readme文件不一致，需要再次构建")
-            else:
-                logging.info("该资源包构建结果不存在，需要构建")
+        # 本次构建是release，查找是否存在相同指纹的构建任务，对比其readme文件、构建是否成功
+        old_task = fetch_task_info_by_res_fp(fingerprint)
+        if old_task and old_task.status == "completed" and compare_readme_file(old_task, readme_path):
+            new_mode: str = config.build_mode
+            old_mode: str = parse_build_req_message(old_task.commit_title)[0]
+            # 径直推送支持下面的几种模式
+            try:
+                match (old_mode, new_mode):
+                    case ("test", "release"):
+                        logging.info("旧构建是test，需要执行归一化、重签名")
+                        migrate_test_to_release(old_task)
+                    case _ if old_mode == new_mode:
+                        # 所有模式相同的情况统一处理
+                        logging.debug(f"新旧模式相同({new_mode})，无需特殊处理")
+                        migrate_same_build_mode(old_task)
+                    case _:
+                        logging.info(f"无法迁移的模式:{new_mode}->{new_mode}")
+            except Exception as e:
+                if isinstance(e, BusinessException) and e.code == 0:
+                    logging.info("触发径直推送，直接执行归一化成功，结束任务执行！")
+                    raise e
+                logging.error("径直推送失败，回退到常规操作")
+        else:
+            logging.info("该资源包构建结果不存在，执行常规流程")
 
         # 检查压缩文件内容
         check_result, temp_dir = check_compressed_file_content(compressed_file)
@@ -390,7 +400,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
                             if file_path.is_file():
                                 arcname = Path(config.UNI_APP_ID) / file_path.relative_to(obfuscated_dir)
                                 zipf.write(file_path, arcname)
-                    logging.info(f"混淆后的目录压缩为zip文件: {zip_file_path}")
+                    logging.info(f"混淆后的目录压缩为bak文件进行备份: {zip_file_path}")
                     # 删除原目录
                     shutil.rmtree(temp_dir)
                     # 将混淆后的目录作为临时目录

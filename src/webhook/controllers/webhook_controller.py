@@ -66,6 +66,7 @@ def build_task_worker(task: Task):
                     return
 
                 task.completed_at = datetime.now()
+                #  任务完成
                 task.status = TaskStatus.COMPLETED if process.returncode == 0 else TaskStatus.FAILED
                 show_build_toast(task, process.returncode == 0)
                 if process.returncode == 0:

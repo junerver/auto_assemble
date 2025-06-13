@@ -307,8 +307,8 @@ def update_build_gradle(
             # 写回文件
             with open(build_gradle_path, "w", encoding="utf-8") as file:
                 file.write(new_content)
-
-            logging.info(f"更新第三方依赖: {deps}")
+            logging.info(f"manifest声明使用的模块({len(modules)})：{modules}")
+            logging.info(f"更新第三方依赖({len(deps)}): {deps}")
 
         return True
     except Exception as e:
