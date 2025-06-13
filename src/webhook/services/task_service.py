@@ -101,7 +101,7 @@ class TaskService:
                 logging.warning(f"任务id：{task_id} 存在（失败/待执行），加入队列")
                 return task
             else:
-                logging.warning(f"任务id：{task_id} 已存在，跳过执行")
+                logging.warning(f"任务id：{task_id} [{task.status}]已存在，跳过执行")
                 return None
 
         task = Task(
