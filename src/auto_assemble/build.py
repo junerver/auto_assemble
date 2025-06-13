@@ -169,13 +169,12 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
                     is_normalized = False
                     # 回退到原始APK
                     shutil.copy2(source_apk, target_apk)
-                    logging.info(f"回退复制APK文件: {apk_name}")
+                    logging.info(f"异常回退，复制APK文件: {apk_name}")
             else:
-                logging.info("非 release 模式，无需 normalized")
+                logging.info("非 release 模式，无需 normalized，执行文件复制")
                 is_normalized = False
                 # 回退到原始APK
                 shutil.copy2(source_apk, target_apk)
-                logging.info(f"回退复制APK文件: {apk_name}")
         else:
             logging.error(f"源APK文件不存在: {source_apk}")
             return False, ""
