@@ -3,8 +3,6 @@ from unittest.mock import patch, Mock, MagicMock
 from pathlib import Path
 
 from auto_assemble.build import (
-    get_build_resp_message,
-    parse_build_req_message,
     get_build_output_name,
     get_distribution_target_dir,
     execute_gradle_build,
@@ -15,13 +13,14 @@ from auto_assemble.build import (
 )
 from common.api import record_task_metadata
 from common.types import BuildMetadata, SignConfig
+from common.commit_label import get_build_resp_message, parse_build_req_message
 
 
 class TestGetBuildRespMessage:
     def test_build_response_message(self):
         """测试构建响应消息生成"""
         with patch("auto_assemble.build.get_build_req_label", return_value="#test_resp#"):
-            result = get_build_resp_message("test commit message")
+            result = get_build_resp_message("test", "test commit message")
             assert result == "#test_resp#test commit message"
 
 

@@ -101,7 +101,7 @@ def check_uni_base() -> SignConfig:
             # 处理相对路径
             store_file = (Path(config.ANDROID_UNI_BASE_PATH) / "app" / store_file_str).resolve()
             # sign持久化路径，将签名文件保存在/app/sign目录下，并使用项目标识作为文件名前缀
-            sign_path = Path("/app") / "sign"
+            sign_path = config.SIGN_PATH
             sign_path.mkdir(parents=True, exist_ok=True)  # 确保目标目录存在
             key_store_file = sign_path / f"{config.PROD_NAME}_{store_file.name}"
             shutil.copy(store_file, key_store_file)

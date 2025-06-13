@@ -31,22 +31,18 @@ app = FastAPI()
 
 # 使用绝对路径配置模板目录
 BASE_DIR = Path(__file__).resolve().parent
-TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
-logger.info(f"模板目录路径: {TEMPLATES_DIR}")
 logger.info(f"静态文件目录路径: {STATIC_DIR}")
 
 # 验证目录是否存在
-if not TEMPLATES_DIR.exists():
-    raise RuntimeError(f"模板目录不存在: {TEMPLATES_DIR}")
 if not STATIC_DIR.exists():
     raise RuntimeError(f"静态文件目录不存在: {STATIC_DIR}")
 
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates = Jinja2Templates(directory=str(STATIC_DIR))
 
 # 添加数据库、log中间件
 app.add_middleware(DBSessionMiddleware)  # type: ignore

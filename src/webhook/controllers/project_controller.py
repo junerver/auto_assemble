@@ -6,6 +6,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
+from common.config import config
 from webhook.extensions.db import get_db
 from webhook.models.project import Project
 from webhook.types import (
@@ -166,7 +167,7 @@ async def update_project_sign_config(
         key_store_path.unlink()
 
     # 定义签名文件存储目录
-    sign_path = pathlib.Path("/app") / "sign"
+    sign_path = config.SIGN_PATH
     sign_path.mkdir(parents=True, exist_ok=True)  # 确保目录存在
 
     # 生成带项目前缀的文件名
@@ -177,7 +178,7 @@ async def update_project_sign_config(
     # 保存上传的文件
     try:
         with new_sign_file_path.open("wb") as buffer:
-            shutil.copyfileobj(sign_config.key_store.file, buffer)  # type: ignore
+            shutil.copyfileobj(sign_config.key_store.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存文件失败: {str(e)}")
 

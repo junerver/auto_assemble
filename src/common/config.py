@@ -8,6 +8,9 @@ BuildMode = Literal["dev", "test", "release"]
 
 class Config:
     def __init__(self):
+        self.TEMP_PATH = Path("/app") / "temp"
+        self.SIGN_PATH = Path("/app") / "sign"
+
         # gitlab 地址
         self.GITLAB_URL = "http://192.168.187.232:28088"
         # 访问令牌

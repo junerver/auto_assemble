@@ -1,4 +1,6 @@
 import logging
+import textwrap
+
 import colorlog
 import os
 from pathlib import Path
@@ -12,6 +14,7 @@ SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
 PORT = int(os.getenv("PORT", 5005))
 DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
 API_TEST = os.getenv("API_TEST", "false").lower() == "true"
+
 
 # 打印当前环境变量状态
 print(
@@ -37,7 +40,20 @@ if missing_vars:
         DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
         PORT = int(os.getenv("PORT", 5005))
         API_TEST = os.getenv("API_TEST", "false").lower() == "true"
-        print(f"已加载环境变量文件: {env_path}\nDEBUG: {DEBUG}\nPORT: {PORT}\nAPI_TEST: {API_TEST}")
+        DISTRIBUTION_PATH = os.getenv("DISTRIBUTION_PATH")
+        ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
+        SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
+        print(
+            textwrap.dedent(f"""
+            当前环境变量：
+            DISTRIBUTION_PATH: {DISTRIBUTION_PATH}
+            ANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}
+            SERVER_HOST_URL: {SERVER_HOST_URL}
+            PORT: {PORT}
+            DEBUG: {DEBUG}
+            API_TEST: {API_TEST}
+            """)
+        )
 
 # 数据库配置
 DB_FILE = Path(__file__).parent / "webhook_server.db"

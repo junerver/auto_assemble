@@ -752,6 +752,60 @@ def has_changes(cwd=config.DISTRIBUTION_PATH) -> bool:
         return False
 
 
+def get_git_config(repo_path: str) -> dict:
+    """
+    Args:
+        repo_path: Git 项目所在目录
+    Returns:
+        包含用户名和邮箱的字典
+    """
+    original_dir = None
+    if os.path.exists(os.path.join(repo_path, ".git")):
+        # 保存当前工作目录
+        original_dir = os.getcwd()
+    try:
+        if original_dir:
+            os.chdir(repo_path)
+        # 执行 git config 命令获取用户名和邮箱
+        username = (
+            subprocess.check_output(
+                ["git", "config", "user.name"],
+                text=False,
+            )
+            .decode("utf-8")
+            .strip()
+        )
+        email = (
+            subprocess.check_output(
+                ["git", "config", "user.email"],
+                text=False,
+            )
+            .decode("utf-8")
+            .strip()
+        )
+
+        return {"username": username, "email": email}
+
+    except subprocess.CalledProcessError:
+        raise ValueError("无法获取 Git 配置，可能未设置用户名或邮箱")
+    finally:
+        if original_dir:
+            os.chdir(original_dir)
+
+
+def get_git_author_str(repo_path: str) -> str:
+    """
+    获取git标准格式的用户信息
+    Args:
+        repo_path:
+
+    Returns:
+
+    """
+    user_config = get_git_config(repo_path)
+    return f"{user_config['username']} <{user_config['email']}>"
+
+
 __all__ = [
     "sync_repository",
     "git_reset_and_clean",
@@ -763,4 +817,6 @@ __all__ = [
     "git_push",
     "confirm_push",
     "has_changes",
+    "get_git_config",
+    "get_git_author_str",
 ]

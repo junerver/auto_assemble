@@ -42,7 +42,7 @@ class ProjectService:
         return None
 
     @staticmethod
-    def get_all_projects(db: sqlite3.Connection = None):
+    def get_all_projects(db: sqlite3.Connection):
         return Project.get_all(db)
 
     @staticmethod
@@ -55,7 +55,7 @@ class ProjectService:
         return None
 
     @staticmethod
-    def configure_project(project_data, db: sqlite3.Connection = None):
+    def configure_project(project_data, db: sqlite3.Connection):
         """配置项目"""
         # 检查项目是否已存在
         project = Project.get_by_url(project_data.get("project_url"), db)

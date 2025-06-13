@@ -1,7 +1,8 @@
 from unittest.mock import patch
 import logging
 
-from auto_assemble.push import validate_timestamp_format, validate_files, push_distribution
+from auto_assemble.push import validate_files, push_distribution
+from common.validate import validate_timestamp_format
 
 
 class TestValidateTimestampFormat:
@@ -190,7 +191,7 @@ class TestPushMain:
             patch("auto_assemble.push.validate_files", return_value=(True, "202312251430")),
             patch("auto_assemble.push.git_add", return_value=True),
             patch("auto_assemble.push.get_staged_files", return_value=mock_files),
-            patch("auto_assemble.build.get_build_resp_message", return_value="test commit"),
+            patch("common.commit_label.get_build_resp_message", return_value="test commit"),
             patch("auto_assemble.push.git_commit", return_value=True),
             patch("auto_assemble.push.confirm_push", return_value=True),
             patch("auto_assemble.push.git_push", return_value=True),
@@ -284,7 +285,7 @@ class TestPushMain:
             patch("auto_assemble.push.git_add", return_value=True),
             patch("auto_assemble.push.get_staged_files", return_value=["test.apk"]),
             patch("auto_assemble.push.validate_files", return_value=(True, "202312251430")),
-            patch("auto_assemble.build.get_build_resp_message", return_value="test commit"),
+            patch("common.commit_label.get_build_resp_message", return_value="test commit"),
             patch("auto_assemble.push.git_commit", return_value=True),
             patch("auto_assemble.push.confirm_push", return_value=True),
             patch("auto_assemble.push.git_push", return_value=True),
@@ -345,7 +346,7 @@ class TestPushMain:
             patch("auto_assemble.push.validate_files", return_value=(True, "202312251430")),
             patch("auto_assemble.push.git_add", return_value=True),
             patch("auto_assemble.push.get_staged_files", return_value=["test.apk"]),
-            patch("auto_assemble.build.get_build_resp_message", return_value="test commit"),
+            patch("common.commit_label.get_build_resp_message", return_value="test commit"),
             patch("auto_assemble.push.git_commit", return_value=False),
         ):
             mock_path.return_value.exists.return_value = True
@@ -367,7 +368,7 @@ class TestPushMain:
             patch("auto_assemble.push.validate_files", return_value=(True, "202312251430")),
             patch("auto_assemble.push.git_add", return_value=True),
             patch("auto_assemble.push.get_staged_files", return_value=["test.apk"]),
-            patch("auto_assemble.build.get_build_resp_message", return_value="test commit"),
+            patch("common.commit_label.get_build_resp_message", return_value="test commit"),
             patch("auto_assemble.push.git_commit", return_value=True),
             patch("auto_assemble.push.confirm_push", return_value=True),
             patch("auto_assemble.push.git_push", return_value=False),
@@ -391,7 +392,7 @@ class TestPushMain:
             patch("auto_assemble.push.validate_files", return_value=(True, "202312251430")),
             patch("auto_assemble.push.git_add", return_value=True),
             patch("auto_assemble.push.get_staged_files", return_value=["test.apk"]),
-            patch("auto_assemble.build.get_build_resp_message", return_value="test commit"),
+            patch("common.commit_label.get_build_resp_message", return_value="test commit"),
             patch("auto_assemble.push.git_commit", return_value=True),
             patch("auto_assemble.push.confirm_push", return_value=False),
         ):

@@ -12,7 +12,6 @@ from typing import Optional
 
 from auto_assemble.check_uni_base import check_uni_base
 from common.api import record_task_metadata
-from common.commit_label import get_build_req_label
 from common.log import setup_logging
 from auto_assemble.push import git_add, git_commit, get_staged_files
 from common.types import BuildMetadata, SignConfig
@@ -20,25 +19,6 @@ from common.client_publish import client_publish_async
 from common.config import config
 from common.git import git_push, git_reset_and_clean
 from common.md5 import calculate_file_md5
-
-
-def get_build_resp_message(commit_message: str) -> str:
-    return f"{get_build_req_label(config.build_mode, 'resp')}{commit_message}"
-
-
-def parse_build_req_message(message: str) -> tuple[Optional[str], Optional[str]]:
-    """
-    解析构建请求标签
-    Args:
-        message (str): 构建请求消息，它是一个 `#{build_mode}_req# {commit_message}` 格式的字符串，需要通过正则提取出build_mode和commit_message
-    Returns:
-        tuple: 构建模式，构建请求的commit message
-    """
-    pattern = r"#(\w+)_req#\s*(.*)"
-    match = re.search(pattern, message)
-    if match:
-        return match.group(1), match.group(2)
-    return None, None
 
 
 def get_build_output_name(release):

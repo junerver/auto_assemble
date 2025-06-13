@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 from common.api import fetch_task_info, fetch_fork_task_info
+from common.config import config
 from common.gitlab import download_file
 from common.error import BusinessException
 from common.extract import modern_extract
@@ -40,7 +41,7 @@ def copy_source(fork_task_id: str) -> tuple[Path, dict]:
     # 派生任务的临时目录
     _, target_task = target_task_id.split(",")
     # 拷贝zip文件\readme.md文件到临时目录
-    temp_dir: Path = Path("/app") / "temp" / target_task
+    temp_dir: Path = config.TEMP_PATH / target_task
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_zip_path: Path = temp_dir / f"{source_task_timestamp}.zip"
     temp_md_path: Path = temp_dir / "README.md"

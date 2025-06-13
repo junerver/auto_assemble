@@ -1,9 +1,9 @@
 import logging
-import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from common.commit_label import get_build_resp_message
 from common.log import setup_logging
 from common.config import config
 from common.git import (
@@ -15,18 +15,7 @@ from common.git import (
     has_changes,
     confirm_push,
 )
-
-
-def validate_timestamp_format(timestamp) -> bool:
-    """验证时间戳格式是否为yyyyMMddHHmm"""
-    pattern = r"^\d{12}$"
-    if not re.match(pattern, timestamp):
-        return False
-    try:
-        datetime.strptime(timestamp, "%Y%m%d%H%M")
-        return True
-    except ValueError:
-        return False
+from common.validate import validate_timestamp_format
 
 
 def validate_files(files):
@@ -150,9 +139,7 @@ def push_distribution():
             logging.error("待提交的文件不符合要求")
             return 11011
 
-        from auto_assemble.build import get_build_resp_message
-
-        commit_message = get_build_resp_message(f"{timestamp} 打包")
+        commit_message = get_build_resp_message(config.build_mode, f"{timestamp} 打包")
         if not git_commit(commit_message, config.DISTRIBUTION_PATH):
             return 11012
 

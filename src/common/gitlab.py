@@ -5,7 +5,7 @@ from typing import Optional
 
 import requests
 
-from auto_assemble.build import parse_build_req_message
+from common.commit_label import parse_build_req_message
 from common.config import config
 from common.types import TaskInfo
 
@@ -81,7 +81,7 @@ def download_task_readme(task_info: TaskInfo, dest_dir: Optional[Path] = None) -
     """
     if dest_dir is None:
         # 指向临时目录
-        dest_dir = Path("/app") / "temp"
+        dest_dir = config.TEMP_PATH
 
     download_file(task_info.commit_hash, "README.md", dest_dir / "README.md")
     return dest_dir

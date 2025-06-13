@@ -36,7 +36,7 @@ def migrate_test_to_release(old_task: TaskInfo):
     # 下载文件（元数据、混淆后的资源包、原始apk）
     metadata_md, obfuscated_bak, source_apk = download_task_resp(old_task, config.cur_task_dir)
     # 归一化后的apk文件（注意使用完毕后删除）
-    normalized_apk: Path = Path("/app") / "temp" / "normalized.apk"
+    normalized_apk: Path = config.TEMP_PATH / "normalized.apk"
 
     def cleanup():
         if source_apk.exists():

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 
-from auto_assemble.build import parse_build_req_message
+from common.commit_label import parse_build_req_message
 from auto_assemble.immediate_push import migrate_test_to_release, migrate_same_build_mode
 from common.api import fetch_task_info, record_task_res_fp, fetch_task_info_by_res_fp
 from common.error import BusinessException
