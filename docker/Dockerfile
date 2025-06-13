@@ -8,19 +8,21 @@ RUN git config --global credential.helper store && \
     git config --global user.email "assemble_bot@jkr.com"
 
 # 复制项目文件
-COPY --chown=appuser:appuser ../src/auto_assemble ./auto_assemble
-COPY --chown=appuser:appuser ../src/webhook ./webhook
-COPY --chown=appuser:appuser ../src/common ./common
-COPY --chown=appuser:appuser ../src/fork_task ./fork_task
+COPY --chown=appuser:appuser src/auto_assemble ./auto_assemble
+COPY --chown=appuser:appuser src/webhook ./webhook
+COPY --chown=appuser:appuser src/common ./common
+COPY --chown=appuser:appuser src/fork_task ./fork_task
 COPY --chown=appuser:appuser docker/docker-entrypoint.sh ./docker-entrypoint.sh
 COPY --chown=appuser:appuser docker/pyproject.docker.toml ./pyproject.toml
 COPY --chown=appuser:appuser docker/cleanup.sh ./cleanup.sh
-COPY --chown=appuser:appuser ../resource/ApkDiffPatch_v1.8.0 ./ApkDiffPatch
+COPY --chown=appuser:appuser resource/ApkDiffPatch_v1.8.0 ./ApkDiffPatch
+COPY --chown=appuser:appuser resource/jadx_1.5.2 ./jadx
 
-# ADP 可执行
-RUN chmod +x /app/ApkDiffPatch/*
+# ADP、jadx 可执行
+RUN chmod +x /app/ApkDiffPatch/* && \
+    chmod +x /app/jadx/bin/*
 
-ENV PATH="/app/ApkDiffPatch:${PATH}"
+ENV PATH="/app/jadx/bin:/app/ApkDiffPatch:${PATH}"
 
 # 设置环境变量
 ENV FLASK_APP=webhook/__main__.py \

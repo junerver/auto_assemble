@@ -1,6 +1,6 @@
 services:
   webhook:
-    image: auto_assemble-webhook:test
+    image: auto_assemble-webhook:fast_api
     container_name: auto_assemble_webhook
     restart: unless-stopped
     ports:
@@ -14,7 +14,7 @@ services:
       # Git仓库（从git-repo服务挂载）
       - git_repo_distribution:/app/distribution
       - git_repo_uni_base:/app/uni-base
-      - git_repo_sign_file:/app/sign
+      - sign_file_cache:/app/sign
     environment:
       - TZ=Asia/Shanghai
       - DISTRIBUTION_PATH=/app/distribution
