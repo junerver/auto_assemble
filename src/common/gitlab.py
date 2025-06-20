@@ -1,7 +1,7 @@
 import logging
 import urllib.parse
 from pathlib import Path
-from typing import Optional, Literal
+from typing import Literal, Generator
 
 import requests
 from fastapi import HTTPException
@@ -105,65 +105,65 @@ def download_file(ref_hash: str, file_name: str, dest_path: Path) -> Path:
     return dest_path
 
 
-def _task_path(task_info: TaskInfo) -> str:
-    return f"{task_info.project}/{task_info.task}/"
-
-
-def download_task_readme(task_info: TaskInfo, dest_dir: Optional[Path] = None) -> Path:
-    """下载构建请求的自述文件
-
-    Args:
-        task_info:
-        dest_dir:
-
-    Returns:
-
+def download_file_stream(ref_hash: str, file_name: str) -> Generator[bytes, None, None]:
     """
-    if dest_dir is None:
-        # 指向临时目录下的任务+时间戳解构目录
-        dest_dir = config.TEMP_PATH / task_info.project / task_info.task
-    dest_path = dest_dir / "README.md"
-
-    download_file(task_info.commit_hash, task_info.readme_path(), dest_path)
-    return dest_path
-
-
-# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk
-FileType = Literal["all", "res", "readme", "metadata", "apk"]
-
-
-def download_task_files(task_info: TaskInfo, file_type: FileType, dest_dir: Path = None) -> Path | None:
-    """通过file_type下载任务中对应指定类型的文件
-
+    对外暴露的流式下载文件函数
     Args:
-        task_info: 任务信息
-        file_type: 文件类型，字面量
-        dest_dir: 目标目录
+        ref_hash: 指向的 hash
+        file_name: 相对根目录的相对路径
+
+    Yields:
+        文件内容的字节流
+
+    Raises:
+        HTTPException: 如果下载失败，抛出错误
     """
-    if dest_dir is None:
-        # 指向临时目录下的任务+时间戳解构目录
-        dest_dir = config.TEMP_PATH / task_info.project / task_info.task
-    match file_type:
-        case "all":
-            download_task_all_files(task_info, dest_dir)
-            # todo: 压缩返回压缩包
-            return None
-        case "res":
-            return download_file(task_info.response_hash, task_info.res_path(), dest_dir / f"{task_info.task}.zip")
-        case "readme":
-            return download_task_readme(task_info, dest_dir)
-        case "metadata":
-            return download_file(task_info.response_hash, task_info.metadata_path(), dest_dir / "release-metadata.md")
-        case "apk":
-            return download_file(task_info.response_hash, task_info.apk_path(), dest_dir / task_info.apk_name())
-    return None
+    logging.info(f"开始流式下载文件: {file_name}")
+    for chunk in download_gitlab_lfs_file_stream(
+        config.GITLAB_URL,
+        config.ACCESS_TOKEN,
+        config.PROJECT_ID,
+        ref_hash,
+        file_name,
+        True,
+    ):
+        yield chunk
+    logging.info(f"✅ 流式下载成功: {file_name}")
 
 
 def compare_readme_file(task_info: TaskInfo, readme_path: Path) -> bool:
     """比较当前任务的README是否与之前任务的readme相同，先下载资源包相同任务的 readme，然后进行文本比较"""
-    origin_readme_path = download_task_readme(task_info)
+    origin_readme_path = download_file(
+        task_info.response_hash, task_info.readme_path(), config.TEMP_PATH / task_info.project / task_info.task
+    )
     with open(origin_readme_path, "r", encoding="utf-8") as f1, open(readme_path, "r", encoding="utf-8") as f2:
         return f1.read() == f2.read()
+
+
+# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk
+FileType = Literal["res", "readme", "metadata", "apk"]
+
+
+def download_task_files_stream(task_info: TaskInfo, file_type: FileType) -> tuple[Generator[bytes, None, None], str]:
+    """通过file_type流式下载任务中对应指定类型的文件
+
+    Args:
+        task_info: 任务信息
+        file_type: 文件类型，字面量
+
+    Returns:
+        tuple[Generator[bytes, None, None], str]: 流式数据生成器和文件名
+    """
+    match file_type:
+        case "res":
+            return download_file_stream(task_info.response_hash, task_info.res_path()), f"{task_info.task}.zip"
+        case "readme":
+            return download_file_stream(task_info.response_hash, task_info.readme_path()), "README.md"
+        case "metadata":
+            return download_file_stream(task_info.response_hash, task_info.metadata_path()), "release-metadata.md"
+        case "apk":
+            return download_file_stream(task_info.response_hash, task_info.apk_path()), task_info.apk_name()
+    raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
 
 
 def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path, Path]:

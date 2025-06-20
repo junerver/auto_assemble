@@ -1,11 +1,12 @@
 import logging
 from typing import Annotated
+import urllib.parse
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 
-from common.gitlab import FileType, download_task_files
+from common.gitlab import FileType, download_task_files_stream
 from common.types import TaskInfo
 from webhook.config import PORT
 from webhook.extensions.db import get_db
@@ -153,21 +154,44 @@ async def download(
     file_type: FileType = Query(default="apk", description="文件类型"),
     db=Depends(get_db),
 ):
-    """下载任务文件，由服务器首先从gitlab lfs上下载到缓存目录中，然后再传递给前端
+    """下载任务文件，流式传输文件内容
 
     Args:
         task_id: 任务id
         file_type: 下载文件类型
-        db:
+        db: 数据库依赖
+
+    Returns:
+        StreamingResponse: 流式文件响应（apk、res）
+        PlainTextResponse: 纯文本响应（readme、metadata）
     """
     task = TaskService.get_task(task_id, db=db)
     if task is None:
         return JSONResponse(status_code=404, content={"error": "Task not found"})
     task_info: TaskInfo = TaskInfo.from_dict(format_task_info(task.to_dict()))
-    file_path = download_task_files(task_info, file_type)
-    if file_path is not None:
-        return FileResponse(file_path, filename=file_path.name)
-    return JSONResponse(status_code=404, content={"error": "File not found"})
+
+    try:
+        stream, filename = download_task_files_stream(task_info, file_type)
+        if file_type in {"readme", "metadata"}:
+            # 对于 readme 和 metadata，收集流式内容并返回文本
+            content = b""
+            for chunk in stream:
+                content += chunk
+            # 假设文件为 UTF-8 编码的文本
+            text_content = content.decode("utf-8")
+            return PlainTextResponse(content=text_content, media_type="text/plain")
+        else:
+            # 对于 res 和 apk，继续使用流式下载
+            return StreamingResponse(
+                content=stream,
+                media_type="application/octet-stream",
+                headers={"Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}"},
+            )
+    except HTTPException as e:
+        return JSONResponse(status_code=e.status_code, content={"error": e.detail})
+    except Exception as e:
+        logging.error(f"❌ 下载失败\n原因: {e}")
+        return JSONResponse(status_code=500, content={"error": f"Failed to download file: {str(e)}"})
 
 
 def format_task_info(task_dict):

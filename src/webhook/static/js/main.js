@@ -279,11 +279,13 @@ function createTaskItem(task, isRunning = false) {
     const projectClickHandler = permissionsConfig.showProjectDetailEnabled ? `onclick="showProjectConfig('${task.project}')" style="cursor: pointer;"` : '';
 
     //获取资源文件地址
-    const rawUrl = (file) => `${distributionUrl}-/raw/${targetUrl}/${task.project}/${task.task}/${file}`
+    // const rawUrl = (file) => `${distributionUrl}-/raw/${targetUrl}/${task.project}/${task.task}/${file}`
     // 打包请求说明
-    const reqReadme = rawUrl("README.md")
+    // const reqReadme = rawUrl("README.md")
+    const reqReadme = `/api/task/${task.id}/download?file_type=readme`
     // 构建产物元数据
-    const releaseMetaData = rawUrl("release-metadata.md")
+    // const releaseMetaData = rawUrl("release-metadata.md")
+    const releaseMetaData = `/api/task/${task.id}/download?file_type=metadata`
     // 构建产物apk文件
     // const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
     const apkFile = `/api/task/${task.id}/download?file_type=apk`
