@@ -250,6 +250,17 @@ SERVER_HOST_URL=http://localhost:5005
 
 ## Changelog
 
+- `v0.5.1` ：
+
+  **新增功能：**
+
+  - 增加 cbr 接口，未来计划通过 cbr 接口直接进行任务的创建
+  - 优化任务卡片的下载链接，服务器中转lfs流式下载，使用时无需登录gitlab
+  
+  **Bugfix：**
+  
+  - 修复从gitlab下载文件的路径错误、hash指向错误
+  
 - `v0.5.0` ：
 
   **新增功能：**
