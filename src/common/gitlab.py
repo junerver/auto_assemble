@@ -1,10 +1,11 @@
 import logging
 import urllib.parse
 from pathlib import Path
-from typing import Literal, Generator
+from typing import Literal, Generator, Union
 
 import requests
 from fastapi import HTTPException
+from zipstream.ng import ZipStream
 
 from common.commit_label import parse_build_req_message
 from common.config import config
@@ -140,11 +141,29 @@ def compare_readme_file(task_info: TaskInfo, readme_path: Path) -> bool:
         return f1.read() == f2.read()
 
 
-# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk
-FileType = Literal["res", "readme", "metadata", "apk"]
+def generate_zip_stream(generator_dict: dict[str, Generator[bytes, None, None]]) -> ZipStream:
+    """创建压缩包zip流
+
+    Args:
+        generator_dict: 生成器字典，key是文件名称，value是生成器
+
+    Returns:
+        ZipStream: zip流
+    """
+    z = ZipStream(compress_level=3)
+    for path, stream in generator_dict.items():
+        z.add(stream, path)
+    # 返回 zip 生成器
+    return z
 
 
-def download_task_files_stream(task_info: TaskInfo, file_type: FileType) -> tuple[Generator[bytes, None, None], str]:
+# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk、release产物（元数据+apk）、全产物（请求2，响应必备2）
+FileType = Literal["res", "readme", "metadata", "apk", "release", "all"]
+
+
+def download_task_files_stream(
+    task_info: TaskInfo, file_type: FileType
+) -> tuple[Union[Generator[bytes, None, None], ZipStream], str]:
     """通过file_type流式下载任务中对应指定类型的文件
 
     Args:
@@ -163,6 +182,22 @@ def download_task_files_stream(task_info: TaskInfo, file_type: FileType) -> tupl
             return download_file_stream(task_info.response_hash, task_info.metadata_path()), "release-metadata.md"
         case "apk":
             return download_file_stream(task_info.response_hash, task_info.apk_path()), task_info.apk_name()
+        case "release":
+            return generate_zip_stream(
+                {
+                    "release-metadata.md": download_file_stream(task_info.response_hash, task_info.metadata_path()),
+                    task_info.apk_name(): download_file_stream(task_info.response_hash, task_info.apk_path()),
+                }
+            ), f"{task_info.task}_release.zip"
+        case "all":
+            return generate_zip_stream(
+                {
+                    f"{task_info.task}.zip": download_file_stream(task_info.response_hash, task_info.res_path()),
+                    "README.md": download_file_stream(task_info.response_hash, task_info.readme_path()),
+                    "release-metadata.md": download_file_stream(task_info.response_hash, task_info.metadata_path()),
+                    task_info.apk_name(): download_file_stream(task_info.response_hash, task_info.apk_path()),
+                }
+            ), f"{task_info.task}_all.zip"
     raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
 
 
