@@ -4,48 +4,80 @@ from pathlib import Path
 from typing import Optional, Literal
 
 import requests
+from fastapi import HTTPException
 
 from common.commit_label import parse_build_req_message
 from common.config import config
 from common.types import TaskInfo
 
 
-def _download_gitlab_lfs_file(
-    gitlab_url: str, access_token: str, project_id: str, ref_hash: str, file_name: str, dest_path: Path, is_lfs: bool
+def download_gitlab_lfs_file_stream(
+    gitlab_url: str, access_token: str, project_id: str, ref_hash: str, file_name: str, is_lfs: bool
 ):
-    """下载gitlab文件
+    """流式下载 GitLab 文件并返回生成器
 
     Args:
-        gitlab_url: gitlab 服务器地址
+        gitlab_url: GitLab 服务器地址
         access_token: 访问令牌
-        project_id: 项目id
-        ref_hash: 指向的hash
+        project_id: 项目 ID
+        ref_hash: 指向的 hash
         file_name: 要下载的文件名（identify_field/202504271900/README.md）
-        dest_path: 文件保存的目标路径
-        is_lfs: 是否为lfs存储
+        is_lfs: 是否为 LFS 存储
 
-    Returns:
-
+    Yields:
+        文件内容的字节流
     """
     try:
         normalized_path = file_name.replace("\\", "/")
         encoded_path = urllib.parse.quote(normalized_path, safe="")
-        # 构造API请求URL
+        # 构造 API 请求 URL
         api_url = f"{gitlab_url}/api/v4/projects/{project_id}/repository/files/{encoded_path}/raw"
         params = {"ref": ref_hash, "lfs": is_lfs}
         headers = {"Private-Token": access_token, "Content-Type": "application/json"}
-        # 确保目标目录存在
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-        response = requests.get(api_url, headers=headers, params=params, stream=True)
-        response.raise_for_status()  # 自动抛出 4xx/5xx 错误
-        with open(dest_path, "wb") as f:
+        # 发起流式请求
+        with requests.get(api_url, headers=headers, params=params, stream=True) as response:
+            response.raise_for_status()  # 抛出 4xx/5xx 错误
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
-                    f.write(chunk)
-        logging.info(f"✅ 下载成功: {api_url} -> {dest_path}")
+                    yield chunk
+        logging.info(f"✅ 流式传输成功: {api_url}")
     except requests.RequestException as e:
+        logging.error(f"❌ 流式传输失败\n原因: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+
+def _download_gitlab_lfs_file(
+    gitlab_url: str, access_token: str, project_id: str, ref_hash: str, file_name: str, dest_path: Path, is_lfs: bool
+):
+    """下载 GitLab 文件并保存到本地
+
+    Args:
+        gitlab_url: GitLab 服务器地址
+        access_token: 访问令牌
+        project_id: 项目 ID
+        ref_hash: 指向的 hash
+        file_name: 要下载的文件名（identify_field/202504271900/README.md）
+        dest_path: 文件保存的目标路径
+        is_lfs: 是否为 LFS 存储
+    """
+    try:
+        # 确保目标目录存在
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        # 使用流式下载函数
+        with open(dest_path, "wb") as f:
+            for chunk in download_gitlab_lfs_file_stream(
+                gitlab_url, access_token, project_id, ref_hash, file_name, is_lfs
+            ):
+                f.write(chunk)
+        logging.info(f"✅ 下载成功: {gitlab_url} -> {dest_path}")
+    except HTTPException as e:
+        # 捕获 download_gitlab_lfs_file_stream 抛出的 HTTPException
+        logging.error(f"❌ 下载失败\n原因: {e.detail}")
+        raise
+    except Exception as e:
         logging.error(f"❌ 下载失败\n原因: {e}")
+        raise
 
 
 def download_file(ref_hash: str, file_name: str, dest_path: Path) -> Path:
