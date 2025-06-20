@@ -116,14 +116,14 @@ def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path,
     metadata_md = dest_dir / "release-metadata.md"
     obfuscated_bak = dest_dir / f"{target_task}_obfuscated.bak"
     apk_file = dest_dir / new_apk_file_name
-    download_file(task_info.commit_hash, "release-metadata.md", metadata_md)
-    download_file(task_info.commit_hash, f"{task_info.task}_obfuscated.bak", obfuscated_bak)
-    download_file(task_info.commit_hash, old_apk_file_name, apk_file)
+    download_file(task_info.response_hash, "release-metadata.md", metadata_md)
+    download_file(task_info.response_hash, f"{task_info.task}_obfuscated.bak", obfuscated_bak)
+    download_file(task_info.response_hash, old_apk_file_name, apk_file)
     return metadata_md, obfuscated_bak, apk_file
 
 
 def download_task_all_files(task_info: TaskInfo, dest_dir: Path):
     target_task = dest_dir.name
     download_task_resp(task_info, dest_dir)
-    download_file(task_info.commit_hash, f"{task_info.task}.zip", dest_dir / f"{target_task}.zip")
-    download_file(task_info.commit_hash, "README.md", dest_dir / "README.md")
+    download_file(task_info.response_hash, f"{task_info.task}.zip", dest_dir / f"{target_task}.zip")
+    download_file(task_info.response_hash, "README.md", dest_dir / "README.md")
