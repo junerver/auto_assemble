@@ -36,6 +36,7 @@ if missing_vars:
     if not env_path.exists():
         print(f"环境变量文件 '{env_path}' 不存在")
     else:
+        print(f"加载环境变量文件 '{env_path}'")
         load_dotenv(env_path)
         DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
         PORT = int(os.getenv("PORT", 5005))

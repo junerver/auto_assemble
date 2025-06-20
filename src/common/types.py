@@ -5,6 +5,8 @@ import xml.etree.ElementTree as ET
 
 from dataclasses_json import DataClassJsonMixin, config
 
+from common.commit_label import parse_build_req_message
+
 # 在业务逻辑使用的折叠后的第三方配置的总字典，键值为第三方[服务提供者的名称]，值为实际该服务的[配置字典]
 # 配置字典键值为[第三方服务的key]，值为[第三方服务的value]
 AllThirdPartyConfigsDict: TypeAlias = dict[str, dict[str, str]]
@@ -123,6 +125,28 @@ class TaskInfo(DataClassJsonMixin):
     project: str
     # 任务时间戳
     task: str
+
+    def task_path(self) -> str:
+        return f"{self.project}/{self.task}/"
+
+    def res_path(self) -> str:
+        return f"{self.task_path()}{self.task}.zip"
+
+    def readme_path(self) -> str:
+        return f"{self.task_path()}README.md"
+
+    def apk_name(self) -> str:
+        build_mode = parse_build_req_message(self.commit_title)[0]
+        return f"{self.task}_debug.apk" if build_mode == "dev" else f"{self.task}.apk"
+
+    def apk_path(self) -> str:
+        return f"{self.task_path()}{self.apk_name()}"
+
+    def metadata_path(self):
+        return f"{self.task_path()}release-metadata.md"
+
+    def obfuscated_path(self):
+        return f"{self.task_path()}{self.task}_obfuscated.bak"
 
 
 class BuildMetadata(TypedDict):

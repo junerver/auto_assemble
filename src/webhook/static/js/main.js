@@ -285,7 +285,8 @@ function createTaskItem(task, isRunning = false) {
     // 构建产物元数据
     const releaseMetaData = rawUrl("release-metadata.md")
     // 构建产物apk文件
-    const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
+    // const apkFile = rawUrl(getBranchName(task.commit_title) == "master" ? `${task.task}_debug.apk` : `${task.task}.apk`)
+    const apkFile = `/api/task/${task.id}/download?file_type=apk`
 
     // 资源链接部分（仅对已完成的任务显示）
     const resourceLinks = isCompleted ? `
