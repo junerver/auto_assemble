@@ -29,14 +29,14 @@ class Project(DataClassJsonMixin):
     uniapp_appkey: Optional[str] = None
     uniapp_is_cli: bool = False
     created_at: Optional[datetime] = field(
-        default=None,
+        default=datetime.now(),
         metadata=config(
             encoder=datetime.isoformat,
             decoder=datetime.fromisoformat,
         ),
     )
     updated_at: Optional[datetime] = field(
-        default=None,
+        default=datetime.now(),
         metadata=config(
             encoder=datetime.isoformat,
             decoder=datetime.fromisoformat,

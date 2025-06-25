@@ -68,6 +68,7 @@ class ProjectService:
                 uniapp_id=project_data.get("uniapp_id"),
                 uniapp_appkey=project_data.get("uniapp_appkey"),
                 uniapp_is_cli=project_data.get("uniapp_is_cli", False),
+                db=db,
             )
         else:
             # 更新现有项目
