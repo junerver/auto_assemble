@@ -198,8 +198,8 @@ def record_project_sign_config(
     Returns:
 
     """
-    response = requests.put(
-        f"{config.SERVER_HOST_URL}/api/config/project/{project_id}",
+    response = requests.post(
+        f"{config.SERVER_HOST_URL}/api/config/project/{project_id}/update",
         json=sign_config.to_dict(),
     )
     response.raise_for_status()
@@ -271,7 +271,7 @@ def record_task_res_fp(
     记录构建任务的资源包指纹信息，仅在需要执行构建时添加，避免镜像任务太多污染搜索
     """
     try:
-        response = requests.put(f"{config.SERVER_HOST_URL}/api/task/{task_id}", json={"res_fp": res_fp})
+        response = requests.post(f"{config.SERVER_HOST_URL}/api/task/{task_id}/update", json={"res_fp": res_fp})
         if response.ok:
             if on_success:
                 message = response.json().get("message", response.text)

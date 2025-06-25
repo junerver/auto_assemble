@@ -434,8 +434,8 @@ function openSourceTask(sourceTaskId) {
  * @param {*} taskId
  */
 function outdatedTask(taskId) {
-    fetch(`/api/task/${taskId}`, {
-        method: 'DELETE'
+    fetch(`/api/task/${taskId}/delete`, {
+        method: 'POST'
     })
         .then(updateQueueStatus)
 }

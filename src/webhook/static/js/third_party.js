@@ -124,7 +124,7 @@ function updateDictItem(key) {
     };
 
     fetch(`/api/config/third-party/dict/${key}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
@@ -155,8 +155,8 @@ function deleteDictItem(key) {
         return;
     }
 
-    fetch(`/api/config/third-party/dict/${key}`, {
-        method: 'DELETE'
+    fetch(`/api/config/third-party/dict/${key}/delete`, {
+        method: 'POST'
     })
         .then(response => response.json())
         .then(data => {
@@ -207,8 +207,8 @@ function deleteThirdPartyConfig(key) {
         third_party_configs: currentConfigs
     };
 
-    fetch(`/api/config/project/${projectId}`, {
-        method: 'PUT',
+    fetch(`/api/config/project/${projectId}/update`, {
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },

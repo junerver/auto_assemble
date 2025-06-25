@@ -81,6 +81,7 @@ async def get_task_by_fp(
 
 
 @router.delete("/api/task/{task_id}", response_model=BaseResp)
+@router.post("/api/task/{task_id}/delete", response_model=BaseResp)
 async def outdated_task(task_id: Annotated[str, Path(..., description="任务id")], db=Depends(get_db)):
     """标记任务为过期"""
     if TaskService.update_task_status(task_id, TaskStatus.OUTDATED, db=db) is not None:
@@ -89,6 +90,7 @@ async def outdated_task(task_id: Annotated[str, Path(..., description="任务id"
 
 
 @router.put("/api/task/{task_id}", response_model=BaseResp)
+@router.post("/api/task/{task_id}/update", response_model=BaseResp)
 async def update_task(
     task_id: Annotated[str, Path(..., description="任务id")],
     request: Request,

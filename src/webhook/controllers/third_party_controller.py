@@ -71,6 +71,7 @@ async def get_third_party_dict_item(
 
 
 @router.put("/dict/{key}", response_model=BaseResp)
+@router.post("/dict/{key}", response_model=BaseResp)
 async def update_third_party_dict_item(
     key: Annotated[str, Path(..., description="第三方服务配置的键值")],
     request: Request,
@@ -95,6 +96,7 @@ async def update_third_party_dict_item(
 
 
 @router.delete("/dict/{key}", response_model=BaseResp)
+@router.post("/dict/{key}/delete", response_model=BaseResp)
 async def delete_third_party_dict_item(
     key: Annotated[str, Path(..., description="第三方服务配置的键值")],
     db=Depends(get_db),

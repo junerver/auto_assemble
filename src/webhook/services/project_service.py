@@ -101,3 +101,12 @@ class ProjectService:
             key_pass=sign_config.key_pass,
         )
         return project
+
+    @staticmethod
+    def delete_project(project_id: str, db: sqlite3.Connection):
+        """删除项目"""
+        project = ProjectService.get_project(project_id=project_id, db=db)
+        if project:
+            project.delete(db)
+            return True
+        return False

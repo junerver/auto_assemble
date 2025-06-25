@@ -17,6 +17,7 @@ async def clear_invalid_webhook_requests(db=Depends(get_db)):
 
 
 @router.delete("/requests/{task_id}", response_model=BaseResp)
+@router.post("/requests/{task_id}/delete", response_model=BaseResp)
 async def delete_webhook_requests(
     task_id: Annotated[str, Path(..., description="任务id")],
     db=Depends(get_db),

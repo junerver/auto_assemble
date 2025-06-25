@@ -91,8 +91,8 @@ function saveProjectConfig(projectId) {
         }))
     };
 
-    fetch(`/api/config/project/${projectId}`, {
-        method: 'PUT',
+    fetch(`/api/config/project/${projectId}/update`, {
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
@@ -203,8 +203,8 @@ function showAddThirdPartyConfig() {
                     third_party_configs: currentConfigs
                 };
 
-                fetch(`/api/config/project/${projectId}`, {
-                    method: 'PUT',
+                fetch(`/api/config/project/${projectId}/update`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -570,7 +570,7 @@ async function updateProjectSignConfig(projectId, signConfig, file) {
 
         // 发送 PUT 请求
         const response = await fetch(`/api/config/project/${projectId}/sign`, {
-            method: 'PUT',
+            method: 'POST',
             body: formData,
         });
 

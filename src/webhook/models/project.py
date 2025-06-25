@@ -117,6 +117,12 @@ class Project(DataClassJsonMixin):
             projects.append(cls(**row_dict))
         return projects
 
+    def delete(self, db: sqlite3.Connection):
+        """删除项目配置"""
+        cursor = db.cursor()
+        cursor.execute("DELETE FROM project_config WHERE id = ?", (self.id,))
+        db.commit()
+
     def save(self, db: sqlite3.Connection) -> None:
         """保存项目配置"""
         cursor = db.cursor()

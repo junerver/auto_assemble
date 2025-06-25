@@ -73,6 +73,7 @@ async def get_project_config(
 
 
 @router.put("/{project_id}")
+@router.post("/{project_id}/update")
 async def update_project_config(
     project_id: Annotated[str, Path(..., description="项目的uuid主键")],
     request: Request,
@@ -140,6 +141,20 @@ async def update_project_config(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/{project_id}/delete")
+async def delete_project(project_id: Annotated[str, Path(..., description="项目的uuid主键")], db=Depends(get_db)):
+    """删除项目配置信息"""
+    try:
+        is_del = ProjectService.delete_project(project_id, db=db)
+        if not is_del:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return {
+            "message": "Project deleted successfully",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/list", response_model=AllProjectsResp)
 async def get_projects(db=Depends(get_db)):
     """获取所有项目配置列表"""
@@ -150,7 +165,7 @@ async def get_projects(db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/{project_id}/sign")
+@router.post("/{project_id}/sign")
 async def update_project_sign_config(
     project_id: Annotated[str, Path(..., description="项目的uuid主键")],
     sign_config: ProjectSignConfigReq = Depends(ProjectSignConfigReq.as_form),
