@@ -2,7 +2,6 @@ import argparse
 import json
 import logging
 import os
-import shutil
 import time
 import zipfile
 from datetime import datetime
@@ -11,20 +10,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from win11toast import toast
 
+from cbr.submit_cbr import cbr_by_repo, CommitRepoConfig, cbr_by_post
 from common.api import fetch_task_info
-from common.commit_label import get_build_req_label
 from common.log import setup_logging
-from common.git import confirm_push, has_changes
 from cbr.check_uni_project import check_uni_project, scan_uni_project
-from cbr.create_readme_file import create_readme_file
 from common.config import config
 from common.git import (
     check_git_branch,
-    get_staged_files,
-    get_untracked_files,
-    git_add,
-    git_commit,
-    git_push,
     sync_repository,
 )
 from common.types import TaskInfo
@@ -55,7 +47,17 @@ def create_build_req():
             return 1
         load_dotenv(env_file)
         config.SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
+        if os.getenv("CBR_MODE"):
+            cbr_mode = os.getenv("CBR_MODE")
+            if cbr_mode not in ["repo", "post"]:
+                logging.error("CBR_MODE 配置错误，只支持`repo`、`post`两种模式，请检查")
+                return 1
+            config.cbr_mode = cbr_mode
+        else:
+            config.cbr_mode = "repo"
+
         logging.info(f"打包服务器地址: {config.SERVER_HOST_URL}")
+        logging.info(f"CBR_MODE: {config.cbr_mode}")
 
         # 默认打包模式为dev
         req_mode = "dev"
@@ -140,72 +142,26 @@ def create_build_req():
             logging.error("Git切换失败，终止执行")
             return 1
 
-        # 在分发目录的PROD_NAME目录下创建req_date目录
-        req_date_dir: Path = Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / req_date
-        config.cur_task_id = f"{config.PROD_NAME},{req_date}"
-        config.cur_task_dir = req_date_dir.resolve()
-        logging.info(f"本次请求id:{config.cur_task_id}")
-        req_date_dir.mkdir(parents=True, exist_ok=True)
-        # 复制zip文件到指定目录
-        shutil.copy(zip_file_path, str(req_date_dir))
-        zip_file_path.unlink()
-        logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
-        create_readme_file(req_date_dir, manifest_info)
-        # 在分发目录执行git add
-        os.chdir(config.DISTRIBUTION_PATH)
-        # 检查是否有任何修改
-        if not has_changes():
-            logging.info("没有需要提交的修改")
-            return 1
-
-        # 获取未跟踪的文件
-        untracked_files = get_untracked_files(config.DISTRIBUTION_PATH)
-        if not untracked_files:
-            logging.info("没有未跟踪的文件，继续检查已修改的文件")
-            # 获取已修改的文件
-            staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
-            if not staged_files:
-                logging.error("没有待提交的文件")
-                return 1
+        if config.cbr_mode == "repo":
+            # 操作repo仓库提交cbr请求
+            return cbr_by_repo(
+                CommitRepoConfig(
+                    req_date=req_date,
+                    req_mode=req_mode,
+                    zip_file_path=zip_file_path,
+                    manifest_info=manifest_info,
+                )
+            )
         else:
-            # 执行git add
-            if not git_add(repo_path=config.DISTRIBUTION_PATH):
-                return 1
-            # 获取已暂存的文件
-            staged_files = get_staged_files(repo_path=config.DISTRIBUTION_PATH)
-            if not staged_files:
-                logging.error("没有待提交的文件")
-                return 1
+            return cbr_by_post(
+                CommitRepoConfig(
+                    req_date=req_date,
+                    req_mode=req_mode,
+                    zip_file_path=zip_file_path,
+                    manifest_info=manifest_info,
+                )
+            )
 
-        logging.info("待提交的文件列表:")
-        for file in staged_files:
-            logging.info(f"  - {file}")
-        # 执行git commit
-        if config.work_mode == "ui":
-            # 如果通过ui模式运行，则需要用户输入提交信息，必须输入内容
-            while True:
-                commit_message = input("请输入提交信息：")
-                if commit_message:
-                    break
-                else:
-                    logging.error("提交信息不能为空")
-
-        commit_message = get_build_req_label(req_mode) + commit_message
-        logging.info(f"提交信息：{commit_message}")
-        if not git_commit(commit_message, config.DISTRIBUTION_PATH):
-            return 1
-
-        # 确认是否推送，推送消息中追加构建模式的标识
-        if not confirm_push(staged_files, commit_message):
-            logging.info("用户取消推送")
-            return 1
-
-        # 执行git push
-        if not git_push(repo_path=config.DISTRIBUTION_PATH):
-            return 1
-
-        logging.info("打包请求已提交，请稍等...")
-        return 0
     except Exception as e:
         logging.exception(f"创建构建请求时发生错误: {str(e)}")
         return 1

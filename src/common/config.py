@@ -4,6 +4,8 @@ from typing import Literal, Optional
 
 Work_Mode = Literal["ui", "cli"]
 BuildMode = Literal["dev", "test", "release"]
+# cbr 请求模式，repo 表示通过本地git仓库提交，post 表示通过post提交网络请求提交
+CbrMode = Literal["repo", "post"]
 
 
 class Config:
@@ -59,6 +61,10 @@ class Config:
         self.SERVER_HOST_URL: str = "http://192.168.189.243:5005"
         # 是否混淆
         self.is_obfuscated: bool = False
+        # 默认通过repo方式提交
+        self.cbr_mode: CbrMode = "repo"
+        # 当前仓库 author 信息
+        self.current_author: str = ""
 
     @property
     def DISTRIBUTION_PATH(self):

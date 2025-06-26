@@ -4,7 +4,8 @@
 
 import logging
 from collections.abc import Callable
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 import requests
 
@@ -282,6 +283,73 @@ def record_task_res_fp(
     except Exception as e:
         if on_error:
             on_error(f"Exception occurred while recording res_fp: {e}")
+
+
+def submit_cbr_form(
+    prod_name: str,
+    author: str,
+    commit_message: str,
+    readme_path: Optional[Union[str, Path]],
+    res_zip_path: Optional[Union[str, Path]],
+    timeout: int = 30,
+):
+    """
+    封装的 /api/cbr 接口请求函数，支持 pathlib.Path 类型的文件路径
+
+    Args:
+        prod_name: 产品名称
+        author: 作者信息
+        commit_message: 提交信息
+        readme_path: README.md 文件路径（str 或 Path 对象）
+        res_zip_path: 资源 zip 文件路径（str 或 Path 对象）
+        timeout: 请求超时时间（秒），默认为 30
+
+    Returns:
+        dict: 接口返回的 JSON 数据
+
+    Raises:
+        requests.RequestException: 网络请求错误
+        FileNotFoundError: 文件路径无效
+        ValueError: 必要参数缺失
+    """
+    # 转换文件路径为 Path 对象
+    readme_path = Path(readme_path) if readme_path else None
+    res_zip_path = Path(res_zip_path) if res_zip_path else None
+
+    # 验证文件路径
+    if readme_path and not readme_path.is_file():
+        raise FileNotFoundError(f"README 文件未找到: {readme_path}")
+    if res_zip_path and not res_zip_path.is_file():
+        raise FileNotFoundError(f"资源 zip 文件未找到: {res_zip_path}")
+
+    # 准备表单数据
+    data = {"prod_name": prod_name, "author": author, "commit_message": commit_message}
+
+    # 准备文件数据
+    files = {}
+    if readme_path:
+        files["readme"] = ("README.md", open(readme_path, "rb"), "text/markdown")
+    if res_zip_path:
+        files["res_zip"] = (res_zip_path.name, open(res_zip_path, "rb"), "application/zip")
+
+    # 构造请求头
+    headers = {
+        "User-Agent": "Python-Requests",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
+
+    try:
+        # 发送 POST 请求
+        response = requests.post(
+            f"{config.SERVER_HOST_URL}/api/cbr", data=data, files=files, headers=headers, timeout=timeout
+        )
+        response.raise_for_status()  # 检查 HTTP 状态码
+        return response.json()  # 假设返回 JSON 数据
+
+    except requests.RequestException as e:
+        raise Exception(f"请求失败: {str(e)}")
 
 
 if __name__ == "__main__":

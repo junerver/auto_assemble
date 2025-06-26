@@ -73,6 +73,8 @@ def cbr_worker(
             logging.error("git push 失败")
         logging.info(f"cbr任务 {task_id} 请求创建成功")
         shutil.rmtree(temp_task_dir)
+    else:
+        logging.info("测试环境，不进行git操作")
 
 
 @router.post(

@@ -5,7 +5,7 @@ from textwrap import dedent
 from common.types import ManifestInfo
 
 
-def create_readme_file(req_dir: Path, manifest_info: ManifestInfo):
+def create_readme_file(req_dir: Path, manifest_info: ManifestInfo) -> Path:
     """
     创建readme.txt文件
     Args:
@@ -81,3 +81,5 @@ def create_readme_file(req_dir: Path, manifest_info: ManifestInfo):
             )
 
         logging.info(f"已创建README.md文件：{readme_file_path}")
+
+    return readme_file_path

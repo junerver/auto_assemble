@@ -712,6 +712,7 @@ def confirm_push(staged_files, commit_message) -> bool:
     for file in staged_files:
         logging.info(f"  - {file}")
     logging.info(f"提交信息: {commit_message}")
+    logging.info(f"提交人: {config.current_author}")
     logging.info("=" * 50)
 
     if config.work_mode == "ui":

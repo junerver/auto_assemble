@@ -6,6 +6,7 @@ from typing import Optional
 
 from cbr.parse_uni_manifest import parse_uni_manifest
 from common.api import fetch_project_info_by_url
+from common.git import get_git_author_str
 from common.types import CbrEnvVars, ManifestInfo, ThirdPartyConfig
 
 
@@ -77,6 +78,7 @@ def scan_uni_project(project_root: Path, cbr_dir: Path) -> tuple[CbrEnvVars, lis
 
         config._distribution_path = env_vars.DISTRIBUTION_PATH
         config.PROD_NAME = env_vars.PROD_NAME
+        config.current_author = get_git_author_str(str(project_root))
 
         # 使用自定义编码器
         class PathEncoder(json.JSONEncoder):
