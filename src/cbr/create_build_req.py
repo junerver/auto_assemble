@@ -16,7 +16,6 @@ from common.log import setup_logging
 from cbr.check_uni_project import check_uni_project, scan_uni_project
 from common.config import config
 from common.git import (
-    check_git_branch,
     sync_repository,
 )
 from common.types import TaskInfo
@@ -125,22 +124,6 @@ def create_build_req():
             logging.error("配置错误: PROD_NAME 未设置或为空")
             return 1
 
-        # 检查lfs是否正确配置，否则阻止执行
-        if not check_git_lfs_installed(config.DISTRIBUTION_PATH):
-            logging.error(
-                r"Git LFS未正确配置，请先以管理员身份运行PowerShell进入仓库根目录下，执行命令：.\.build_req\git-lfs.ps1"
-            )
-            return 1
-
-        # 同步仓库
-        if not sync_repository(config.DISTRIBUTION_PATH):
-            logging.error("Git仓库同步失败，终止执行")
-            return 1
-
-        target_branch = "master" if req_mode == "dev" else req_mode
-        if not check_git_branch(config.DISTRIBUTION_PATH, target_branch):
-            logging.error("Git切换失败，终止执行")
-            return 1
         # 配置当前任务id
         config.cur_task_id = f"{config.PROD_NAME},{req_date}"
         logging.info(f"本次请求id:{config.cur_task_id} [${config.cbr_mode}]")

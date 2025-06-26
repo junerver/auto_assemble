@@ -6,11 +6,22 @@ from pathlib import Path
 
 from dataclasses_json import DataClassJsonMixin
 
+from cbr.create_build_req import check_git_lfs_installed
 from cbr.create_readme_file import create_readme_file
 from common.api import submit_cbr_form
 from common.commit_label import get_build_req_label
 from common.config import config
-from common.git import get_untracked_files, get_staged_files, git_add, git_commit, confirm_push, git_push, has_changes
+from common.git import (
+    get_untracked_files,
+    get_staged_files,
+    git_add,
+    git_commit,
+    confirm_push,
+    git_push,
+    has_changes,
+    sync_repository,
+    check_git_branch,
+)
 from common.types import ManifestInfo
 
 
@@ -36,6 +47,23 @@ def cbr_by_repo(commit_config: CommitRepoConfig) -> int:
     req_mode = commit_config.req_mode
     zip_file_path = commit_config.zip_file_path
     manifest_info = commit_config.manifest_info
+
+    # 检查lfs是否正确配置，否则阻止执行
+    if not check_git_lfs_installed(config.DISTRIBUTION_PATH):
+        logging.error(
+            r"Git LFS未正确配置，请先以管理员身份运行PowerShell进入仓库根目录下，执行命令：.\.build_req\git-lfs.ps1"
+        )
+        return 1
+
+    # 同步仓库
+    if not sync_repository(config.DISTRIBUTION_PATH):
+        logging.error("Git仓库同步失败，终止执行")
+        return 1
+
+    target_branch = "master" if req_mode == "dev" else req_mode
+    if not check_git_branch(config.DISTRIBUTION_PATH, target_branch):
+        logging.error("Git切换失败，终止执行")
+        return 1
 
     # 在分发目录的PROD_NAME目录下创建req_date目录
     req_date_dir: Path = Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / req_date
