@@ -10,6 +10,7 @@ from typing import Optional, Union
 import requests
 
 from common.config import config
+from common.gitlab import FileType
 from common.types import TaskInfo, BuildMetadata, ThirdPartyConfig, ProjectConfig, SignConfig
 
 from requests.exceptions import RequestException, JSONDecodeError
@@ -352,11 +353,60 @@ def submit_cbr_form(
         raise Exception(f"请求失败: {str(e)}")
 
 
-if __name__ == "__main__":
-    fetch_task_info("identify_field,202504271900", lambda x: print(x.to_json()), lambda e: print(f"error: {e}"))
-    record_task_res_fp(
-        "identify_field,202506061621",
-        "32c34e3ca8c926806bf271c041c9cf72639f955d60e896307f89f312cb564e7a",
-        lambda x: print(x.to_json()),
-        lambda e: print(f"error: {e}"),
-    )
+def download_task_file(task_id: str, dest_dir: Path, file_type: FileType) -> Path:
+    """
+    通过后台接口执行下载任务
+    Args:
+        task_id: 任务ID
+        dest_dir: 目标目录路径
+        file_type: 文件类型
+
+    Returns:
+        Path: 下载文件的路径或解压后的目录路径
+    """
+    # 确保目标目录存在
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    # 下载文件
+    response = requests.get(f"{config.SERVER_HOST_URL}/api/task/{task_id}/download?file_type={file_type}", stream=True)
+    response.raise_for_status()  # 确保请求成功
+
+    # 从响应头获取文件名，如果没有则使用默认名称
+    content_disposition = response.headers.get("content-disposition")
+    filename = f"{task_id}_{file_type}"
+    if content_disposition and "filename=" in content_disposition:
+        filename = content_disposition.split("filename=")[1].strip('"')
+
+    # 将文件下载到dest_dir
+    file_path = dest_dir / filename
+    with open(file_path, "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+
+    # 判断文件是否为压缩包
+    is_archive = False
+    # 通过文件扩展名判断
+    if filename.lower().endswith((".zip", ".rar")):
+        is_archive = True
+
+    # 如果是压缩包，则解压并删除原文件
+    if is_archive:
+        try:
+            from common.extract import modern_extract
+
+            logging.info(f"解压文件: {file_path} 到 {dest_dir}")
+            modern_extract(file_path, dest_dir)
+
+            # 删除压缩文件
+            file_path.unlink()
+
+            return dest_dir
+        except Exception as e:
+            # 如果解压失败，保留压缩文件以便调试
+            logging.exception(f"解压文件失败: {str(e)}")
+            raise Exception(f"解压文件失败: {str(e)}")
+    else:
+        # 如果不是压缩包，直接返回文件路径
+        logging.info(f"下载的文件不是压缩包，保留原文件: {file_path}")
+        return file_path

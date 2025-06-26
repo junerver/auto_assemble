@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from win11toast import toast
 
 from cbr.submit_cbr import cbr_by_repo, CommitRepoConfig, cbr_by_post
-from common.api import fetch_task_info
+from common.api import fetch_task_info, download_task_file
 from common.log import setup_logging
 from cbr.check_uni_project import check_uni_project, scan_uni_project
 from common.config import config
@@ -176,9 +176,14 @@ def rolling_req_build_status():
                     # 简化版的toast提示
                     success = status == "completed"
                     status_text = "✅成功" if success else "❌失败"
-                    logging.info("打包完毕，正在同步本地仓库....")
                     if success:
-                        sync_repository(config.DISTRIBUTION_PATH)
+                        if config.cbr_mode == "repo":
+                            logging.info("打包完毕，正在同步本地仓库....")
+                            sync_repository(config.DISTRIBUTION_PATH)
+                        else:
+                            logging.info("开始下载构建产物....")
+                            download_task_file(config.cur_task_id, config.cur_task_dir, "release")
+                            logging.info(f"下载完毕，本地目录：{config.cur_task_dir}....")
                     message = f"🗃️项目: {task_info.project}\n🏗️任务: {task_info.task}"
                     if success:
                         buttons = [

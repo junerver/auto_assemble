@@ -157,7 +157,7 @@ def generate_zip_stream(generator_dict: dict[str, Generator[bytes, None, None]])
     return z
 
 
-# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk、release产物（元数据+apk）、全产物（请求2，响应必备2）
+# 下载文件的类型：全部文件、uni资源包、readme、metadata、apk、release产物（元数据+apk）、全产物（请求文件两个，响应必备两个）
 FileType = Literal["res", "readme", "metadata", "apk", "release", "all"]
 
 
@@ -226,10 +226,3 @@ def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path,
     download_file(task_info.response_hash, task_info.obfuscated_path(), obfuscated_bak)
     download_file(task_info.response_hash, task_info.apk_path(), apk_file)
     return metadata_md, obfuscated_bak, apk_file
-
-
-def download_task_all_files(task_info: TaskInfo, dest_dir: Path):
-    target_task = dest_dir.name
-    download_task_resp(task_info, dest_dir)
-    download_file(task_info.response_hash, task_info.res_path(), dest_dir / f"{target_task}.zip")
-    download_file(task_info.response_hash, task_info.readme_path(), dest_dir / "README.md")

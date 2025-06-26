@@ -144,10 +144,13 @@ def cbr_by_post(commit_config: CommitRepoConfig):
     manifest_info = commit_config.manifest_info
 
     # 在线提交cbr请求时避免将文件传递到分发目录，而是先放置到临时目录下
-    temp_dir_path: Path = Path(config.DISTRIBUTION_PATH) / ".build_req" / "temp" / req_date
+    temp_dir_path: Path = Path(config.DISTRIBUTION_PATH) / ".build_req" / "temp" / config.PROD_NAME / req_date
     temp_dir_path.mkdir(parents=True, exist_ok=True)
     readme_path = create_readme_file(temp_dir_path, manifest_info)
-
+    # 暂存工作目录，用于后续toast定位
+    config.cur_task_dir = temp_dir_path
+    # 复制zip文件到指定目录
+    shutil.copy(zip_file_path, str(temp_dir_path))
     commit_message = ""
     # 关闭cli -m 传递提交信息方式，强制使用交互式模式，用户输入信息
     if True:

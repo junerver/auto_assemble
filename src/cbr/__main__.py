@@ -2,7 +2,6 @@ import sys
 import time
 
 from cbr.create_build_req import create_build_req, rolling_req_build_status
-from cbr.submit_cbr import clear_temp_dir
 from common.config import config
 
 
@@ -15,7 +14,6 @@ def main():
     # 等待5秒后开始轮询构建状态
     time.sleep(5)
     rolling_req_build_status()
-    clear_temp_dir()
     if config.work_mode == "ui":
         input("按回车键退出")
 
