@@ -95,8 +95,13 @@ class TaskService:
         task_id = f"{prod_name},{task_name}"
         task = Task.get_by_id(task_id, db)
         if task:
-            if task.status in (TaskStatus.FAILED, TaskStatus.PENDING, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
-                if task.status in (TaskStatus.FAILED, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
+            try:
+                status_enum = TaskStatus(task.status)  # 或 TaskStatus.from_str(task.status)
+            except ValueError:
+                logging.warning(f"任务状态非法：{task.status}")
+                return None
+            if status_enum in (TaskStatus.FAILED, TaskStatus.PENDING, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
+                if status_enum in (TaskStatus.FAILED, TaskStatus.STOPPED, TaskStatus.TIMEOUT):
                     task.update_status(TaskStatus.PENDING, db=db)
                 logging.warning(f"任务id：{task_id} 存在（失败/待执行），加入队列")
                 return task

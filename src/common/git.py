@@ -50,7 +50,7 @@ def _get_git_info(repo_path: str) -> GitCommitInfo | None:
     return None
 
 
-def _git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
+def _git_fetch(repo_path: str, is_lfs: bool = False, branch: str = None) -> bool:
     """
     执行git fetch操作, 检查远程是否有更新, 如果本地代码已是最新, 则返回False, 否则返回True
     Args:
@@ -61,7 +61,7 @@ def _git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
     """
     try:
         # 检查远程是否有更新
-        if not _git_fetch_branch(repo_path):
+        if not _git_fetch_branch(repo_path, branch):
             return False
 
         if is_lfs:
@@ -97,12 +97,13 @@ def _git_fetch(repo_path: str, is_lfs: bool = False) -> bool:
         return False
 
 
-def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
+def sync_repository(repo_path: str, is_lfs: bool = False, branch: str = None) -> bool:
     """
     同步Git仓库到最新状态
     Args:
         repo_path: Git仓库路径
         is_lfs: 是否为LFS仓库，默认False
+        branch:
     Returns:
         bool: 同步是否成功
     """
@@ -116,7 +117,7 @@ def sync_repository(repo_path: str, is_lfs: bool = False) -> bool:
                 f"当前版本 - 提交时间: {before_commit_info.commit_date}, 提交人: {before_commit_info.author}, 提交信息: {before_commit_info.message}"
             )
         # 检查远程是否有更新
-        if not _git_fetch(repo_path, is_lfs):
+        if not _git_fetch(repo_path, is_lfs, branch):
             # 不需要拉取更新说明本地已经是最新
             return True
 

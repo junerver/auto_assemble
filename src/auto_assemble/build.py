@@ -132,6 +132,8 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
         # 最终目标apk（已签名）
         target_apk: Path = target_dir / apk_name
         is_normalized = False
+        signed_size = None
+        signed_md5 = None
 
         if source_apk.exists():
             if config.build_mode == "release":
@@ -142,7 +144,7 @@ def copy_build_outputs(apk_name: str, target_dir: Path, release: bool, sign_conf
                     )
                     # 使用 34.0.0 的apksigner重新签名，注意重签名后文件的体积、md5都发生变化
                     client_publish_async("build", "构建任务:build", "开始产物签名...")
-                    signed_apk, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
+                    _, signed_size, signed_md5 = sign_apk(normalized_apk, sign_config, target_apk)
                     is_normalized = True
                 except Exception as e:
                     logging.exception(f"AppNormalize\重新签名APK文件时发生错误: {e}")

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 
-from common.commit_label import parse_build_req_message
+from common.commit_label import parse_build_req_message, parse_build_branch
 from auto_assemble.immediate_push import migrate_test_to_release, migrate_same_build_mode
 from common.api import fetch_task_info, record_task_res_fp, fetch_task_info_by_res_fp
 from common.error import BusinessException
@@ -274,11 +274,11 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         # 检查目标分支
         check_git_branch(
             config.DISTRIBUTION_PATH,
-            "master" if config.build_mode == "dev" else config.build_mode,
+            parse_build_branch(config.build_mode),
         )
 
         # 同步仓库
-        if not sync_repository(config.DISTRIBUTION_PATH):
+        if not sync_repository(config.DISTRIBUTION_PATH, branch=parse_build_branch(config.build_mode)):
             logging.error("Git仓库同步失败，终止执行")
             return 11002
 
