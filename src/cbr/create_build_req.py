@@ -141,7 +141,10 @@ def create_build_req():
         if not check_git_branch(config.DISTRIBUTION_PATH, target_branch):
             logging.error("Git切换失败，终止执行")
             return 1
-
+        # 配置当前任务id
+        config.cur_task_id = f"{config.PROD_NAME},{req_date}"
+        logging.info(f"本次请求id:{config.cur_task_id} [${config.cbr_mode}]")
+        # 根据模式不同这只不同的cbr方式
         if config.cbr_mode == "repo":
             # 操作repo仓库提交cbr请求
             return cbr_by_repo(
@@ -153,6 +156,7 @@ def create_build_req():
                 )
             )
         else:
+            # 提交网络请求，通过服务器cbr接口
             return cbr_by_post(
                 CommitRepoConfig(
                     req_date=req_date,

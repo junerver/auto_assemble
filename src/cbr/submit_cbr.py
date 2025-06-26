@@ -39,9 +39,7 @@ def cbr_by_repo(commit_config: CommitRepoConfig) -> int:
 
     # 在分发目录的PROD_NAME目录下创建req_date目录
     req_date_dir: Path = Path(config.DISTRIBUTION_PATH) / config.PROD_NAME / req_date
-    config.cur_task_id = f"{config.PROD_NAME},{req_date}"
     config.cur_task_dir = req_date_dir.resolve()
-    logging.info(f"本次请求id:{config.cur_task_id}")
     req_date_dir.mkdir(parents=True, exist_ok=True)
     # 复制zip文件到指定目录
     shutil.copy(zip_file_path, str(req_date_dir))
