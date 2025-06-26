@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import re
 
 from common.config import config
 from common.types import ManifestInfo
@@ -283,18 +284,13 @@ def update_build_gradle(
             logging.info(f"更新 abi_filters 为: {version_info['abi_filters']}")
 
         # 处理第三方依赖
+        with open(build_gradle_path, "r", encoding="utf-8") as file:
+            content = file.read()
+        pattern = re.compile(
+            f"{re.escape(THIRD_PARTY_BEGIN)}.*?{re.escape(THIRD_PARTY_END)}",
+            re.DOTALL,
+        )
         if deps:
-            with open(build_gradle_path, "r", encoding="utf-8") as file:
-                content = file.read()
-
-            # 使用正则表达式匹配第三方依赖区域
-            import re
-
-            pattern = re.compile(
-                f"{re.escape(THIRD_PARTY_BEGIN)}.*?{re.escape(THIRD_PARTY_END)}",
-                re.DOTALL,
-            )
-
             # 构建新的依赖内容
             new_deps_content = f"{THIRD_PARTY_BEGIN}\n"
             for dep in deps:
@@ -303,12 +299,15 @@ def update_build_gradle(
 
             # 替换内容
             new_content = pattern.sub(new_deps_content, content)
+        else:
+            no_deps_content = f"{THIRD_PARTY_BEGIN}\n{THIRD_PARTY_END}"
+            new_content = pattern.sub(no_deps_content, content)
 
-            # 写回文件
-            with open(build_gradle_path, "w", encoding="utf-8") as file:
-                file.write(new_content)
-            logging.info(f"manifest声明使用的模块({len(modules)})：{modules}")
-            logging.info(f"更新第三方依赖({len(deps)}): {deps}")
+        # 写回文件
+        with open(build_gradle_path, "w", encoding="utf-8") as file:
+            file.write(new_content)
+        logging.info(f"manifest声明使用的模块({len(modules)})：{modules}")
+        logging.info(f"更新第三方依赖({len(deps)}): {deps}")
 
         return True
     except Exception as e:
