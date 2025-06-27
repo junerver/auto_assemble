@@ -61,7 +61,7 @@ def build_task_worker(task: Task):
                 process.wait(timeout=TASK_TIMEOUT)
                 # 重新查表检查任务是否被手动停止，任务有可能被服务器前端手动停止
                 current_task = Task.get_by_id(task.id, _db)
-                if current_task and current_task.status == TaskStatus.STOPPED:
+                if current_task and TaskStatus(current_task.status) == TaskStatus.STOPPED:
                     show_build_toast(task, False)
                     return
 
@@ -136,13 +136,16 @@ async def webhook(event: GitLabPushEventReq, request: Request, db=Depends(get_db
             f"过滤后的任务（{len(tasks)}）：\n{json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2)}"
         )
 
-        # 保存webhook请求记录
-        if not request.headers.get("X-Webhook-Request-Cache"):
+        # 保存webhook请求记录，任务创建成功则保存请求记录
+        if not request.headers.get("X-Webhook-Request-Cache") and status_code == 200:
+            logging.info("保存webhook请求记录")
             WebhookRequestService.save_webhook_requests(tasks, event, dict(request.headers), db=db)
 
         # 处理缓存请求
-        if request.headers.get("X-Webhook-Request-Cache") and len(tasks) == 1:
-            WebhookRequestService.update_replay_count(tasks[0].id, db=db)
+        if request.headers.get("X-Webhook-Request-Cache") and len(tasks) > 0:
+            for task in tasks:
+                logging.info(f"处理{task.id}缓存请求，replay计数+1")
+                WebhookRequestService.update_replay_count(task.id, db=db)
 
         # 处理任务执行
         return handle_tasks_execution(tasks)

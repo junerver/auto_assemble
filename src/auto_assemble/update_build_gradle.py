@@ -300,7 +300,7 @@ def update_build_gradle(
             # 替换内容
             new_content = pattern.sub(new_deps_content, content)
         else:
-            no_deps_content = f"{THIRD_PARTY_BEGIN}\n{THIRD_PARTY_END}"
+            no_deps_content = f"{THIRD_PARTY_BEGIN}\n    {THIRD_PARTY_END}"
             new_content = pattern.sub(no_deps_content, content)
 
         # 写回文件

@@ -268,7 +268,7 @@ class TaskService:
         if not task:
             return None, "Task not found", 404
 
-        if task.status != TaskStatus.RUNNING:
+        if TaskStatus(task.status) != TaskStatus.RUNNING:
             return None, "Task is not running", 400
 
         # 使用 TaskManager 终止进程

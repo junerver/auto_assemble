@@ -2,7 +2,6 @@ import logging
 from typing import Annotated
 import urllib.parse
 
-import requests
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 
@@ -17,9 +16,11 @@ from webhook.types import (
     StatisticsResp,
     StopTaskResp,
     TaskDetailResp,
+    GitLabPushEventReq,
 )
 from webhook.services.task_service import TaskService
 from webhook.services.webhook_request_service import WebhookRequestService
+from webhook.controllers.webhook_controller import webhook
 
 router = APIRouter(tags=["task"])
 
@@ -115,25 +116,45 @@ async def replay_webhook(task_id: Annotated[str, Path(..., description="任务id
         raise HTTPException(status_code=404, detail="task request don't exists")
 
     try:
-        # 获取webhook接口的URL
-        webhook_url = f"http://localhost:{PORT}/webhook"
+        # 构造 GitLabPushEventReq 对象
+        event = GitLabPushEventReq(**request_data)
 
-        # 发送请求到webhook接口
-        response = requests.post(webhook_url, json=request_data, headers=headers, timeout=30)
+        # 确保 headers 安全，转换为字符串并添加 X-Webhook-Request-Cache
+        safe_headers = {str(k).lower(): str(v) for k, v in headers.items() if v is not None}
+        safe_headers["x-webhook-request-cache"] = "true"  # 统一小写，确保大小写一致
+        logging.info(f"构造的 headers: {safe_headers}")
 
-        if response.status_code == 200:
-            return {"message": "Webhook请求重放成功", "response": response.json()}
-        else:
+        # 构造正确的 scope 字典
+        scope = {
+            "type": "http",
+            "http_version": "1.1",
+            "method": "POST",
+            "path": "/webhook",
+            "headers": [(k.encode("utf-8"), v.encode("utf-8")) for k, v in safe_headers.items()],
+            "scheme": "http",
+            "server": ("localhost", PORT),
+            "client": ("127.0.0.1", 0),
+        }
+
+        # 构造 Request 对象
+        request = Request(scope=scope)
+        logging.info(f"构造的 Request headers: {dict(request.headers)}")
+
+        # 直接调用 webhook 函数
+        response = await webhook(event=event, request=request, db=db)
+
+        if isinstance(response, JSONResponse):
             return JSONResponse(
                 status_code=response.status_code,
                 content={
-                    "message": "Webhook请求重放失败",
-                    "response": response.json(),
+                    "message": "Webhook请求重放成功" if response.status_code == 200 else "Webhook请求重放失败",
+                    "response": response.body.decode("utf-8") if isinstance(response.body, bytes) else response.body,
                 },
             )
+        return {"message": "Webhook请求重放成功", "response": response}
 
-    except requests.exceptions.RequestException as e:
-        logging.error(f"重放webhook请求时发生错误: {str(e)}")
+    except Exception as e:
+        logging.error(f"重放webhook请求时发生错误: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -186,7 +207,7 @@ async def download(
             # 对于 res 和 apk，继续使用流式下载
             return StreamingResponse(
                 content=stream,
-                media_type="application/octet-stream",
+                mediaType="application/octet-stream",
                 headers={"Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}"},
             )
     except HTTPException as e:
