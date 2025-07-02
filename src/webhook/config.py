@@ -13,7 +13,7 @@ ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
 SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
 PORT = int(os.getenv("PORT", 5005))
 DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-BASE_ON_GITLAB = os.getenv("BASE_ON_GITLAB", "false").lower() == "true"
+BASE_ON_GITLAB = os.getenv("BASE_ON_GITLAB", "true").lower() == "true"
 API_TEST = os.getenv("API_TEST", "false").lower() == "true"
 
 
