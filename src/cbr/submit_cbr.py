@@ -70,7 +70,7 @@ def cbr_by_repo(commit_config: CommitRepoConfig) -> int:
     config.cur_task_dir = req_date_dir.resolve()
     req_date_dir.mkdir(parents=True, exist_ok=True)
     # 复制zip文件到指定目录
-    shutil.copy(zip_file_path, str(req_date_dir))
+    shutil.copy(zip_file_path, req_date_dir)
     zip_file_path.unlink()
     logging.info(f"本次请求的资源文件已压缩为{zip_file_path}，并已复制到{req_date_dir}目录下")
     create_readme_file(req_date_dir, manifest_info)
@@ -150,7 +150,7 @@ def cbr_by_post(commit_config: CommitRepoConfig):
     # 暂存工作目录，用于后续toast定位
     config.cur_task_dir = temp_dir_path
     # 复制zip文件到指定目录
-    shutil.copy(zip_file_path, str(temp_dir_path))
+    shutil.copy(zip_file_path, temp_dir_path)
     commit_message = ""
     # 关闭cli -m 传递提交信息方式，强制使用交互式模式，用户输入信息
     if True:

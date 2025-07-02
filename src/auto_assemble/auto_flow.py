@@ -10,6 +10,7 @@ import logging
 import sys
 from pathlib import Path
 
+from common.api import local_file_push
 from common.client_publish import client_publish_async
 from common.config import config
 from common.error import BusinessException
@@ -35,7 +36,9 @@ def auto_flow(task_id: str = None) -> int:
             prod_name, task_dir = task_id.split(",")
             config.cur_task_id = task_id
             config.PROD_NAME = prod_name
-            config.cur_task_dir = Path(config.DISTRIBUTION_PATH) / prod_name / task_dir
+            if config.BASE_ON_GITLAB:
+                # 基于gitlab时，cur_task_dir可以直接获取
+                config.cur_task_dir = Path(config.DISTRIBUTION_PATH) / prod_name / task_dir
 
         # 执行copy_res.py，拷贝资源，解析请求文件，对基座项目进行写覆盖操作
         client_publish_async("build", "构建任务:copy_res", f"开始执行copy_res，任务id{task_id}")
@@ -56,11 +59,16 @@ def auto_flow(task_id: str = None) -> int:
             return build_code
 
         # 执行push.py
-        client_publish_async("build", "构建任务:push", f"开始执行push，任务id{task_id}")
-        if (push_code := push_distribution()) != 0:
-            logging.warning("push.py执行中断")
-            return push_code
-        client_publish_async("build", "构建任务:push", "构建任务执行完毕")
+        if config.BASE_ON_GITLAB:
+            client_publish_async("build", "构建任务:push", f"开始执行push，任务id{task_id}")
+            if (push_code := push_distribution()) != 0:
+                logging.warning("push.py执行中断")
+                return push_code
+            client_publish_async("build", "构建任务:push", "构建任务执行完毕")
+        else:
+            # todo 本地构建需要一个类似cbr的响应接口，用来处理构建后的mock-webhook接口
+            local_file_push(config.cur_task_id, config.build_mode, "mock-md5")
+            pass
         return 0
     except Exception as e:
         if isinstance(e, BusinessException) and e.code == 0:

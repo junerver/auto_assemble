@@ -97,7 +97,7 @@ class Metadata(DataClassJsonMixin):
 
 @dataclass
 class TaskInfo(DataClassJsonMixin):
-    # 任务id
+    # 任务id(project,task)
     id: str
     # 任务提交人
     author: str
@@ -125,6 +125,14 @@ class TaskInfo(DataClassJsonMixin):
     project: str
     # 任务时间戳
     task: str
+
+    def is_local_file(self) -> bool:
+        """
+        前端简单判断，本地模式下提交与响应的哈希都是固定的值："LOCAL_FILE_SERVER"
+        Returns:
+
+        """
+        return self.commit_hash == "LOCAL_FILE_SERVER"
 
     def task_path(self) -> str:
         return f"{self.project}/{self.task}/"

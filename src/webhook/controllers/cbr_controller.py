@@ -26,12 +26,13 @@ from fastapi.responses import JSONResponse
 
 from common import git
 from common.commit_label import parse_build_req_message, parse_build_branch
-from common.config import config
+from common.task_util import local_task_dir
 from common.validate import validate_timestamp_format, validate_git_author
-from webhook.config import DISTRIBUTION_PATH, API_TEST
+from webhook.config import DISTRIBUTION_PATH, API_TEST, BASE_ON_GITLAB
 from webhook.extensions.db import get_db
 from webhook.services.project_service import ProjectService
 from webhook.services.task_service import TaskService
+from webhook.utils.mock_request import send_mock_request, mock_request_body, mock_request_headers
 
 router = APIRouter(prefix="/api/cbr", tags=["cbr"])
 
@@ -117,7 +118,7 @@ async def create_build_request(
     if not res_zip.filename.endswith(".zip") or not validate_timestamp_format(task):
         return JSONResponse(content={"message": "请上传正确的资源包文件"}, status_code=400)
 
-    temp_task_dir = config.TEMP_PATH / task
+    temp_task_dir = local_task_dir(task_id, build_mode)
     temp_task_dir.mkdir(parents=True, exist_ok=True)
     logging.info(f"cbr 临时目录：{str(temp_task_dir)}")
 
@@ -130,6 +131,20 @@ async def create_build_request(
             logging.info(f"cbr 提交信息: {commit_message} 提交人: {author} 提交文件: {str(local_file_path)} ")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存文件失败: {str(e)}")
-
-    Thread(target=cbr_worker, args=(prod_name, build_mode, str(temp_task_dir), task_id, author, commit_message)).start()
+    if BASE_ON_GITLAB:
+        Thread(
+            target=cbr_worker, args=(prod_name, build_mode, str(temp_task_dir), task_id, author, commit_message)
+        ).start()
+    else:
+        # 本地模式，文件存储到本地，直接模拟请求
+        await send_mock_request(
+            request_body=mock_request_body(
+                author,
+                prod_name,
+                task,
+                commit_message,
+            ),
+            headers=mock_request_headers(),
+            db=db,
+        )
     return {"message": f"cbr 任务【{prod_name},{task}】提交成功，请等待任务创建"}

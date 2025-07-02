@@ -808,6 +808,19 @@ def get_git_author_str(repo_path: str) -> str:
     return f"{user_config['username']} <{user_config['email']}>"
 
 
+def parse_git_author(author: str) -> tuple[str, str]:
+    """
+    解析标准git用户信息
+    Args:
+        author:
+
+    Returns:
+        tuple[str,str]: username,email
+
+    """
+    return author.split("<")[0].strip(), author.split("<")[1].split(">")[0].strip()
+
+
 __all__ = [
     "sync_repository",
     "git_reset_and_clean",
@@ -821,4 +834,5 @@ __all__ = [
     "has_changes",
     "get_git_config",
     "get_git_author_str",
+    "parse_git_author",
 ]

@@ -13,12 +13,22 @@ ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
 SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
 PORT = int(os.getenv("PORT", 5005))
 DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+BASE_ON_GITLAB = os.getenv("BASE_ON_GITLAB", "false").lower() == "true"
 API_TEST = os.getenv("API_TEST", "false").lower() == "true"
 
 
 # 打印当前环境变量状态
 print(
-    f"当前环境变量：\nDISTRIBUTION_PATH: {DISTRIBUTION_PATH}\nANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}\nSERVER_HOST_URL: {SERVER_HOST_URL}\nPORT: {PORT}\nDEBUG: {DEBUG}\nAPI_TEST: {API_TEST}"
+    textwrap.dedent(f"""
+    当前环境变量：
+    DISTRIBUTION_PATH: {DISTRIBUTION_PATH}
+    ANDROID_UNI_BASE_PATH: {ANDROID_UNI_BASE_PATH}
+    SERVER_HOST_URL: {SERVER_HOST_URL}
+    PORT: {PORT}
+    DEBUG: {DEBUG}
+    BASE_ON_GITLAB: {BASE_ON_GITLAB}
+    API_TEST: {API_TEST}
+    """)
 )
 
 # 检查必需的环境变量，存在下面的环境变量说明是docker容器启动（yaml指定环境变量）
@@ -40,6 +50,7 @@ if missing_vars:
         load_dotenv(env_path)
         DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
         PORT = int(os.getenv("PORT", 5005))
+        BASE_ON_GITLAB = os.getenv("BASE_ON_GITLAB", "false").lower() == "true"
         API_TEST = os.getenv("API_TEST", "false").lower() == "true"
         DISTRIBUTION_PATH = os.getenv("DISTRIBUTION_PATH")
         ANDROID_UNI_BASE_PATH = os.getenv("ANDROID_UNI_BASE_PATH")
@@ -52,6 +63,7 @@ if missing_vars:
             SERVER_HOST_URL: {SERVER_HOST_URL}
             PORT: {PORT}
             DEBUG: {DEBUG}
+            BASE_ON_GITLAB: {BASE_ON_GITLAB}
             API_TEST: {API_TEST}
             """)
         )
@@ -63,6 +75,8 @@ DB_FILE = Path(__file__).parent / "webhook_server.db"
 CHECK_INTERVAL = 1  # 检查间隔（秒）
 TASK_TIMEOUT = 600  # 任务超时时间（秒）
 MAX_RETRIES = 3  # 最大重试次数
+# 如果提交id为下面的标记，则说明是本地文件提交
+LOCAL_REF_FLAG = "LOCAL_FILE_SERVER"
 
 
 def setup_logging(log_file: str = "webhook.log"):

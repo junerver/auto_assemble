@@ -24,6 +24,7 @@ from common.client_publish import client_publish_async
 from common.config import config
 from common.git import sync_repository, check_git_branch, git_reset_and_clean
 from common.md5 import calculate_zip_fingerprint
+from common.task_util import local_task_dir
 from common.types import ManifestInfo, TaskInfo
 
 
@@ -261,6 +262,8 @@ def copy_res(prod_name: str, task_dir: str) -> int:
                     提交哈希: {task_info.commit_hash}
                     """
                 )
+                if not config.BASE_ON_GITLAB:
+                    config.cur_task_dir = local_task_dir(config.cur_task_id, config.build_mode)
 
             # 请求构建任务相关信息
             fetch_task_info(config.cur_task_id, on_success, lambda e: None)
@@ -271,16 +274,17 @@ def copy_res(prod_name: str, task_dir: str) -> int:
         if config.build_mode not in ["dev", "test", "release"]:
             logging.error(f"构建模式错误: {config.build_mode}")
             return 11015
-        # 检查目标分支
-        check_git_branch(
-            config.DISTRIBUTION_PATH,
-            parse_build_branch(config.build_mode),
-        )
+        if config.BASE_ON_GITLAB:
+            # 检查目标分支
+            check_git_branch(
+                config.DISTRIBUTION_PATH,
+                parse_build_branch(config.build_mode),
+            )
 
-        # 同步仓库
-        if not sync_repository(config.DISTRIBUTION_PATH, branch=parse_build_branch(config.build_mode)):
-            logging.error("Git仓库同步失败，终止执行")
-            return 11002
+            # 同步仓库
+            if not sync_repository(config.DISTRIBUTION_PATH, branch=parse_build_branch(config.build_mode)):
+                logging.error("Git仓库同步失败，终止执行")
+                return 11002
 
         # 查找是否已存在对应的APK文件
         latest_dir_name: str = config.cur_task_dir.name
@@ -310,7 +314,13 @@ def copy_res(prod_name: str, task_dir: str) -> int:
 
         # 计算本次资源包指纹，存储在数据库中
         fingerprint = calculate_zip_fingerprint(compressed_file)
-        record_task_res_fp(config.cur_task_id, fingerprint)
+        logging.info(f"本次资源包指纹: {fingerprint}")
+        record_task_res_fp(
+            config.cur_task_id,
+            fingerprint,
+            lambda msg: logging.info(msg),
+            lambda err: logging.error(err),
+        )
 
         # 本次构建是release，查找是否存在相同指纹的构建任务，对比其readme文件、构建是否成功
         old_task = fetch_task_info_by_res_fp(fingerprint)

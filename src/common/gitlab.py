@@ -1,4 +1,5 @@
 import logging
+import shutil
 import urllib.parse
 from pathlib import Path
 from typing import Literal, Generator, Union
@@ -9,10 +10,11 @@ from zipstream.ng import ZipStream
 
 from common.commit_label import parse_build_req_message
 from common.config import config
+from common.task_util import local_task_dir
 from common.types import TaskInfo
 
 
-def download_gitlab_lfs_file_stream(
+def _download_gitlab_lfs_file_stream(
     gitlab_url: str, access_token: str, project_id: str, ref_hash: str, file_name: str, is_lfs: bool
 ):
     """流式下载 GitLab 文件并返回生成器
@@ -67,7 +69,7 @@ def _download_gitlab_lfs_file(
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         # 使用流式下载函数
         with open(dest_path, "wb") as f:
-            for chunk in download_gitlab_lfs_file_stream(
+            for chunk in _download_gitlab_lfs_file_stream(
                 gitlab_url, access_token, project_id, ref_hash, file_name, is_lfs
             ):
                 f.write(chunk)
@@ -81,37 +83,50 @@ def _download_gitlab_lfs_file(
         raise
 
 
-def download_file(ref_hash: str, file_name: str, dest_path: Path) -> Path:
+def _download_file(task_info: TaskInfo, relative_path: str, dest_path: Path) -> Path:
     """
     对外暴露的下载文件函数
     Args:
-        ref_hash:
-        file_name: 相对根目录的相对路径
+        task_info: 项目信息
+        relative_path: 相对根目录的相对路径
         dest_path: 目标文件路径
 
     Returns:
         Path: 下载完成后文件路径
     """
-    logging.info(f"开始下载文件: {file_name}")
-    _download_gitlab_lfs_file(
-        config.GITLAB_URL,
-        config.ACCESS_TOKEN,
-        config.PROJECT_ID,
-        ref_hash,
-        file_name,
-        dest_path,
-        True,
-    )
+    file_name = relative_path.replace(task_info.task_path(), "")
+    if not task_info.is_local_file():
+        ref_hash = task_info.response_hash
+        logging.info(f"开始下载文件: {file_name}")
+        _download_gitlab_lfs_file(
+            config.GITLAB_URL,
+            config.ACCESS_TOKEN,
+            config.PROJECT_ID,
+            ref_hash,
+            file_name,
+            dest_path,
+            True,
+        )
+    else:
+        # 本地模式：
+        logging.info("本地模式，从本地目录拷贝文件...")
+        build_mode, _ = parse_build_req_message(task_info.commit_title)
+        task_dir = local_task_dir(task_info.id, build_mode)
+        file_path = task_dir / file_name
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {relative_path}")
+        shutil.copy(file_path, dest_path)
+
     logging.info(f"✅ 下载成功: {file_name} -> {dest_path}")
     return dest_path
 
 
-def download_file_stream(ref_hash: str, file_name: str) -> Generator[bytes, None, None]:
+def _download_file_stream(task_info: TaskInfo, relative_path: str) -> Generator[bytes, None, None]:
     """
     对外暴露的流式下载文件函数
     Args:
-        ref_hash: 指向的 hash
-        file_name: 相对根目录的相对路径
+        task_info: 指向任务信息
+        relative_path: 相对根目录的相对路径
 
     Yields:
         文件内容的字节流
@@ -119,29 +134,33 @@ def download_file_stream(ref_hash: str, file_name: str) -> Generator[bytes, None
     Raises:
         HTTPException: 如果下载失败，抛出错误
     """
-    logging.info(f"开始流式下载文件: {file_name}")
-    for chunk in download_gitlab_lfs_file_stream(
-        config.GITLAB_URL,
-        config.ACCESS_TOKEN,
-        config.PROJECT_ID,
-        ref_hash,
-        file_name,
-        True,
-    ):
-        yield chunk
+    file_name = relative_path.replace(task_info.task_path(), "")
+    if not task_info.is_local_file():
+        ref_hash = task_info.response_hash
+        logging.info(f"开始流式下载文件: {relative_path}")
+        for chunk in _download_gitlab_lfs_file_stream(
+            config.GITLAB_URL,
+            config.ACCESS_TOKEN,
+            config.PROJECT_ID,
+            ref_hash,
+            relative_path,
+            True,
+        ):
+            yield chunk
+    else:
+        # 本地模式：
+        logging.info("本地模式，开始流式下载文件...")
+        build_mode, _ = parse_build_req_message(task_info.commit_title)
+        task_dir = local_task_dir(task_info.id, build_mode)
+        file_path = task_dir / file_name
+        if file_path.exists():
+            with open(file_path, "rb") as f:
+                for chunk in f:
+                    yield chunk
     logging.info(f"✅ 流式下载成功: {file_name}")
 
 
-def compare_readme_file(task_info: TaskInfo, readme_path: Path) -> bool:
-    """比较当前任务的README是否与之前任务的readme相同，先下载资源包相同任务的 readme，然后进行文本比较"""
-    origin_readme_path = download_file(
-        task_info.response_hash, task_info.readme_path(), config.TEMP_PATH / task_info.project / task_info.task
-    )
-    with open(origin_readme_path, "r", encoding="utf-8") as f1, open(readme_path, "r", encoding="utf-8") as f2:
-        return f1.read() == f2.read()
-
-
-def generate_zip_stream(generator_dict: dict[str, Generator[bytes, None, None]]) -> ZipStream:
+def _generate_zip_stream(generator_dict: dict[str, Generator[bytes, None, None]]) -> ZipStream:
     """创建压缩包zip流
 
     Args:
@@ -161,6 +180,15 @@ def generate_zip_stream(generator_dict: dict[str, Generator[bytes, None, None]])
 FileType = Literal["res", "readme", "metadata", "apk", "release", "all"]
 
 
+def compare_readme_file(task_info: TaskInfo, readme_path: Path) -> bool:
+    """比较当前任务的README是否与之前任务的readme相同，先下载资源包相同任务的 readme，然后进行文本比较"""
+    origin_readme_path = _download_file(
+        task_info, task_info.readme_path(), config.TEMP_PATH / task_info.project / task_info.task
+    )
+    with open(origin_readme_path, "r", encoding="utf-8") as f1, open(readme_path, "r", encoding="utf-8") as f2:
+        return f1.read() == f2.read()
+
+
 def download_task_files_stream(
     task_info: TaskInfo, file_type: FileType
 ) -> tuple[Union[Generator[bytes, None, None], ZipStream], str]:
@@ -175,27 +203,29 @@ def download_task_files_stream(
     """
     match file_type:
         case "res":
-            return download_file_stream(task_info.response_hash, task_info.res_path()), f"{task_info.task}.zip"
+            return _download_file_stream(task_info, task_info.res_path()), f"{task_info.task}.zip"
         case "readme":
-            return download_file_stream(task_info.response_hash, task_info.readme_path()), "README.md"
+            return _download_file_stream(task_info, task_info.readme_path()), "README.md"
         case "metadata":
-            return download_file_stream(task_info.response_hash, task_info.metadata_path()), "release-metadata.md"
+            return _download_file_stream(task_info, task_info.metadata_path()), "release-metadata.md"
         case "apk":
-            return download_file_stream(task_info.response_hash, task_info.apk_path()), task_info.apk_name()
+            return _download_file_stream(task_info, task_info.apk_path()), task_info.apk_name()
         case "release":
-            return generate_zip_stream(
+            # release产物: 元数据、apk
+            return _generate_zip_stream(
                 {
-                    "release-metadata.md": download_file_stream(task_info.response_hash, task_info.metadata_path()),
-                    task_info.apk_name(): download_file_stream(task_info.response_hash, task_info.apk_path()),
+                    "release-metadata.md": _download_file_stream(task_info, task_info.metadata_path()),
+                    task_info.apk_name(): _download_file_stream(task_info, task_info.apk_path()),
                 }
             ), f"{task_info.task}_release.zip"
         case "all":
-            return generate_zip_stream(
+            # 全部文件: 资源包、README、元数据、apk
+            return _generate_zip_stream(
                 {
-                    f"{task_info.task}.zip": download_file_stream(task_info.response_hash, task_info.res_path()),
-                    "README.md": download_file_stream(task_info.response_hash, task_info.readme_path()),
-                    "release-metadata.md": download_file_stream(task_info.response_hash, task_info.metadata_path()),
-                    task_info.apk_name(): download_file_stream(task_info.response_hash, task_info.apk_path()),
+                    f"{task_info.task}.zip": _download_file_stream(task_info, task_info.res_path()),
+                    "README.md": _download_file_stream(task_info, task_info.readme_path()),
+                    "release-metadata.md": _download_file_stream(task_info, task_info.metadata_path()),
+                    task_info.apk_name(): _download_file_stream(task_info, task_info.apk_path()),
                 }
             ), f"{task_info.task}_all.zip"
     raise HTTPException(status_code=400, detail=f"Invalid file type: {file_type}")
@@ -222,7 +252,7 @@ def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path,
     metadata_md = dest_dir / "release-metadata.md"
     obfuscated_bak = dest_dir / f"{target_task}_obfuscated.bak"
     apk_file = dest_dir / new_apk_file_name
-    download_file(task_info.response_hash, task_info.metadata_path(), metadata_md)
-    download_file(task_info.response_hash, task_info.obfuscated_path(), obfuscated_bak)
-    download_file(task_info.response_hash, task_info.apk_path(), apk_file)
+    _download_file(task_info.response_hash, task_info.metadata_path(), metadata_md)
+    _download_file(task_info.response_hash, task_info.obfuscated_path(), obfuscated_bak)
+    _download_file(task_info.response_hash, task_info.apk_path(), apk_file)
     return metadata_md, obfuscated_bak, apk_file

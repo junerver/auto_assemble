@@ -5,7 +5,7 @@ from pathlib import Path
 
 from common.api import fetch_task_info, fetch_fork_task_info
 from common.config import config
-from common.gitlab import download_file
+from common.gitlab import _download_file
 from common.error import BusinessException
 from common.extract import modern_extract
 from common.types import TaskInfo
@@ -52,9 +52,9 @@ def copy_source(fork_task_id: str) -> tuple[Path, dict]:
         source_md_url = f"{task_info.project}/{task_info.task}/README.md"
         # todo: 任何外部模块都不应该裸用gitlab中下载函数，而是应该通过task控制器的download来中转
         # 下载文件
-        download_file(task_info.commit_hash, source_zip_url, temp_zip_path)
+        _download_file(task_info, source_zip_url, temp_zip_path)
         logging.info(f"下载文件: {source_zip_url} 完毕")
-        download_file(task_info.commit_hash, source_md_url, temp_md_path)
+        _download_file(task_info, source_md_url, temp_md_path)
         logging.info(f"下载文件: {source_md_url} 完毕")
 
     fetch_task_info(source_task_id, on_success, None)

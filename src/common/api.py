@@ -9,7 +9,7 @@ from typing import Optional, Union
 
 import requests
 
-from common.config import config
+from common.config import config, BuildMode
 from common.gitlab import FileType
 from common.types import TaskInfo, BuildMetadata, ThirdPartyConfig, ProjectConfig, SignConfig
 
@@ -410,3 +410,17 @@ def download_task_file(task_id: str, dest_dir: Path, file_type: FileType) -> Pat
         # 如果不是压缩包，直接返回文件路径
         logging.info(f"下载的文件不是压缩包，保留原文件: {file_path}")
         return file_path
+
+
+def local_file_push(task_id: str, build_mode: BuildMode, md5: str):
+    """
+    本地文件模式时，需要模拟触发webhook
+    Returns:
+        dict: 接口返回的 JSON 数据
+    """
+    params = {
+        "build_mode": build_mode,
+        "md5": md5,
+    }
+    response = requests.post(f"{config.SERVER_HOST_URL}/api/task/{task_id}/response", json=params)
+    return response.json()

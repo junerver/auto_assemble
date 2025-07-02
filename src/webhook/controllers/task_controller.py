@@ -5,9 +5,10 @@ import urllib.parse
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse, PlainTextResponse
 
+from common.commit_label import get_build_resp_message
+from common.config import BuildMode
 from common.gitlab import FileType, download_task_files_stream
 from common.types import TaskInfo
-from webhook.config import PORT
 from webhook.extensions.db import get_db
 from webhook.models.task import TaskStatus
 from webhook.types import (
@@ -16,11 +17,10 @@ from webhook.types import (
     StatisticsResp,
     StopTaskResp,
     TaskDetailResp,
-    GitLabPushEventReq,
 )
 from webhook.services.task_service import TaskService
 from webhook.services.webhook_request_service import WebhookRequestService
-from webhook.controllers.webhook_controller import webhook
+from webhook.utils.mock_request import send_mock_request, mock_request_body, mock_request_headers
 
 router = APIRouter(tags=["task"])
 
@@ -115,47 +115,8 @@ async def replay_webhook(task_id: Annotated[str, Path(..., description="任务id
     if not request_data:
         raise HTTPException(status_code=404, detail="task request don't exists")
 
-    try:
-        # 构造 GitLabPushEventReq 对象
-        event = GitLabPushEventReq(**request_data)
-
-        # 确保 headers 安全，转换为字符串并添加 X-Webhook-Request-Cache
-        safe_headers = {str(k).lower(): str(v) for k, v in headers.items() if v is not None}
-        safe_headers["x-webhook-request-cache"] = "true"  # 统一小写，确保大小写一致
-        logging.info(f"构造的 headers: {safe_headers}")
-
-        # 构造正确的 scope 字典
-        scope = {
-            "type": "http",
-            "http_version": "1.1",
-            "method": "POST",
-            "path": "/webhook",
-            "headers": [(k.encode("utf-8"), v.encode("utf-8")) for k, v in safe_headers.items()],
-            "scheme": "http",
-            "server": ("localhost", PORT),
-            "client": ("127.0.0.1", 0),
-        }
-
-        # 构造 Request 对象
-        request = Request(scope=scope)
-        logging.info(f"构造的 Request headers: {dict(request.headers)}")
-
-        # 直接调用 webhook 函数
-        response = await webhook(event=event, request=request, db=db)
-
-        if isinstance(response, JSONResponse):
-            return JSONResponse(
-                status_code=response.status_code,
-                content={
-                    "message": "Webhook请求重放成功" if response.status_code == 200 else "Webhook请求重放失败",
-                    "response": response.body.decode("utf-8") if isinstance(response.body, bytes) else response.body,
-                },
-            )
-        return {"message": "Webhook请求重放成功", "response": response}
-
-    except Exception as e:
-        logging.error(f"重放webhook请求时发生错误: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    response = await send_mock_request(request_data, headers, db, is_cache=True)
+    return {"message": "Webhook请求重放成功", "response": response}
 
 
 @router.post("/api/task/{task_id}/stop", response_model=StopTaskResp)
@@ -169,6 +130,29 @@ async def stop_task(task_id: Annotated[str, Path(..., description="任务id")], 
             content={"message": message, "task": format_task_info(task.to_dict())},
         )
     return JSONResponse(status_code=status_code, content={"error": message})
+
+
+@router.get("/api/task/{task_id}/response")
+async def assemble_response(
+    task_id: Annotated[str, Path(..., description="任务id")],
+    md5: str = Query(default=None, description="资源包md5"),
+    build_mode: BuildMode = Query(default="dev", description="构建模式"),
+    db=Depends(get_db),
+):
+    """构建完毕后触发mock"""
+    prod_name, task = task_id.split(",")
+    await send_mock_request(
+        request_body=mock_request_body(
+            author="assemble_bot <assemble_bot@jkr.com>",
+            prod_name=prod_name,
+            task=task,
+            commit_message=get_build_resp_message(build_mode, f"{task} 打包"),
+            md5=md5,
+        ),
+        headers=mock_request_headers(),
+        db=db,
+    )
+    return {"message": "mock webhook request sent"}
 
 
 @router.get("/api/task/{task_id}/download")
@@ -207,7 +191,6 @@ async def download(
             # 对于 res 和 apk，继续使用流式下载
             return StreamingResponse(
                 content=stream,
-                mediaType="application/octet-stream",
                 headers={"Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}"},
             )
     except HTTPException as e:

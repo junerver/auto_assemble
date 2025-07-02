@@ -13,6 +13,8 @@ class Config:
         self.TEMP_PATH = Path("/app") / "temp"
         self.SIGN_PATH = Path("/app") / "sign"
 
+        self.BASE_ON_GITLAB = False
+
         # gitlab 地址
         self.GITLAB_URL = "http://192.168.187.232:28088"
         # 访问令牌

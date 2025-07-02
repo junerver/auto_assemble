@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from common.time import safe_convert_datetime
+from webhook.config import LOCAL_REF_FLAG
 
 
 class TaskStatus(Enum):
@@ -298,7 +299,8 @@ class Task:
 
         if build_mode:
             base_query += """
-                AND t.commit_title LIKE ? || '%'
+                
+                
             """
             params = (f"#{build_mode}_req#", limit)
         else:
@@ -387,7 +389,7 @@ class Task:
             """,
                 (str(status), self.started_at, error, self.id),
             )
-        elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED):
+        elif status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.STOPPED):
             self.completed_at = datetime.now()
             cursor.execute(
                 """
@@ -410,6 +412,10 @@ class Task:
         self.status = status
         self.error = error
         db.commit()
+
+    def is_local_file(self) -> bool:
+        """判断任务是否为本地文件"""
+        return self.commit_hash.startswith(LOCAL_REF_FLAG)
 
     def to_dict(self) -> dict:
         """转换为字典"""

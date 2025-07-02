@@ -59,8 +59,10 @@ def main():
             print(f"DISTRIBUTION_PATH: {os.getenv('DISTRIBUTION_PATH')}")
             print(f"ANDROID_UNI_BASE_PATH: {os.getenv('ANDROID_UNI_BASE_PATH')}")
             print(f"SERVER_HOST_URL: {os.getenv('SERVER_HOST_URL')}")
+            print(f"BASE_ON_GITLAB: {os.getenv('BASE_ON_GITLAB')}")
             print("已从环境变量中加载相关变量，不再从.env文件中加载。")
             config.SERVER_HOST_URL = os.getenv("SERVER_HOST_URL")
+            config.BASE_ON_GITLAB = os.getenv("BASE_ON_GITLAB", "false").lower() == "true"
         else:
             # 加载指定的 .env 文件
             load_dotenv(env_file)
