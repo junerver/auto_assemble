@@ -97,7 +97,7 @@ async def update_task(
     request: Request,
     db=Depends(get_db),
 ):
-    """更新任务接口，通过请求体中指定的键值，更新对应任务的指定字段"""
+    """更新任务接口，通过请求体中指定的键值，更新对应任务的指定字段，支持：response_hash、res_fp"""
     data = await request.json()
     if data.get("response_hash"):
         TaskService.update_response_hash(task_id, data.get("response_hash"), db=db)
@@ -139,7 +139,7 @@ async def assemble_response(
     build_mode: BuildMode = Query(default="dev", description="构建模式"),
     db=Depends(get_db),
 ):
-    """构建完毕后触发mock"""
+    """构建完毕后触发mock，进而触发webhook接口"""
     prod_name, task = task_id.split(",")
     await send_mock_request(
         request_body=mock_request_body(

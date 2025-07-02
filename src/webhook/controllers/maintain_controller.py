@@ -22,5 +22,6 @@ async def delete_webhook_requests(
     task_id: Annotated[str, Path(..., description="任务id")],
     db=Depends(get_db),
 ):
+    """删除指定任务id的webhook请求记录"""
     WebhookRequestService.delete_webhook_request(task_id, db=db)
     return {"message": "Webhook requests deleted successfully"}
