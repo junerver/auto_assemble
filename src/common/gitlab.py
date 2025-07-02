@@ -252,7 +252,8 @@ def download_task_resp(task_info: TaskInfo, dest_dir: Path) -> tuple[Path, Path,
     metadata_md = dest_dir / "release-metadata.md"
     obfuscated_bak = dest_dir / f"{target_task}_obfuscated.bak"
     apk_file = dest_dir / new_apk_file_name
-    _download_file(task_info.response_hash, task_info.metadata_path(), metadata_md)
-    _download_file(task_info.response_hash, task_info.obfuscated_path(), obfuscated_bak)
-    _download_file(task_info.response_hash, task_info.apk_path(), apk_file)
+    _download_file(task_info, task_info.metadata_path(), metadata_md)
+    if build_mode != "dev":
+        _download_file(task_info, task_info.obfuscated_path(), obfuscated_bak)
+    _download_file(task_info, task_info.apk_path(), apk_file)
     return metadata_md, obfuscated_bak, apk_file

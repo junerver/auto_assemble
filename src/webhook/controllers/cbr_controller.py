@@ -120,7 +120,7 @@ async def create_build_request(
 
     temp_task_dir = local_task_dir(task_id, build_mode)
     temp_task_dir.mkdir(parents=True, exist_ok=True)
-    logging.info(f"cbr 临时目录：{str(temp_task_dir)}")
+    logging.info(f"cbr 临时目录：{str(temp_task_dir.resolve())}")
 
     # 保存上传的文件
     try:

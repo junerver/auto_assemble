@@ -94,10 +94,10 @@ class Task:
         cursor = db.cursor()
         cursor.execute(
             """
-            INSERT OR REPLACE INTO tasks 
+            INSERT OR REPLACE INTO tasks
             (id, prod_name, task_name, author, commit_title, commit_message, commit_url,
-             priority, retries, created_at, started_at, completed_at, status, error, commit_hash, response_hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             priority, retries, created_at, started_at, completed_at, status, error, commit_hash, response_hash, res_fp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 self.id,
@@ -116,6 +116,7 @@ class Task:
                 self.error,
                 self.commit_hash,
                 self.response_hash,
+                self.res_fp,  # 添加 res_fp
             ),
         )
         db.commit()

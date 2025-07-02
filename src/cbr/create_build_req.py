@@ -210,20 +210,6 @@ def rolling_req_build_status():
             break
 
 
-def check_git_lfs_installed(repo_path: str) -> bool:
-    """
-    检查git lfs是否安装，检查.git/hooks目录下的pre-push文件是否存在git-lfs
-    """
-    hooks_path = Path(repo_path) / ".git" / "hooks"
-    pre_push_hook = hooks_path / "pre-push"
-    if pre_push_hook.exists():
-        with open(pre_push_hook, "r") as f:
-            content = f.read()
-            if "git-lfs" in content:
-                return True
-    return False
-
-
 if __name__ == "__main__":
     create_build_req()
     pass

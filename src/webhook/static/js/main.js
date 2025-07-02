@@ -420,6 +420,7 @@ function openSourceTask(sourceTaskId) {
     fetch(`/task/${sourceTaskId}`)
         .then(response => response.json())
         .then(data => {
+            // todo: 显示原始任务数据，而不是跳转（本地模式下无法跳转）
             const sourceTask = data.task;
             const targetUrl = sourceTask.response_hash ? sourceTask.response_hash : getBranchName(sourceTask.commit_title);
             window.open(`${distributionUrl}-/tree/${targetUrl}/${sourceTask.project}/${sourceTask.task}`, '_blank');

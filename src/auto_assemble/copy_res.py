@@ -343,7 +343,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
                 if isinstance(e, BusinessException) and e.code == 0:
                     logging.info("触发径直推送，直接执行归一化成功，结束任务执行！")
                     raise e
-                logging.error("径直推送失败，回退到常规操作")
+                logging.exception("径直推送失败，回退到常规操作")
         else:
             logging.info("该资源包构建结果不存在，执行常规流程")
 

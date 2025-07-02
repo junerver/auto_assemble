@@ -20,5 +20,5 @@ def local_task_dir(task_id: str, build_mode: str) -> Path:
         Path: 任务目录
     """
     prod_name, task = task_id.split(",")
-    temp_task_dir = config.TEMP_PATH / build_mode / prod_name / task
+    temp_task_dir = config.FILE_SAVER / build_mode / prod_name / task
     return temp_task_dir

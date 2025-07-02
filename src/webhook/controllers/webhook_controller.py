@@ -57,39 +57,70 @@ def build_task_worker(task: Task):
 
         def cleanup():
             _db = get_db_conn()
+            current_task = None  # 初始化 current_task
             try:
                 process.wait(timeout=TASK_TIMEOUT)
                 # 重新查表检查任务是否被手动停止，任务有可能被服务器前端手动停止
-                current_task = Task.get_by_id(task.id, _db)
+                current_task = Task.get_by_id(task.id, _db)  # 这里获取到的是正确的任务对象
+                logging.info(f"当前任务: {current_task}")
                 if current_task and TaskStatus(current_task.status) == TaskStatus.STOPPED:
-                    show_build_toast(task, False)
+                    show_build_toast(task, False)  # 这里使用传入的task，可能需要考虑是否改为current_task
                     return
 
-                task.completed_at = datetime.now()
-                #  任务完成
-                task.status = TaskStatus.COMPLETED if process.returncode == 0 else TaskStatus.FAILED
-                show_build_toast(task, process.returncode == 0)
+                # 对 current_task 进行状态和时间更新
+                current_task.completed_at = datetime.now()
+                current_task.status = TaskStatus.COMPLETED if process.returncode == 0 else TaskStatus.FAILED
+                show_build_toast(current_task, process.returncode == 0)  # 建议改为current_task
                 if process.returncode == 0:
-                    task.error = None
+                    current_task.error = None
                 else:
-                    # 使用错误码映射格式化错误信息
-                    task.error = format_error(process.returncode)
-                    if task.retries < MAX_RETRIES:
-                        task.retries += 1
-                        task.priority += 1
-                        TaskManager.add_task_to_queue(task, TaskType.BUILD)
+                    current_task.error = format_error(process.returncode)
+                    if current_task.retries < MAX_RETRIES:
+                        current_task.retries += 1
+                        current_task.priority += 1
+                        TaskManager.add_task_to_queue(current_task, TaskType.BUILD)
             except subprocess.TimeoutExpired:
-                process.kill()
-                task.status = TaskStatus.TIMEOUT
-                task.error = format_error(10002)  # 使用超时错误码
-                task.completed_at = datetime.now()
-                show_build_toast(task, False)
+                # 如果是超时，也需要更新 current_task
+                if current_task:  # 确保 current_task 已经被获取
+                    process.kill()
+                    current_task.status = TaskStatus.TIMEOUT
+                    current_task.error = format_error(10002)
+                    current_task.completed_at = datetime.now()
+                    show_build_toast(current_task, False)
+                else:
+                    logging.error("Timeout occurred but current_task was not retrieved.")
+                    # 针对未获取到 current_task 的情况进行处理，例如使用传入的 task
+                    process.kill()
+                    task.status = TaskStatus.TIMEOUT
+                    task.error = format_error(10002)
+                    task.completed_at = datetime.now()
+                    show_build_toast(task, False)
+
             except Exception as _e:
                 logging.error(f"执行 cleanup 时出错: {_e}", exc_info=True)
+                # 如果出错，也尝试更新 current_task
+                if current_task:
+                    current_task.status = TaskStatus.FAILED  # 或者其他适当的状态
+                    current_task.error = str(_e)
+                    current_task.completed_at = datetime.now()
+                    show_build_toast(current_task, False)
+                else:
+                    task.status = TaskStatus.FAILED  # 或者其他适当的状态
+                    task.error = str(_e)
+                    task.completed_at = datetime.now()
+                    show_build_toast(task, False)
+
             finally:
                 # 从 TaskManager 注销进程
-                TaskManager.unregister_process(task.id)
-                task.save(_db)
+                TaskManager.unregister_process(task.id)  # 这里使用task.id是没问题的
+
+                # 使用最新的任务对象进行保存
+                if current_task:
+                    current_task.save(_db)
+                else:
+                    # 如果因为某种原因 current_task 没有被赋值，则使用传入的 task
+                    task.save(_db)
+
                 # 释放任务锁并获取下一个任务
                 TaskManager.exec_next_task()
                 _db.close()

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dataclasses_json import DataClassJsonMixin
 
-from cbr.create_build_req import check_git_lfs_installed
+from common.git import check_git_lfs_installed
 from cbr.create_readme_file import create_readme_file
 from common.api import submit_cbr_form
 from common.commit_label import get_build_req_label

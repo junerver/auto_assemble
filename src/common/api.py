@@ -422,5 +422,5 @@ def local_file_push(task_id: str, build_mode: BuildMode, md5: str):
         "build_mode": build_mode,
         "md5": md5,
     }
-    response = requests.post(f"{config.SERVER_HOST_URL}/api/task/{task_id}/response", json=params)
+    response = requests.get(f"{config.SERVER_HOST_URL}/api/task/{task_id}/response", params=params)
     return response.json()

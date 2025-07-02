@@ -118,9 +118,10 @@ def migrate_same_build_mode(old_task: TaskInfo):
     logging.info(f"解析metadata文件结果: {json.dumps(metadata)}，请求接口提交元数据")
     record_task_metadata(config.cur_task_id, metadata)
     # 此时文件已经全部到位，推送分发仓库
-    push_code = push_distribution()
-    if push_code != 0:
-        logging.warning("push.py执行中断")
-        raise BusinessException(push_code)
+    if config.BASE_ON_GITLAB:
+        push_code = push_distribution()
+        if push_code != 0:
+            logging.warning("push.py执行中断")
+            raise BusinessException(push_code)
     # 执行成功
     raise BusinessException(0)

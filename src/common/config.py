@@ -10,10 +10,14 @@ CbrMode = Literal["repo", "post"]
 
 class Config:
     def __init__(self):
+        # 临时文件目录
         self.TEMP_PATH = Path("/app") / "temp"
+        # 签名文件目录（卷）
         self.SIGN_PATH = Path("/app") / "sign"
-
-        self.BASE_ON_GITLAB = False
+        # 文件服务目录（卷）
+        self.FILE_SAVER = Path("/app") / "file_saver"
+        # 文件服务是否基于Gitlab
+        self.BASE_ON_GITLAB = True
 
         # gitlab 地址
         self.GITLAB_URL = "http://192.168.187.232:28088"

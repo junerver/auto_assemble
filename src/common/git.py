@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 from collections import namedtuple
+from pathlib import Path
 
 from common.config import config
 
@@ -821,6 +822,20 @@ def parse_git_author(author: str) -> tuple[str, str]:
     return author.split("<")[0].strip(), author.split("<")[1].split(">")[0].strip()
 
 
+def check_git_lfs_installed(repo_path: str) -> bool:
+    """
+    检查git lfs是否安装，检查.git/hooks目录下的pre-push文件是否存在git-lfs
+    """
+    hooks_path = Path(repo_path) / ".git" / "hooks"
+    pre_push_hook = hooks_path / "pre-push"
+    if pre_push_hook.exists():
+        with open(pre_push_hook, "r") as f:
+            content = f.read()
+            if "git-lfs" in content:
+                return True
+    return False
+
+
 __all__ = [
     "sync_repository",
     "git_reset_and_clean",
@@ -835,4 +850,5 @@ __all__ = [
     "get_git_config",
     "get_git_author_str",
     "parse_git_author",
+    "check_git_lfs_installed",
 ]
