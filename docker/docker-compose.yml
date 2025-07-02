@@ -14,7 +14,9 @@ services:
       # Git仓库（从git-repo服务挂载）
       - git_repo_distribution:/app/distribution
       - git_repo_uni_base:/app/uni-base
+      # 签名文件缓存、本地模式文件服务缓存
       - sign_file_cache:/app/sign
+      - file_saver:/app/file_saver
     environment:
       - TZ=Asia/Shanghai
       - DISTRIBUTION_PATH=/app/distribution
@@ -22,8 +24,12 @@ services:
       - SERVER_HOST_URL=http://localhost:5005
       - PORT=5005
       - FLASK_DEBUG=false
+      # 混淆迁都
       - OBFUSCATOR_PRESET=low
+      # 测试模式
       - API_TEST=true
+      # 是否基于GitLab作为文件中转服务
+      - BASE_ON_GITLAB=false
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:5005/health"]
       interval: 30s
@@ -55,3 +61,5 @@ volumes:
     name: auto_assemble_git_repo_uni_base
   sign_file_cache:
     name: auto_assemble_sign_file_cache
+  file_saver :
+      name: auto_assemble_file_saver
