@@ -115,7 +115,12 @@ async def replay_webhook(task_id: Annotated[str, Path(..., description="任务id
     if not request_data:
         raise HTTPException(status_code=404, detail="task request don't exists")
 
-    response = await send_mock_request(request_data, headers, db, is_cache=True)
+    response = await send_mock_request(
+        request_data,
+        headers,
+        db,
+        is_cache=True,
+    )
     return {"message": "Webhook请求重放成功", "response": response}
 
 
