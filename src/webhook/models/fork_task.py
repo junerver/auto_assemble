@@ -61,5 +61,11 @@ class ForkTask(DataClassJsonMixin):
         cursor.execute("SELECT * FROM fork_tasks WHERE id = ?", (fork_task_id,))
         row = cursor.fetchone()
         if row:
-            return ForkTask(**row)
+            row_dict = dict(row)
+            # 转换datetime字段
+            if row_dict.get("created_at"):
+                from common.time import safe_convert_datetime
+
+                row_dict["created_at"] = safe_convert_datetime(row_dict["created_at"])
+            return ForkTask(**row_dict)
         return None

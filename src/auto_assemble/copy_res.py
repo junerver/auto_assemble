@@ -472,6 +472,7 @@ def copy_res(prod_name: str, task_dir: str) -> int:
     except Exception as e:
         # 清理
         git_reset_and_clean(repo_path=config.DISTRIBUTION_PATH)
+        git_reset_and_clean(repo_path=config.ANDROID_UNI_BASE_PATH)
         if isinstance(e, FileNotFoundError):
             logging.error(f"目录不存在: {e}")
             return 10004
