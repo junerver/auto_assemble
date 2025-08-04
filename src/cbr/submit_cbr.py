@@ -169,7 +169,13 @@ def cbr_by_post(commit_config: CommitRepoConfig):
         logging.info("用户取消推送")
         return 1
 
-    if not submit_cbr_form(config.PROD_NAME, config.current_author, commit_message, readme_path, zip_file_path):
+    if not submit_cbr_form(
+        config.PROD_NAME,
+        config.current_author,
+        commit_message,
+        readme_path,
+        zip_file_path,
+    ):
         logging.error("提交cbr请求失败")
         return 1
 
