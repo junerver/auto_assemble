@@ -1,9 +1,9 @@
-import argparse
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+import click
 import toml
 
 
@@ -143,6 +143,9 @@ def clear_temp_files():
             print(f"🗑️ 已删除 {file}")
 
 
+@click.command()
+@click.option("-m", "--module-name", type=str, help="Pyinstaller build module name")
+@click.option("-e", "--exe-name", type=str, help="Executable file name")
 def main(module_name, exe_name: str = None):
     print("📦 读取 pyproject.toml...")
     _metadata = get_metadata()
@@ -170,9 +173,4 @@ def main(module_name, exe_name: str = None):
 
 # 主流程
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pyinstaller build module name, and executable file name")
-    parser.add_argument("-m", "--module", type=str, help="Pyinstaller build module name")
-    parser.add_argument("-e", "--exe", type=str, help="Executable file name")
-    args = parser.parse_args()
-    main(args.module, args.exe)
-    sys.exit()
+    sys.exit(main())

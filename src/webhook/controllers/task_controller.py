@@ -196,7 +196,13 @@ async def download(
             # 对于 res 和 apk，继续使用流式下载
             return StreamingResponse(
                 content=stream,
-                headers={"Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}"},
+                headers={
+                    "Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}",
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                    "Accept-Ranges": "none",
+                },
             )
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"error": e.detail})

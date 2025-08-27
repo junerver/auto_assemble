@@ -1,6 +1,7 @@
-import argparse
 import logging
 import sys
+
+import click
 
 from common.client_publish import client_publish_async
 from common.err_code import unified_error_code
@@ -10,14 +11,10 @@ from fork_task.modify_uni_res import modify_uni_res
 from fork_task.re_req import re_req
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Load environment variables from a specified .env file and execute the program."
-    )
-    # fork task id，派生任务id，由`打包项目,请求的任务`目录拼接而成
-    parser.add_argument("--fork", type=str, help="ForkTask id: prod_name,task_dir")
-    args = parser.parse_args()
-    fork_task_id = args.fork
+@click.command(help="Load environment variables from a specified .env file and execute the program.")
+@click.option("--fork", type=str, help="ForkTask id: prod_name,task_dir")
+def main(fork: str):
+    fork_task_id = fork
     print(fork_task_id)
 
     try:

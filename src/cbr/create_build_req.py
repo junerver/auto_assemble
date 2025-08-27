@@ -1,4 +1,3 @@
-import argparse
 import json
 import logging
 import os
@@ -7,6 +6,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+import click
 from dotenv import load_dotenv
 from win11toast import toast
 
@@ -21,24 +21,23 @@ from common.git import (
 from common.types import TaskInfo
 
 
-def create_build_req():
+@click.command(help="Load environment variables from a specified .env file and execute the program.")
+@click.option("-u", "--uni", type=str, help="Path to the uniapp project root")
+@click.option(
+    "-m",
+    "--message",
+    type=str,
+    help="Commit message. When configured, the program will run in CLI mode without user confirmation.",
+)
+@click.option("-d", "--dev", is_flag=True, help="Dev mode")
+@click.option("-t", "--test", is_flag=True, help="Test mode")
+@click.option("-r", "--release", is_flag=True, help="Release mode")
+def create_build_req(uni, message, dev, test, release):
     """
     创建构建请求
     """
     try:
         setup_logging(True, "创建构建请求")
-        parser = argparse.ArgumentParser(
-            description="Load environment variables from a specified .env file and execute the program."
-        )
-        # 配置 UniApp 项目地址
-        parser.add_argument("-u", "--uni", type=str, help="Path to the uniapp project root")
-        # 提交消息参数，配置此参数时，通过cli模式运行，不需要用户确认
-        parser.add_argument("-m", "--message", type=str, help="Commit message")
-        # 构建模式参数
-        parser.add_argument("-d", "--dev", action="store_true", help="Dev mode")
-        parser.add_argument("-t", "--test", action="store_true", help="Test mode")
-        parser.add_argument("-r", "--release", action="store_true", help="Release mode")
-        args = parser.parse_args()
 
         env_file: Path = Path.cwd() / ".env"
         if not env_file.exists():
@@ -60,28 +59,28 @@ def create_build_req():
 
         # 默认打包模式为dev
         req_mode = "dev"
-        if args.dev:
+        if dev:
             req_mode = "dev"
-        if args.test:
+        if test:
             req_mode = "test"
-        if args.release:
+        if release:
             req_mode = "release"
 
         # 没有指定message，说明执行模式是ui模式
-        commit_message = args.message
+        commit_message = message
 
         if commit_message:
             config.work_mode = "cli"
         else:
             config.work_mode = "ui"
         # 如果指定了UniApp项目目录（即--uni ${projectDir}），则通过查询后台配置来进行项目配置
-        if not args.uni:
+        if not uni:
             logging.error("没有执行UniApp项目路径，请追加 `--uni ${projectDir}`")
             return 1
 
         # 扫描uni项目，获取项目配置。此操作同时会赋值config.DISTRIBUTION_PATH
         try:
-            env_vars, third_party_configs = scan_uni_project(Path(args.uni), Path.cwd())
+            env_vars, third_party_configs = scan_uni_project(Path(uni), Path.cwd())
         except Exception as e:
             logging.exception(f"扫描UniApp项目失败，请检查UniApp项目地址是否正确，错误信息：{e}")
             return 1

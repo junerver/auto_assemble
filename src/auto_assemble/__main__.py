@@ -2,13 +2,13 @@
 Auto Assemble 命令行入口
 """
 
-import argparse
 import logging
 import os
 import sys
 import textwrap
 from pathlib import Path
 
+import click
 from dotenv import load_dotenv
 
 from auto_assemble.auto_flow import auto_flow
@@ -17,23 +17,21 @@ from common.config import config
 from common.err_code import unified_error_code
 
 
-def main():
+@click.command()
+@click.option("--env", type=str, default=None, help="Path to the .env file")
+@click.option("--fn", type=str, default=None, help="function name")
+@click.option("--task", type=str, default=None, help="Task id: prod_name,task_dir")
+def main(env: str, fn: str, task: str):
     """
     主函数，用于执行命令行入口
+
+    Params:
+      - env: 指定.env文件路径
+      - fn: 指定执行的功能序号
+      - task: 任务id，由`打包项目,请求的任务`目录拼接而成
     """
     try:
-        parser = argparse.ArgumentParser(
-            description="Load environment variables from a specified .env file and execute the program."
-        )
-        # 指定.env文件路径
-        parser.add_argument("--env", type=str, help="Path to the .env file")
-        # 指定执行的功能序号
-        parser.add_argument("--fn", type=str, help="function name")
-        # task id，任务id，由`打包项目,请求的任务`目录拼接而成
-        parser.add_argument("--task", type=str, help="Task id: prod_name,task_dir")
-        args = parser.parse_args()
-        env_file: Path = Path(args.env) if args.env else Path.cwd() / ".env"
-        fn = args.fn if args.fn else None
+        env_file: Path = Path(env) if env else Path.cwd() / ".env"
         if fn:
             select_func = fn
             config.work_mode = "cli"
@@ -71,7 +69,7 @@ def main():
         result = 0
         if select_func == "1":
             # 从分发仓库拉取资源进行打包
-            result = auto_flow(task_id=args.task if args.task else None)
+            result = auto_flow(task_id=task if task else None)
         else:
             print("输入错误，请重新输入。")
 
