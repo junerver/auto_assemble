@@ -19,7 +19,7 @@ def mock_request_body(author: str, prod_name: str, task: str, commit_message: st
         prod_name: 项目标识
         task: 任务时间戳
         commit_message: 提交信息
-        md5: apk 文件的md5
+        md5: apk 文件的md5，当不传递该字段时构建cbr请求，传递时构建auto-assemble响应请求
 
     Returns:
 

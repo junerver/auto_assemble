@@ -44,16 +44,8 @@
 
 ### 启动服务
 
-开发环境启动服务：
-
 ```bash
 uv run webhook
-```
-
-生产环境启动服务：
-
-```bash
-python -m waitress --port=5005 --host=0.0.0.0 webhook.__main__:app
 ```
 
 ### 配置 hook
@@ -68,12 +60,16 @@ http://{host}:{port}/webhook
 
 ### 模块说明
 
-- `auto_assemble` 自动构建模块
+- `auto_assemble` 自动构建工具模块
 - `cbr` 构建请求工具模块
+- `common` 公共模块
+- `fork_task` 派生任务工具模块
+- `manager_client` 构建通知客户端（监听服务器构建事件）
 - `webhook` 构建系统后台，提供hook钩子、管理后台的api等
-- `manager_client` 构建通知客户端
 
 ### 环境变量说明
+
+#### 服务端环境变量
 
 需要在 `webhook` 模块下创建 `.env` 文件，指向分发仓库、基座工程仓库
 
@@ -90,7 +86,27 @@ FLASK_DEBUG=true
 PORT=5005
 # 管理后台接口地址
 SERVER_HOST_URL=http://localhost:5005
+
+# 混淆程度
+OBFUSCATOR_PRESET=low
+# api测试模式
+API_TEST=false
+# 是否基于GitLab作为文件中转服务
+BASE_ON_GITLAB=true
 ```
+
+
+
+#### cbr客户端环境变量
+
+```bash
+# 服务器配置
+SERVER_HOST_URL=http://192.168.189.243:5005
+# cbr 工作模式，支持 repo、post 两种
+CBR_MODE=post
+```
+
+当 `CBR_MODE` 设置为 `post` 时，cbr 客户端通过接口提交构建请求到 webhook 服务器，文件 commit、push 都发生在 webhook 服务端，客户端本地不再操作 git 仓库。
 
 ### 数据库说明
 
@@ -101,6 +117,14 @@ SERVER_HOST_URL=http://localhost:5005
 - third_party_dict **第三方配置字典**，第三方厂商的配置项字典
 - webhook_requests **钩子请求表**，临时存储webhook的请求内容，方便构建失败时重试
 - fork_task **派生任务表**，记录派生操作
+
+
+
+## 工作流程介绍
+
+
+
+
 
 ## Docker部署说明
 
