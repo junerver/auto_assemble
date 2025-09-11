@@ -124,7 +124,22 @@ CBR_MODE=post
 
 
 
+## 脚本使用介绍
 
+项目混淆输出
+
+```bash
+python  .\script\release_module_pyarmor.py
+```
+
+
+
+构建客户端可执行程序：
+
+```bash
+python .\script\release_module.py -m cbr -e create_build_req
+python .\script\release_module.py -m manager_client -e manager-client
+```
 
 ## Docker部署说明
 

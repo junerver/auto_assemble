@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "auto_assemble"
 version = "0.5.2"
 description = "自动化打包工具"
-authors = [
-    { name = "Junerver", email = "junerver@gmail.com" }
-]
+authors = [{ name = "Junerver", email = "junerver@gmail.com" }]
 dependencies = [
     "pyyaml>=6.0.2",
     "patool>=4.0.0",
@@ -52,5 +50,4 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 line_length = 100
-multi_line_output = 3 
-
+multi_line_output = 3
