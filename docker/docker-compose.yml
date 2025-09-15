@@ -1,5 +1,6 @@
 services:
   webhook:
+    user: "1000:1000"
     image: auto_assemble-webhook:fast_api
     container_name: auto_assemble_webhook
     restart: unless-stopped
@@ -61,5 +62,5 @@ volumes:
     name: auto_assemble_git_repo_uni_base
   sign_file_cache:
     name: auto_assemble_sign_file_cache
-  file_saver :
-      name: auto_assemble_file_saver
+  file_saver:
+    name: auto_assemble_file_saver
