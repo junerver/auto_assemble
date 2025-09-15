@@ -29,6 +29,13 @@ ENV FLASK_APP=webhook/__main__.py \
     FLASK_ENV=production \
     GRADLE_USER_HOME=/home/appuser/.gradle
 
+# 在切换用户前创建卷目录并设置权限
+RUN mkdir -p /app/sign /app/file_saver && \
+    chown -R appuser:appuser /app/sign /app/file_saver
+
+# 创建卷挂载点
+VOLUME ["/app/sign", "/app/file_saver"]
+
 # 删除文件中的回车符并设置权限
 RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && \
     sed -i 's/\r$//' /app/cleanup.sh && \
