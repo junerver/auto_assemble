@@ -83,7 +83,11 @@ def run_pyinstaller(version: str, module_name: str, exe_name: str = None) -> str
     if exe_name is None:
         exe_name = f"{module_name}({version_str})"
     cmd = [
-        "pyinstaller",
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "PyInstaller",
         "--clean",
         "--onefile",
         f"--name={exe_name}",

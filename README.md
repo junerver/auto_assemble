@@ -39,8 +39,23 @@
 3. 同步项目
 
    ```bash
+   # 仅服务端
    uv sync
+   # 客户端+服务端
+   uv sync --extra dev
    ```
+
+4. 打包客户端
+
+   ```bash
+   uv run .\script\release_module.py -m cbr -e create_build_req
+   ```
+
+5. 
+
+
+
+
 
 ### 启动服务
 

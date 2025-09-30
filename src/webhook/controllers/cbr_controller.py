@@ -85,6 +85,7 @@ def cbr_worker(
         400: {"description": "CBR请求提内容校验不成功"},
         423: {"description": "CBR任务已存在"},
         404: {"description": "指向的项目不存在"},
+        500: {"description": "服务器保存文件失败"},
     },
 )
 async def create_build_request(
