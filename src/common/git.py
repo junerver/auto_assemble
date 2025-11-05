@@ -239,7 +239,7 @@ def git_reset_and_clean(repo_path: str, is_lfs: bool = False) -> bool:
         return False
 
 
-def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -> bool:
+def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False, max_attempts: int = 2) -> bool:
     """
     检查Git项目分支状态并尝试切换到目标分支，需要对基座工程进行远程拉取，保证使用的分支是最新的
 
@@ -258,123 +258,178 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
         repo_path: Git项目路径
         target_branch: 指定的工作分支，如果为空，则使用config.PROD_BRANCH
         is_lfs: 是否为LFS仓库，默认False
+        max_attempts: 最大尝试次数，默认2次
     Returns:
         bool: 是否在目标分支或可以安全切换到目标分支
     """
-    try:
-        logging.info(f"开始检查Git分支: {repo_path}/{target_branch}")
+    for attempt in range(max_attempts):
+        try:
+            logging.info(f"开始检查Git分支: {repo_path}/{target_branch} (尝试 {attempt + 1}/{max_attempts})")
 
-        # 1. 获取远程更新
-        if not _git_fetch_branch(repo_path):
-            return False
+            # 1. 获取远程更新
+            if not _git_fetch_branch(repo_path):
+                if attempt < max_attempts - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                    import time
 
-        if is_lfs:
-            # LFS文件fetch
-            lfs_fetch = subprocess.run(
-                ["git", "lfs", "fetch", "--all"],
+                    time.sleep(2**attempt)
+                    continue
+                return False
+
+            if is_lfs:
+                # LFS文件fetch
+                lfs_fetch = subprocess.run(
+                    ["git", "lfs", "fetch", "--all"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    cwd=repo_path,
+                    timeout=120,  # 增加超时时间到120秒
+                )
+                if lfs_fetch.returncode != 0:
+                    logging.error(f"{repo_path} Git LFS fetch失败: {lfs_fetch.stderr}")
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
+                    return False
+                logging.info(f"{repo_path} Git LFS fetch成功")
+
+            # 2. 检查当前分支与远程分支的差异
+            diff_proc = subprocess.run(
+                ["git", "diff", "HEAD", "origin/HEAD"],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 cwd=repo_path,
-                timeout=30,
+                timeout=60,  # 增加超时时间
             )
-            if lfs_fetch.returncode != 0:
-                logging.error(f"{repo_path} Git LFS fetch失败: {lfs_fetch.stderr}")
+            if diff_proc.returncode != 0:
+                logging.error(f"{repo_path} 检查分支差异失败: {diff_proc.stderr}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                    import time
+
+                    time.sleep(2**attempt)
+                    continue
                 return False
-            logging.info(f"{repo_path} Git LFS fetch成功")
 
-        # 2. 检查当前分支与远程分支的差异
-        diff_proc = subprocess.run(
-            ["git", "diff", "HEAD", "origin/HEAD"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if diff_proc.returncode != 0:
-            logging.error(f"{repo_path} 检查分支差异失败: {diff_proc.stderr}")
-            return False
+            # 3. 如果有差异，尝试安全地拉取更新
+            if diff_proc.stdout.strip():
+                # 检查是否有未提交的更改
+                status_proc = subprocess.run(
+                    ["git", "status", "--porcelain"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    cwd=repo_path,
+                    timeout=60,
+                )
+                if status_proc.returncode != 0:
+                    logging.error(f"{repo_path} 检查工作区状态失败: {status_proc.stderr}")
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
 
-        # 3. 如果有差异，尝试安全地拉取更新
-        if diff_proc.stdout.strip():
-            # 检查是否有未提交的更改
+                        time.sleep(2**attempt)
+                        continue
+                    return False
+
+                if status_proc.stdout.strip():
+                    logging.error(
+                        f"{repo_path} 存在未提交的更改，无法安全拉取远程更新, `{status_proc.stdout}`，准备重置并清理"
+                    )
+                    # 重置并清理
+                    if not git_reset_and_clean(repo_path):
+                        if attempt < max_attempts - 1:
+                            logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                            import time
+
+                            time.sleep(2**attempt)
+                            continue
+                        return False
+
+                # 尝试拉取更新
+                pull_proc = subprocess.run(
+                    ["git", "pull", "origin"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    cwd=repo_path,
+                    timeout=90,
+                )
+                if pull_proc.returncode != 0:
+                    logging.error(f"{repo_path} 拉取远程更新失败: {pull_proc.stderr}")
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
+                    return False
+
+                logging.info(f"{repo_path} 成功拉取远程更新")
+
+            # 4. 获取当前分支
+            current_branch_proc = subprocess.run(
+                ["git", "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=60,  # 增加超时时间
+            )
+            if current_branch_proc.returncode != 0:
+                logging.error(f"{repo_path} 获取当前分支失败: {current_branch_proc.stderr}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                    import time
+
+                    time.sleep(2**attempt)
+                    continue
+                return False
+
+            current_branch = current_branch_proc.stdout.strip()
+            original_branch = current_branch  # 保存原始分支状态
+            logging.info(f"当前分支: {current_branch}")
+
+            # 5. 如果已经在目标分支，直接返回True
+            if current_branch == target_branch:
+                logging.info(f"已在指定分支 {target_branch} 上")
+                return True
+            logging.info(f"开始准备切换到目标分支: {target_branch}")
+            # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）
             status_proc = subprocess.run(
                 ["git", "status", "--porcelain"],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
                 cwd=repo_path,
-                timeout=30,
+                timeout=60,
             )
             if status_proc.returncode != 0:
                 logging.error(f"{repo_path} 检查工作区状态失败: {status_proc.stderr}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                    import time
+
+                    time.sleep(2**attempt)
+                    continue
                 return False
 
-            if status_proc.stdout.strip():
-                logging.error(
-                    f"{repo_path} 存在未提交的更改，无法安全拉取远程更新, `{status_proc.stdout}`，准备重置并清理"
-                )
-                # 重置并清理
+            if out := status_proc.stdout.strip():
+                logging.warn(f"{repo_path} 存在未提交的更改，无法安全切换分支: {out}，丢弃")
                 if not git_reset_and_clean(repo_path):
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
                     return False
 
-            # 尝试拉取更新
-            pull_proc = subprocess.run(
-                ["git", "pull", "origin"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                cwd=repo_path,
-                timeout=30,
-            )
-            if pull_proc.returncode != 0:
-                logging.error(f"{repo_path} 拉取远程更新失败: {pull_proc.stderr}")
-                return False
-
-            logging.info(f"{repo_path} 成功拉取远程更新")
-
-        # 4. 获取当前分支
-        current_branch_proc = subprocess.run(
-            ["git", "branch", "--show-current"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if current_branch_proc.returncode != 0:
-            logging.error(f"{repo_path} 获取当前分支失败: {current_branch_proc.stderr}")
-            return False
-
-        current_branch = current_branch_proc.stdout.strip()
-        original_branch = current_branch  # 保存原始分支状态
-        logging.info(f"当前分支: {current_branch}")
-
-        # 5. 如果已经在目标分支，直接返回True
-        if current_branch == target_branch:
-            logging.info(f"已在指定分支 {target_branch} 上")
-            return True
-        logging.info(f"开始准备切换到目标分支: {target_branch}")
-        # 6. 检查是否有未提交的更改（安全切换必须确保工作区干净）
-        status_proc = subprocess.run(
-            ["git", "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if status_proc.returncode != 0:
-            logging.error(f"{repo_path} 检查工作区状态失败: {status_proc.stderr}")
-            return False
-
-        if out := status_proc.stdout.strip():
-            logging.warn(f"{repo_path} 存在未提交的更改，无法安全切换分支: {out}，丢弃")
-            if not git_reset_and_clean(repo_path):
-                return False
-
-        try:
             # 7. 检查分支是否存在（包括本地和远程）
             branches_proc = subprocess.run(
                 ["git", "branch", "-a"],
@@ -382,10 +437,16 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                 text=True,
                 encoding="utf-8",
                 cwd=repo_path,
-                timeout=30,
+                timeout=60,  # 增加超时时间
             )
             if branches_proc.returncode != 0:
                 logging.error(f"{repo_path} 获取分支列表失败: {branches_proc.stderr}")
+                if attempt < max_attempts - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                    import time
+
+                    time.sleep(2**attempt)
+                    continue
                 return False
 
             # 更精确的分支匹配
@@ -396,6 +457,12 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
             if local_branch_exists:
                 # 8. 如果本地分支存在，直接切换
                 if not _git_checkout_branch(repo_path, target_branch):
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
                     return False
 
                 logging.info(f"{repo_path} 成功切换到目标分支: {target_branch}")
@@ -409,6 +476,12 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
                     original_branch=f"origin/{target_branch}",
                     create_new=True,
                 ):
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
                     return False
 
                 logging.info(f"{repo_path} 成功创建并切换到新分支: {target_branch}")
@@ -419,25 +492,50 @@ def check_git_branch(repo_path: str, target_branch: str, is_lfs: bool = False) -
 
                 # 从master创建新分支
                 if not _git_checkout_branch(repo_path, target_branch, original_branch="master", create_new=True):
+                    if attempt < max_attempts - 1:
+                        logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                        import time
+
+                        time.sleep(2**attempt)
+                        continue
                     return False
 
                 logging.info(f"{repo_path} 成功从master创建并切换到新分支: {target_branch}")
                 return True
 
         except subprocess.TimeoutExpired as e:
-            logging.error(f"{repo_path} Git命令执行超时: {e}")
+            logging.error(f"{repo_path} Git命令执行超时 (尝试 {attempt + 1}/{max_attempts}): {e}")
+            # 清理可能残留的锁文件
+            clear_git_locks(repo_path)
             # 尝试切回原分支
-            _git_checkout_branch(repo_path, original_branch)
+            try:
+                _git_checkout_branch(repo_path, original_branch if "original_branch" in locals() else "master")
+            except Exception:
+                pass
+            if attempt < max_attempts - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
             return False
         except Exception as e:
-            logging.exception(f"{repo_path} 分支操作过程中发生错误: {e}")
+            logging.exception(f"{repo_path} 分支操作过程中发生错误 (尝试 {attempt + 1}/{max_attempts}): {e}")
             # 尝试切回原分支
-            _git_checkout_branch(repo_path, original_branch)
+            try:
+                _git_checkout_branch(repo_path, original_branch if "original_branch" in locals() else "master")
+            except Exception:
+                pass
+            if attempt < max_attempts - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试整个流程...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
             return False
 
-    except Exception as e:
-        logging.exception(f"{repo_path} 检查Git分支时发生错误: {e}")
-        return False
+    logging.error(f"{repo_path} 检查Git分支失败，已达到最大尝试次数 {max_attempts}")
+    return False
 
 
 def _git_checkout_branch(
@@ -445,6 +543,8 @@ def _git_checkout_branch(
     target_branch: str,
     original_branch: str = None,
     create_new: bool = False,
+    max_retries: int = 3,
+    timeout: int = 120,
 ):
     """
     切换到目标分支，如果目标分支不存在，则创建新分支
@@ -453,60 +553,123 @@ def _git_checkout_branch(
         target_branch: 目标分支
         original_branch: 原始分支
         create_new: 是否创建新分支，默认False
+        max_retries: 最大重试次数，默认3次
+        timeout: 超时时间（秒），默认120秒
     """
-    try:
-        logging.info(f"开始切换到目标分支: {repo_path}/{target_branch}")
-        cmd = ["git", "checkout"]
-        if create_new:
-            cmd.append("-b")
-        cmd.append(target_branch)
-        if original_branch is not None:
-            cmd.append(original_branch)
-        error_code = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if error_code.returncode != 0:
-            logging.error(f"{repo_path} 切换到目标分支失败: {error_code.stderr}")
+    for attempt in range(max_retries):
+        try:
+            logging.info(f"开始切换到目标分支: {repo_path}/{target_branch} (尝试 {attempt + 1}/{max_retries})")
+            cmd = ["git", "checkout"]
+            if create_new:
+                cmd.append("-b")
+            cmd.append(target_branch)
+            if original_branch is not None:
+                cmd.append(original_branch)
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                logging.error(f"{repo_path} 切换到目标分支失败: {result.stderr}")
+                if attempt < max_retries - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试...")
+                    import time
+
+                    time.sleep(2**attempt)  # 指数退避
+                    continue
+                return False
+
+            logging.info(f"{repo_path} 成功切换到目标分支: {target_branch}")
+            return True
+
+        except subprocess.TimeoutExpired as e:
+            logging.error(f"{repo_path} 切换分支超时 (超时时间: {timeout}秒): {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
+            logging.error(f"{repo_path} 切换分支超时，已达到最大重试次数 {max_retries}")
             return False
-        return True
-    except Exception as e:
-        logging.exception(f"{repo_path} 切换到目标分支失败: {e}")
-        return False
+        except Exception as e:
+            logging.exception(f"{repo_path} 切换到目标分支失败: {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
+            return False
+
+    return False
 
 
-def _git_fetch_branch(repo_path: str, branch: str = None):
+def _git_fetch_branch(repo_path: str, branch: str = None, max_retries: int = 2, timeout: int = 90):
     """
     获取指定分支的最新提交
     Args:
         repo_path: Git仓库路径
         branch: 指定分支，如果为空，则获取所有分支
+        max_retries: 最大重试次数，默认2次
+        timeout: 超时时间（秒），默认90秒
     Returns:
         bool: 获取指定分支最新提交是否成功
     """
-    try:
-        cmd = ["git", "fetch", "origin"]
-        if branch is not None:
-            cmd.append(branch)
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            cwd=repo_path,
-            timeout=30,
-        )
-        if result.returncode != 0:
-            logging.error(f"{repo_path} 获取指定分支最新提交失败: {result.stderr}")
+    for attempt in range(max_retries):
+        try:
+            cmd = ["git", "fetch", "origin"]
+            if branch is not None:
+                cmd.append(branch)
+
+            logging.info(f"获取分支更新: {repo_path} (尝试 {attempt + 1}/{max_retries})")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                cwd=repo_path,
+                timeout=timeout,
+            )
+            if result.returncode != 0:
+                logging.error(f"{repo_path} 获取指定分支最新提交失败: {result.stderr}")
+                if attempt < max_retries - 1:
+                    logging.info(f"将在 {2**attempt} 秒后重试...")
+                    import time
+
+                    time.sleep(2**attempt)
+                    continue
+                return False
+
+            logging.info(f"{repo_path} 成功获取分支更新")
+            return True
+
+        except subprocess.TimeoutExpired as e:
+            logging.error(f"{repo_path} fetch 分支超时 (超时时间: {timeout}秒): {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
+            logging.error(f"{repo_path} fetch 分支超时，已达到最大重试次数 {max_retries}")
             return False
-        return True
-    except Exception as e:
-        logging.exception(f"{repo_path} 获取指定分支最新提交失败: {e}")
-        return False
+        except Exception as e:
+            logging.exception(f"{repo_path} 获取指定分支最新提交失败: {e}")
+            if attempt < max_retries - 1:
+                logging.info(f"将在 {2**attempt} 秒后重试...")
+                import time
+
+                time.sleep(2**attempt)
+                continue
+            return False
+
+    return False
 
 
 def get_untracked_files(repo_path: str) -> list[str]:
@@ -563,8 +726,20 @@ def git_add(repo_path: str) -> bool:
     try:
         result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=repo_path)
         if result.returncode != 0:
-            logging.error(f"{repo_path} git add 执行失败: {result.stderr}")
-            return False
+            # 如果是因为锁文件问题，先清理锁文件再重试
+            if "Unable to create" in result.stderr and "index.lock" in result.stderr:
+                logging.warning(f"{repo_path} 检测到锁文件问题，尝试清理锁文件...")
+                clear_git_locks(repo_path)
+                # 重试一次
+                result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=repo_path)
+                if result.returncode != 0:
+                    logging.error(f"{repo_path} git add 清理锁文件后重试仍然失败: {result.stderr}")
+                    return False
+                else:
+                    logging.info(f"{repo_path} git add 清理锁文件后重试成功")
+            else:
+                logging.error(f"{repo_path} git add 执行失败: {result.stderr}")
+                return False
         logging.info(f"{repo_path} git add 执行成功")
         return True
     except Exception as e:
@@ -600,8 +775,27 @@ def git_commit(commit_message: str, repo_path: str, author: str = None) -> bool:
             errors="replace",  # ✅ 可选，避免报错，替换非法字符
         )
         if result.returncode != 0:
-            logging.error(f"{repo_path} git commit 执行失败: {result.stderr}")
-            return False
+            # 如果是因为锁文件问题，先清理锁文件再重试
+            if "Unable to create" in result.stderr and "index.lock" in result.stderr:
+                logging.warning(f"{repo_path} git commit 检测到锁文件问题，尝试清理锁文件...")
+                clear_git_locks(repo_path)
+                # 重试一次
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    cwd=repo_path,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+                if result.returncode != 0:
+                    logging.error(f"{repo_path} git commit 清理锁文件后重试仍然失败: {result.stderr}")
+                    return False
+                else:
+                    logging.info(f"{repo_path} git commit 清理锁文件后重试成功")
+            else:
+                logging.error(f"{repo_path} git commit 执行失败: {result.stderr}")
+                return False
         logging.info(f"{repo_path} git commit 执行成功，提交信息: {commit_message}")
         return True
     except Exception as e:
@@ -822,6 +1016,63 @@ def parse_git_author(author: str) -> tuple[str, str]:
     return author.split("<")[0].strip(), author.split("<")[1].split(">")[0].strip()
 
 
+def clear_git_locks(repo_path: str) -> bool:
+    """
+    清理Git仓库中的锁文件，解决因进程中断导致的锁文件残留问题
+    Args:
+        repo_path: Git仓库路径
+    Returns:
+        bool: 清理是否成功
+    """
+    try:
+        git_dir = Path(repo_path) / ".git"
+        if not git_dir.exists():
+            return True
+
+        cleared_files = []
+
+        # 清理常见的锁文件
+        lock_files = [
+            "index.lock",
+            "HEAD.lock",
+            "refs/heads/master.lock",
+            "refs/heads/main.lock",
+            "refs/stash.lock",
+            "refs/remotes/origin/HEAD.lock",
+        ]
+
+        for lock_file in lock_files:
+            lock_path = git_dir / lock_file
+            if lock_path.exists():
+                try:
+                    lock_path.unlink()
+                    cleared_files.append(str(lock_file))
+                    logging.info(f"{repo_path} 清理锁文件: {lock_file}")
+                except Exception as e:
+                    logging.error(f"{repo_path} 清理锁文件失败 {lock_file}: {e}")
+
+        # 查找并清理其他可能的锁文件
+        for lock_file in git_dir.rglob("*.lock"):
+            if lock_file.is_file():
+                try:
+                    lock_file.unlink()
+                    cleared_files.append(str(lock_file.relative_to(git_dir)))
+                    logging.info(f"{repo_path} 清理锁文件: {lock_file.relative_to(git_dir)}")
+                except Exception as e:
+                    logging.error(f"{repo_path} 清理锁文件失败 {lock_file}: {e}")
+
+        if cleared_files:
+            logging.info(f"{repo_path} 总共清理了 {len(cleared_files)} 个锁文件: {cleared_files}")
+        else:
+            logging.debug(f"{repo_path} 没有发现需要清理的锁文件")
+
+        return True
+
+    except Exception as e:
+        logging.exception(f"{repo_path} 清理Git锁文件时发生错误: {e}")
+        return False
+
+
 def check_git_lfs_installed(repo_path: str) -> bool:
     """
     检查git lfs是否安装，检查.git/hooks目录下的pre-push文件是否存在git-lfs
@@ -851,4 +1102,5 @@ __all__ = [
     "get_git_author_str",
     "parse_git_author",
     "check_git_lfs_installed",
+    "clear_git_locks",
 ]
