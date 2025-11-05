@@ -8,12 +8,13 @@ from pathlib import Path
 from typing import Optional, Union
 
 import requests
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException, JSONDecodeError
+from urllib3.util.retry import Retry
 
 from common.config import config, BuildMode
 from common.gitlab import FileType
 from common.types import TaskInfo, BuildMetadata, ThirdPartyConfig, ProjectConfig, SignConfig
-
-from requests.exceptions import RequestException, JSONDecodeError
 
 
 def fetch_task_info(
@@ -293,9 +294,17 @@ def submit_cbr_form(
     readme_path: Optional[Union[str, Path]],
     res_zip_path: Optional[Union[str, Path]],
     timeout: int = 30,
+    max_retries: int = 3,
+    backoff_factor: float = 0.3,
 ):
     """
     封装的 /api/cbr 接口请求函数，支持 pathlib.Path 类型的文件路径
+
+    优化特性：
+    - 使用上下文管理器确保文件正确关闭
+    - 添加重试机制处理网络连接问题
+    - 改进错误处理和日志记录
+    - 优化连接管理和超时设置
 
     Args:
         prod_name: 产品名称
@@ -304,6 +313,8 @@ def submit_cbr_form(
         readme_path: README.md 文件路径（str 或 Path 对象）
         res_zip_path: 资源 zip 文件路径（str 或 Path 对象）
         timeout: 请求超时时间（秒），默认为 30
+        max_retries: 最大重试次数，默认为 3
+        backoff_factor: 重试间隔因子，默认为 0.3
 
     Returns:
         dict: 接口返回的 JSON 数据
@@ -326,31 +337,104 @@ def submit_cbr_form(
     # 准备表单数据
     data = {"prod_name": prod_name, "author": author, "commit_message": commit_message}
 
-    # 准备文件数据
-    files = {}
-    if readme_path:
-        files["readme"] = ("README.md", open(readme_path, "rb"), "text/markdown")
-    if res_zip_path:
-        files["res_zip"] = (res_zip_path.name, open(res_zip_path, "rb"), "application/zip")
+    # 配置重试策略
+    retry_strategy = Retry(
+        total=max_retries,
+        status_forcelist=[429, 500, 502, 503, 504],
+        backoff_factor=backoff_factor,
+        allowed_methods=["POST"],
+    )
 
-    # 构造请求头
+    # 创建会话并配置适配器
+    session = requests.Session()
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    # 构造请求头 - 简化设置，避免与multipart处理冲突
     headers = {
-        "User-Agent": "Python-Requests",
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     }
 
+    # 使用上下文管理器确保文件正确关闭
+    files = {}
+    file_handles = []
+
     try:
-        # 发送 POST 请求
-        response = requests.post(
-            f"{config.SERVER_HOST_URL}/api/cbr", data=data, files=files, headers=headers, timeout=timeout
+        # 准备文件数据 - 使用更通用的MIME类型
+        if readme_path:
+            readme_file = open(readme_path, "rb")
+            file_handles.append(readme_file)
+            files["readme"] = ("README.md", readme_file, "text/plain")
+
+        if res_zip_path:
+            zip_file = open(res_zip_path, "rb")
+            file_handles.append(zip_file)
+            files["res_zip"] = (res_zip_path.name, zip_file, "application/octet-stream")
+
+        # 发送 POST 请求 - 启用流式传输
+        logging.info(f"正在提交 CBR 请求: {prod_name}")
+
+        # 记录文件大小信息
+        if readme_path:
+            readme_size = readme_path.stat().st_size
+            logging.info(f"README 文件大小: {readme_size} 字节")
+        if res_zip_path:
+            zip_size = res_zip_path.stat().st_size
+            logging.info(f"ZIP 文件大小: {zip_size} 字节")
+
+        response = session.post(
+            f"{config.SERVER_HOST_URL}/api/cbr",
+            data=data,
+            files=files,
+            headers=headers,
+            timeout=timeout,
+            stream=True,  # 启用流式传输
         )
         response.raise_for_status()  # 检查 HTTP 状态码
-        return response.json()  # 假设返回 JSON 数据
+
+        result = response.json()
+        logging.info(f"CBR 请求提交成功: {prod_name}")
+        return result
+
+    except requests.exceptions.ConnectionError as e:
+        error_msg = f"连接错误，请检查网络连接和服务器状态: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
+
+    except requests.exceptions.Timeout as e:
+        error_msg = f"请求超时，请尝试增加超时时间或检查网络状况: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
+
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"HTTP 错误 {e.response.status_code}: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
 
     except requests.RequestException as e:
-        raise Exception(f"请求失败: {str(e)}")
+        error_msg = f"请求失败: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
+
+    except JSONDecodeError as e:
+        error_msg = f"响应数据解析失败: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
+
+    finally:
+        # 确保所有文件句柄都被正确关闭
+        for file_handle in file_handles:
+            try:
+                file_handle.close()
+            except Exception as e:
+                logging.warning(f"关闭文件句柄时出现警告: {str(e)}")
+
+        # 关闭会话
+        try:
+            session.close()
+        except Exception as e:
+            logging.warning(f"关闭会话时出现警告: {str(e)}")
 
 
 def download_task_file(task_id: str, dest_dir: Path, file_type: FileType) -> Path:
