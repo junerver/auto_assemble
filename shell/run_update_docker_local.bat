@@ -5,6 +5,16 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+:: 获取脚本所在目录和项目根目录
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+
+:: 切换到项目根目录，确保所有操作都在正确位置执行
+cd /d "%PROJECT_ROOT%"
+
+:: 显示当前工作目录用于调试
+echo Current working directory: %CD%
+
 :: 检查Docker是否运行
 docker info >nul 2>&1
 if %errorlevel% neq 0 (
@@ -43,11 +53,10 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-
-:: 在当前目录下更新镜像
-echo 开始更新镜像...
-docker-compose down
-docker-compose up -d
+:: 在项目根目录下更新镜像
+echo Start updating containers...
+docker-compose -f docker/docker-compose.yml down
+docker-compose -f docker/docker-compose.yml up -d
 
 echo 更新完成！
 exit /b 0

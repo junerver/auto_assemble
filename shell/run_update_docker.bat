@@ -1,7 +1,19 @@
+:: 该脚本用于推送镜像到远程生产服务器
+
 @echo off
 :: 设置代码页为 UTF-8（如果需要支持 UTF-8 编码）
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+
+:: 获取脚本所在目录和项目根目录
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+
+:: 切换到项目根目录，确保所有操作都在正确位置执行
+cd /d "%PROJECT_ROOT%"
+
+:: 显示当前工作目录用于调试
+echo Current working directory: %CD%
 
 :: 检查Docker是否运行
 docker info >nul 2>&1
