@@ -51,11 +51,6 @@ class ManagerGUI:
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.sse_thread: Optional[threading.Thread] = None
 
-    def setup_appearance(self):
-        """设置应用外观"""
-        ctk.set_appearance_mode("dark")  # 暗色主题
-        ctk.set_default_color_theme("blue")  # 蓝色主题
-
     def create_gui(self):
         """创建 GUI 界面"""
         self.app = ctk.CTk()
@@ -98,6 +93,16 @@ class ManagerGUI:
 
         self.sse_thread = threading.Thread(target=run_sse, daemon=True)
         self.sse_thread.start()
+
+    def setup_appearance(self):
+        """设置应用外观"""
+        ctk.set_appearance_mode("dark")  # 暗色主题
+        ctk.set_default_color_theme("blue")  # 蓝色主题
+
+        # 设置窗口图标和样式
+        if self.app:
+            self.app.iconbitmap()  # 使用默认图标
+            self.app.configure(fg_color="#0a0a0a")  # 更深的背景色
 
     def show_statistics(self):
         """显示统计窗口"""

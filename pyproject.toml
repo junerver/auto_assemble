@@ -35,6 +35,8 @@ dev = [
     "aiohttp>=3.11.18",
     "customtkinter>=5.2.2",
     "pillow>=10.0.0",
+    "pywebview>=4.4.1",
+    "cefpython3>=66.0",
 ]
 
 [project.scripts]
