@@ -169,14 +169,23 @@ def cbr_by_post(commit_config: CommitRepoConfig):
         logging.info("用户取消推送")
         return 1
 
-    if not submit_cbr_form(
-        config.PROD_NAME,
-        config.current_author,
-        commit_message,
-        readme_path,
-        zip_file_path,
-    ):
+    try:
+        submit_cbr_form(
+            config.PROD_NAME,
+            config.current_author,
+            commit_message,
+            readme_path,
+            zip_file_path,
+        )
+        logging.info("构建请求提交成功")
+    except Exception as e:
         logging.error("提交cbr请求失败")
+        logging.error(f"错误详情: {str(e)}")
+        logging.error("可能的解决方案:")
+        logging.error("1. 检查网络连接是否稳定")
+        logging.error("2. 确认服务器地址是否正确")
+        logging.error("3. 稍后重试或联系管理员")
+        logging.error(f"服务器地址: {config.SERVER_HOST_URL}")
         return 1
 
     return 0

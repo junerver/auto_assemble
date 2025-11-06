@@ -292,7 +292,7 @@ def submit_cbr_form(
     commit_message: str,
     readme_path: Optional[Union[str, Path]],
     res_zip_path: Optional[Union[str, Path]],
-    timeout: int = 30,
+    timeout: int = 60,
 ):
     """
     封装的 /api/cbr 接口请求函数，支持 pathlib.Path 类型的文件路径
@@ -303,7 +303,7 @@ def submit_cbr_form(
         commit_message: 提交信息
         readme_path: README.md 文件路径（str 或 Path 对象）
         res_zip_path: 资源 zip 文件路径（str 或 Path 对象）
-        timeout: 请求超时时间（秒），默认为 30
+        timeout: 请求超时时间（秒），默认为 60
 
     Returns:
         dict: 接口返回的 JSON 数据
@@ -326,31 +326,50 @@ def submit_cbr_form(
     # 准备表单数据
     data = {"prod_name": prod_name, "author": author, "commit_message": commit_message}
 
-    # 准备文件数据
+    # 准备文件数据 - 修复文件句柄泄漏问题
     files = {}
-    if readme_path:
-        files["readme"] = ("README.md", open(readme_path, "rb"), "text/markdown")
-    if res_zip_path:
-        files["res_zip"] = (res_zip_path.name, open(res_zip_path, "rb"), "application/zip")
-
-    # 构造请求头
-    headers = {
-        "User-Agent": "Python-Requests",
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-    }
+    opened_files = []  # 跟踪打开的文件，确保正确关闭
 
     try:
-        # 发送 POST 请求
+        if readme_path:
+            readme_file = open(readme_path, "rb")
+            opened_files.append(readme_file)
+            files["readme"] = ("README.md", readme_file, "text/markdown")
+
+        if res_zip_path:
+            zip_file = open(res_zip_path, "rb")
+            opened_files.append(zip_file)
+            files["res_zip"] = (res_zip_path.name, zip_file, "application/zip")
+
+        # 简化请求头，避免兼容性问题
+        headers = {
+            "User-Agent": f"CBR-Client/1.0 (Python-{requests.__version__})",
+        }
+
+        # 发送 POST 请求，使用 (连接超时, 读取超时) 格式
         response = requests.post(
-            f"{config.SERVER_HOST_URL}/api/cbr", data=data, files=files, headers=headers, timeout=timeout
+            f"{config.SERVER_HOST_URL}/api/cbr",
+            data=data,
+            files=files,
+            headers=headers,
+            timeout=(30, timeout),  # 30秒连接超时，timeout秒读取超时
         )
         response.raise_for_status()  # 检查 HTTP 状态码
         return response.json()  # 假设返回 JSON 数据
 
+    except requests.exceptions.ConnectionError as e:
+        raise Exception(f"网络连接错误: {str(e)}")
+    except requests.exceptions.Timeout as e:
+        raise Exception(f"请求超时: {str(e)}")
     except requests.RequestException as e:
         raise Exception(f"请求失败: {str(e)}")
+    finally:
+        # 确保所有打开的文件都被正确关闭
+        for file in opened_files:
+            try:
+                file.close()
+            except Exception as close_error:
+                logging.warning(f"关闭文件时发生错误: {close_error}")
 
 
 def download_task_file(task_id: str, dest_dir: Path, file_type: FileType) -> Path:
