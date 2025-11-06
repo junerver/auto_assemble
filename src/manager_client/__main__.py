@@ -2,13 +2,14 @@
 Manager Client Main Module
 
 This module provides the main entry point for the manager client.
+Supports both GUI and CLI modes.
 """
 
 import asyncio
 import logging
 import sys
+import os
 
-from manager_client.client import EventManager
 from manager_client.config import SERVER_HOST_URL
 from manager_client.notifications import show_toast
 
@@ -28,8 +29,22 @@ def handle_toast(data: dict):
     show_toast(title, message)
 
 
-async def run_manager():
-    """运行管理器"""
+def run_gui_mode():
+    """运行 GUI 模式"""
+    try:
+        from manager_client.gui_main import main as gui_main
+
+        gui_main()
+    except ImportError as e:
+        logging.error(f"GUI 模式需要 customtkinter 依赖: {e}")
+        logging.error("请安装依赖: uv sync --extra dev")
+        sys.exit(1)
+
+
+async def run_cli_mode():
+    """运行 CLI 模式"""
+    from manager_client.client import EventManager
+
     manager = EventManager(SERVER_HOST_URL)
     manager.on("toast", handle_toast)
     manager.start()
@@ -48,13 +63,54 @@ def main():
     setup_logging()
     logging.info("Starting manager client")
 
+    # 检查是否有 GUI 环境和相关依赖
+    has_gui = True
     try:
-        asyncio.run(run_manager())
-    except KeyboardInterrupt:
-        logging.info("Manager client stopped by user")
-    except Exception as e:
-        logging.exception(f"Error running manager client: {e}")
-        sys.exit(1)
+        # 检查是否在支持的平台上
+        if sys.platform == "win32":
+            # Windows 平面，默认使用 GUI
+            pass
+        elif sys.platform.startswith("linux"):
+            # 检查是否有 DISPLAY 环境变量
+            if not os.environ.get("DISPLAY"):
+                has_gui = False
+        elif sys.platform == "darwin":
+            # macOS，支持 GUI
+            pass
+        else:
+            has_gui = False
+
+        # 尝试导入 customtkinter
+        if has_gui:
+            import importlib.util
+
+            if importlib.util.find_spec("customtkinter"):
+                pass
+            else:
+                has_gui = False
+    except ImportError:
+        has_gui = False
+
+    # 根据环境选择运行模式
+    if has_gui:
+        try:
+            logging.info("Starting in GUI mode")
+            run_gui_mode()
+        except Exception as e:
+            logging.error(f"GUI mode failed: {e}")
+            logging.info("Falling back to CLI mode")
+            try:
+                asyncio.run(run_cli_mode())
+            except Exception as cli_error:
+                logging.exception(f"CLI mode also failed: {cli_error}")
+                sys.exit(1)
+    else:
+        try:
+            logging.info("Starting in CLI mode")
+            asyncio.run(run_cli_mode())
+        except Exception as e:
+            logging.exception(f"Error running manager client: {e}")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -33,6 +33,8 @@ dev = [
     "pyinstaller-hooks-contrib>=2025.2",
     "win11toast>=0.35",
     "aiohttp>=3.11.18",
+    "customtkinter>=5.2.2",
+    "pillow>=10.0.0",
 ]
 
 [project.scripts]
