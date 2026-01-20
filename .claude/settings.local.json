@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker volume ls:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose ps:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

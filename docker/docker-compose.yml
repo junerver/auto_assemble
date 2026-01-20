@@ -45,6 +45,10 @@ services:
     image: auto_assemble-repo:latest
     container_name: auto_assemble_git_repo
     restart: unless-stopped
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
     volumes:
       - git_repo_distribution:/app/distribution
       - git_repo_uni_base:/app/uni-base
