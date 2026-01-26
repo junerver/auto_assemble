@@ -22,6 +22,7 @@ from webhook.controllers import (
     events_controller,
     fork_task_controller,
     metadata_controller,
+    obfuscate_controller,
     project_controller,
     task_controller,
     third_party_controller,
@@ -77,6 +78,7 @@ app.include_router(events_controller.router)
 app.include_router(fork_task_controller.router)
 app.include_router(maintain_controller.router)
 app.include_router(metadata_controller.router)
+app.include_router(obfuscate_controller.router)
 app.include_router(patch_controller.router)
 app.include_router(project_controller.router)
 app.include_router(task_controller.router)
